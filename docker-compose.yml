@@ -1,0 +1,127 @@
+# ERP Microservices - Docker Compose
+# Run: docker compose up -d
+# Each service runs independently with its own database
+
+services:
+  # PostgreSQL (shared in dev, separate in production)
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: erp
+      POSTGRES_PASSWORD: erp_dev_password
+      POSTGRES_DB: erp_gateway
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-dbs.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # API Gateway (port 3000)
+  gateway:
+    build:
+      context: .
+      dockerfile: apps/gateway/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_gateway
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
+      SALES_SERVICE_URL: http://sales:3001
+      INVENTORY_SERVICE_URL: http://inventory:3002
+      ACCOUNTING_SERVICE_URL: http://accounting:3003
+      HR_SERVICE_URL: http://hr:3004
+      PROCUREMENT_SERVICE_URL: http://procurement:3005
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Sales Service (port 3001)
+  sales:
+    build:
+      context: .
+      dockerfile: apps/sales/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_sales
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
+      GATEWAY_URL: http://gateway:3000
+      INVENTORY_SERVICE_URL: http://inventory:3002
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Inventory Service (port 3002)
+  inventory:
+    build:
+      context: .
+      dockerfile: apps/inventory/Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_inventory
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
+      GATEWAY_URL: http://gateway:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Accounting Service (port 3003)
+  accounting:
+    build:
+      context: .
+      dockerfile: apps/accounting/Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_accounting
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
+      GATEWAY_URL: http://gateway:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # HR Service (port 3004)
+  hr:
+    build:
+      context: .
+      dockerfile: apps/hr/Dockerfile
+    ports:
+      - "3004:3004"
+    environment:
+      DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_hr
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
+      GATEWAY_URL: http://gateway:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Procurement Service (port 3005)
+  procurement:
+    build:
+      context: .
+      dockerfile: apps/procurement/Dockerfile
+    ports:
+      - "3005:3005"
+    environment:
+      DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_procurement
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
+      GATEWAY_URL: http://gateway:3000
+      INVENTORY_SERVICE_URL: http://inventory:3002
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

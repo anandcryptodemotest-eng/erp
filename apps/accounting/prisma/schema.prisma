@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model ChartOfAccount {
+  id       String  @id @default(cuid())
+  tenantId String
+  code     String
+  name     String
+  type     String  // ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE
+  parentId String?
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent   ChartOfAccount?  @relation("Hierarchy", fields: [parentId], references: [id])
+  children ChartOfAccount[] @relation("Hierarchy")
+  lines    JournalEntryLine[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model JournalEntry {
+  id          String   @id @default(cuid())
+  tenantId    String
+  date        DateTime
+  reference   String?
+  description String?
+  isPosted    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lines JournalEntryLine[]
+
+  @@index([tenantId])
+}
+
+model JournalEntryLine {
+  id             String @id @default(cuid())
+  journalEntryId String
+  accountId      String
+  debit          Float  @default(0)
+  credit         Float  @default(0)
+  description    String?
+
+  entry   JournalEntry   @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  account ChartOfAccount @relation(fields: [accountId], references: [id])
+}
+
+model Invoice {
+  id         String   @id @default(cuid())
+  tenantId   String
+  number     String   @unique
+  type       String   // RECEIVABLE, PAYABLE
+  entityId   String?  // Customer or Vendor ID (from other services)
+  entityName String?
+  date       DateTime
+  dueDate    DateTime
+  subtotal   Float
+  tax        Float    @default(0)
+  total      Float
+  status     String   @default("DRAFT")
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  payments Payment[]
+
+  @@index([tenantId])
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  invoiceId String
+  amount    Float
+  method    String   // CASH, BANK_TRANSFER, CREDIT_CARD, CHECK, OTHER
+  reference String?
+  date      DateTime
+  createdAt DateTime @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+}

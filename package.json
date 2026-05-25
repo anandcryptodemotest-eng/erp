@@ -1,0 +1,27 @@
+{
+  "name": "erp",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "dev:gateway": "turbo dev --filter=@erp/gateway",
+    "dev:web": "turbo dev --filter=@erp/web",
+    "dev:sales": "turbo dev --filter=@erp/sales",
+    "dev:inventory": "turbo dev --filter=@erp/inventory",
+    "dev:accounting": "turbo dev --filter=@erp/accounting",
+    "dev:hr": "turbo dev --filter=@erp/hr",
+    "dev:procurement": "turbo dev --filter=@erp/procurement",
+    "db:generate": "turbo db:generate",
+    "db:push": "turbo db:push",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

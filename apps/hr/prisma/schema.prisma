@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Employee {
+  id         String   @id @default(cuid())
+  tenantId   String
+  employeeId String
+  firstName  String
+  lastName   String
+  email      String
+  phone      String?
+  department String
+  position   String
+  hireDate   DateTime
+  salary     Float
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  payroll PayrollRecord[]
+  leave   LeaveRequest[]
+
+  @@unique([tenantId, employeeId])
+  @@unique([tenantId, email])
+  @@index([tenantId])
+}
+
+model PayrollRecord {
+  id          String    @id @default(cuid())
+  tenantId    String
+  employeeId  String
+  period      String
+  basicSalary Float
+  allowances  Float     @default(0)
+  deductions  Float     @default(0)
+  netPay      Float
+  status      String    @default("DRAFT")
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([tenantId])
+}
+
+model LeaveRequest {
+  id         String   @id @default(cuid())
+  tenantId   String
+  employeeId String
+  type       String   // ANNUAL, SICK, PERSONAL, MATERNITY, PATERNITY, UNPAID
+  startDate  DateTime
+  endDate    DateTime
+  reason     String?
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([tenantId])
+}
