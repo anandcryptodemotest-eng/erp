@@ -4,18 +4,36 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// Inventory service owns: Products, Warehouses, Stock
+// Inventory service owns: Products, Variants, Categories, Warehouses, Stock, PriceLists, BOM
+
+model ProductCategory {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  parentId    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parent   ProductCategory?  @relation("CategoryChildren", fields: [parentId], references: [id])
+  children ProductCategory[] @relation("CategoryChildren")
+  products Product[]
+
+  @@index([tenantId])
+}
+
 model Product {
   id           String   @id @default(cuid())
   tenantId     String
   sku          String
   name         String
   description  String?
-  category     String?
+  categoryId   String?
   unit         String   @default("pcs")
   costPrice    Float
   sellPrice    Float
@@ -24,11 +42,103 @@ model Product {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  stocks    WarehouseStock[]
-  movements StockMovement[]
+  category       ProductCategory? @relation(fields: [categoryId], references: [id])
+  variants       ProductVariant[]
+  stocks         WarehouseStock[]
+  movements      StockMovement[]
+  reservations   StockReservation[]
+  priceListItems PriceListItem[]
+  boms           BOM[]
+  bomComponents  BOMLine[] @relation("BOMComponents")
 
   @@unique([tenantId, sku])
   @@index([tenantId])
+}
+
+model ProductVariant {
+  id         String   @id @default(cuid())
+  tenantId   String
+  productId  String
+  sku        String
+  name       String
+  attributes Json
+  costPrice  Float?
+  sellPrice  Float?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  product        Product         @relation(fields: [productId], references: [id])
+  priceListItems PriceListItem[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+  @@index([productId])
+}
+
+model PriceList {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  currency    String   @default("USD")
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items PriceListItem[]
+
+  @@index([tenantId])
+}
+
+model PriceListItem {
+  id          String   @id @default(cuid())
+  priceListId String
+  productId   String
+  variantId   String?
+  minQty      Int      @default(1)
+  price       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  priceList PriceList      @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+  product   Product        @relation(fields: [productId], references: [id])
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([priceListId, productId])
+}
+
+model BOM {
+  id          String   @id @default(cuid())
+  tenantId    String
+  productId   String
+  name        String
+  description String?
+  version     String   @default("1.0")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  product Product   @relation(fields: [productId], references: [id])
+  lines   BOMLine[]
+
+  @@index([tenantId])
+  @@index([productId])
+}
+
+model BOMLine {
+  id          String   @id @default(cuid())
+  bomId       String
+  componentId String
+  quantity    Float
+  unit        String   @default("pcs")
+  createdAt   DateTime @default(now())
+
+  bom       BOM     @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  component Product @relation("BOMComponents", fields: [componentId], references: [id])
+
+  @@index([bomId])
 }
 
 model Warehouse {
@@ -40,8 +150,9 @@ model Warehouse {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  stocks    WarehouseStock[]
-  movements StockMovement[]
+  stocks       WarehouseStock[]
+  movements    StockMovement[]
+  reservations StockReservation[]
 
   @@index([tenantId])
 }
@@ -64,7 +175,8 @@ model StockMovement {
   tenantId    String
   productId   String
   warehouseId String
-  type        String   // IN, OUT, TRANSFER, ADJUSTMENT
+  variantId   String?
+  type        String   // IN, OUT, TRANSFER, ADJUSTMENT, RESERVE, RELEASE
   quantity    Int
   reference   String?
   notes       String?
@@ -74,4 +186,24 @@ model StockMovement {
   warehouse Warehouse @relation(fields: [warehouseId], references: [id])
 
   @@index([tenantId])
+  @@index([reference])
+}
+
+model StockReservation {
+  id          String    @id @default(cuid())
+  tenantId    String
+  productId   String
+  warehouseId String
+  variantId   String?
+  reservedQty Int
+  reference   String
+  expiresAt   DateTime?
+  isReleased  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  product   Product   @relation(fields: [productId], references: [id])
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@index([tenantId])
+  @@index([reference])
 }

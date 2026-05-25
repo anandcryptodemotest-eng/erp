@@ -17,14 +17,26 @@ export async function GET(request: Request) {
   const tenantId = request.headers.get("x-tenant-id");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
 
-  const invoices = await prisma.invoice.findMany({
-    where: { tenantId },
-    include: { payments: true },
-    orderBy: { date: "desc" },
-    take: 50,
-  });
+  const url = new URL(request.url);
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1"));
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20")));
+  const skip = (page - 1) * limit;
+  const type = url.searchParams.get("type") ?? undefined;
+  const status = url.searchParams.get("status") ?? undefined;
 
-  return NextResponse.json({ data: invoices });
+  const where = { tenantId, ...(type && { type }), ...(status && { status }) };
+  const [invoices, total] = await Promise.all([
+    prisma.invoice.findMany({
+      where,
+      include: { payments: true },
+      orderBy: { date: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.invoice.count({ where }),
+  ]);
+
+  return NextResponse.json({ data: invoices, meta: { page, limit, total, pages: Math.ceil(total / limit) } });
 }
 
 export async function POST(request: Request) {

@@ -18,14 +18,24 @@ export async function GET(request: Request) {
   const tenantId = request.headers.get("x-tenant-id");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
 
-  const entries = await prisma.journalEntry.findMany({
-    where: { tenantId },
-    include: { lines: { include: { account: true } } },
-    orderBy: { date: "desc" },
-    take: 50,
-  });
+  const url = new URL(request.url);
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1"));
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20")));
+  const skip = (page - 1) * limit;
 
-  return NextResponse.json({ data: entries });
+  const where = { tenantId };
+  const [entries, total] = await Promise.all([
+    prisma.journalEntry.findMany({
+      where,
+      include: { lines: { include: { account: true } } },
+      orderBy: { date: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.journalEntry.count({ where }),
+  ]);
+
+  return NextResponse.json({ data: entries, meta: { page, limit, total, pages: Math.ceil(total / limit) } });
 }
 
 export async function POST(request: Request) {

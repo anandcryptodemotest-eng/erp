@@ -12,7 +12,11 @@
     "jose": "^6.0.0",
     "@erp/types": "workspace:*"
   },
+  "peerDependencies": {
+    "next": ">=15.0.0"
+  },
   "devDependencies": {
+    "next": "^15.0.0",
     "typescript": "^5.7.0"
   }
 }

@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -55,29 +55,35 @@ model JournalEntryLine {
 }
 
 model Invoice {
-  id         String   @id @default(cuid())
-  tenantId   String
-  number     String   @unique
-  type       String   // RECEIVABLE, PAYABLE
-  entityId   String?  // Customer or Vendor ID (from other services)
-  entityName String?
-  date       DateTime
-  dueDate    DateTime
-  subtotal   Float
-  tax        Float    @default(0)
-  total      Float
-  status     String   @default("DRAFT")
-  notes      String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id            String   @id @default(cuid())
+  tenantId      String
+  number        String
+  type          String   // RECEIVABLE, PAYABLE
+  entityId      String?  // Customer or Vendor ID (from other services)
+  entityName    String?
+  sourceRef     String?  // SalesOrder ID or PurchaseOrder ID
+  date          DateTime
+  dueDate       DateTime
+  subtotal      Float
+  tax           Float    @default(0)
+  total         Float
+  paidAmount    Float    @default(0)
+  status        String   @default("DRAFT") // DRAFT, ISSUED, PAID, PARTIALLY_PAID, OVERDUE, CANCELLED
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  payments Payment[]
+  payments    Payment[]
+  creditNotes CreditNote[]
 
+  @@unique([tenantId, number])
   @@index([tenantId])
+  @@index([entityId])
 }
 
 model Payment {
   id        String   @id @default(cuid())
+  tenantId  String
   invoiceId String
   amount    Float
   method    String   // CASH, BANK_TRANSFER, CREDIT_CARD, CHECK, OTHER
@@ -86,4 +92,61 @@ model Payment {
   createdAt DateTime @default(now())
 
   invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([tenantId])
+}
+
+model CreditNote {
+  id         String    @id @default(cuid())
+  tenantId   String
+  number     String
+  invoiceId  String?
+  entityId   String?
+  entityName String?
+  sourceRef  String?   // SalesReturn ID
+  date       DateTime
+  amount     Float
+  status     String    @default("ISSUED") // ISSUED, APPLIED, REFUNDED, CANCELLED
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  invoice Invoice? @relation(fields: [invoiceId], references: [id])
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+}
+
+model DebitNote {
+  id         String    @id @default(cuid())
+  tenantId   String
+  number     String
+  entityId   String?
+  entityName String?
+  sourceRef  String?   // PurchaseReturn ID
+  date       DateTime
+  amount     Float
+  status     String    @default("ISSUED") // ISSUED, APPLIED, REFUNDED, CANCELLED
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+}
+
+model TaxRate {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  code        String
+  rate        Float
+  description String?
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
 }

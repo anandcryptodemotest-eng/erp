@@ -13,9 +13,10 @@ export function createServiceMiddleware(moduleId: string) {
       return NextResponse.next();
     }
 
-    // Check service-to-service calls
+    // Check service-to-service calls — fail-closed: reject if env var is unset
     const serviceKey = request.headers.get("x-service-key");
-    if (serviceKey === process.env.SERVICE_SECRET) {
+    const serviceSecret = process.env.SERVICE_SECRET;
+    if (serviceSecret && serviceKey === serviceSecret) {
       return NextResponse.next();
     }
 
@@ -38,11 +39,11 @@ export function createServiceMiddleware(moduleId: string) {
       );
     }
 
-    // Inject auth context into headers for route handlers
-    const response = NextResponse.next();
-    response.headers.set("x-user-id", auth.userId);
-    response.headers.set("x-tenant-id", auth.tenantId);
-    response.headers.set("x-user-role", auth.role);
-    return response;
+    // Inject auth context into request headers so route handlers can read them
+    const headers = new Headers(request.headers);
+    headers.set("x-user-id", auth.userId);
+    headers.set("x-tenant-id", auth.tenantId);
+    headers.set("x-user-role", auth.role);
+    return NextResponse.next({ request: { headers } });
   };
 }

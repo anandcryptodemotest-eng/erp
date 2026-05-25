@@ -4,25 +4,27 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model Vendor {
-  id        String   @id @default(cuid())
-  tenantId  String
-  name      String
-  email     String?
-  phone     String?
-  address   String?
-  city      String?
-  country   String?
-  taxId     String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  email       String?
+  phone       String?
+  address     String?
+  city        String?
+  country     String?
+  taxId       String?
+  creditTerms Int      @default(30) // payment terms in days
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  orders PurchaseOrder[]
+  orders  PurchaseOrder[]
+  returns PurchaseReturn[]
 
   @@index([tenantId])
 }
@@ -30,11 +32,12 @@ model Vendor {
 model PurchaseOrder {
   id          String   @id @default(cuid())
   tenantId    String
-  orderNumber String   @unique
+  orderNumber String
   vendorId    String
   userId      String
+  warehouseId String?
   date        DateTime
-  status      String   @default("DRAFT")
+  status      String   @default("DRAFT") // DRAFT, SUBMITTED, APPROVED, PARTIALLY_RECEIVED, RECEIVED, CANCELLED
   subtotal    Float
   tax         Float    @default(0)
   total       Float
@@ -42,20 +45,65 @@ model PurchaseOrder {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  vendor Vendor              @relation(fields: [vendorId], references: [id])
-  items  PurchaseOrderItem[]
+  vendor  Vendor              @relation(fields: [vendorId], references: [id])
+  items   PurchaseOrderItem[]
+  returns PurchaseReturn[]
 
+  @@unique([tenantId, orderNumber])
   @@index([tenantId])
 }
 
 model PurchaseOrderItem {
-  id              String @id @default(cuid())
+  id              String  @id @default(cuid())
   purchaseOrderId String
   productId       String
   productName     String
+  variantId       String?
+  quantity        Int
+  receivedQty     Int     @default(0)
+  unitPrice       Float
+  total           Float
+
+  order       PurchaseOrder       @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  returnItems PurchaseReturnItem[]
+}
+
+model PurchaseReturn {
+  id           String   @id @default(cuid())
+  tenantId     String
+  returnNumber String
+  orderId      String
+  vendorId     String
+  userId       String
+  status       String   @default("PENDING") // PENDING, APPROVED, DISPATCHED, REJECTED
+  reason       String?
+  notes        String?
+  subtotal     Float
+  tax          Float    @default(0)
+  total        Float
+  debitNoteId  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  order  PurchaseOrder       @relation(fields: [orderId], references: [id])
+  vendor Vendor              @relation(fields: [vendorId], references: [id])
+  items  PurchaseReturnItem[]
+
+  @@unique([tenantId, returnNumber])
+  @@index([tenantId])
+}
+
+model PurchaseReturnItem {
+  id              String @id @default(cuid())
+  returnId        String
+  orderItemId     String
+  productId       String
+  productName     String
+  variantId       String?
   quantity        Int
   unitPrice       Float
   total           Float
 
-  order PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  return    PurchaseReturn    @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  orderItem PurchaseOrderItem @relation(fields: [orderItemId], references: [id])
 }

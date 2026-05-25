@@ -4,38 +4,151 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// Sales service owns: Customers and Sales Orders
-model Customer {
-  id        String   @id @default(cuid())
-  tenantId  String
-  name      String
-  email     String?
-  phone     String?
-  address   String?
-  city      String?
-  country   String?
-  taxId     String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// Sales service owns: Customers, Leads, Opportunities, Quotes, Orders, Returns
 
-  orders SalesOrder[]
+model Customer {
+  id           String   @id @default(cuid())
+  tenantId     String
+  name         String
+  email        String?
+  phone        String?
+  address      String?
+  city         String?
+  country      String?
+  taxId        String?
+  creditLimit  Float    @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders  SalesOrder[]
+  quotes  Quote[]
+  returns SalesReturn[]
 
   @@index([tenantId])
+}
+
+model Lead {
+  id         String   @id @default(cuid())
+  tenantId   String
+  name       String
+  company    String?
+  email      String?
+  phone      String?
+  source     String?
+  status     String   @default("NEW") // NEW, CONTACTED, QUALIFIED, DISQUALIFIED
+  notes      String?
+  assignedTo String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  opportunities Opportunity[]
+
+  @@index([tenantId])
+}
+
+model Opportunity {
+  id            String    @id @default(cuid())
+  tenantId      String
+  leadId        String?
+  customerId    String?
+  title         String
+  value         Float     @default(0)
+  currency      String    @default("USD")
+  status        String    @default("OPEN") // OPEN, WON, LOST
+  stage         String    @default("PROSPECTING") // PROSPECTING, QUALIFICATION, PROPOSAL, NEGOTIATION, CLOSED
+  probability   Int       @default(50)
+  expectedClose DateTime?
+  assignedTo    String?
+  notes         String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  lead   Lead?   @relation(fields: [leadId], references: [id])
+  quotes Quote[]
+
+  @@index([tenantId])
+}
+
+model Quote {
+  id            String   @id @default(cuid())
+  tenantId      String
+  quoteNumber   String
+  opportunityId String?
+  customerId    String
+  userId        String
+  date          DateTime
+  validUntil    DateTime
+  status        String   @default("DRAFT") // DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED
+  subtotal      Float
+  discount      Float    @default(0)
+  tax           Float    @default(0)
+  total         Float
+  notes         String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  opportunity Opportunity? @relation(fields: [opportunityId], references: [id])
+  customer    Customer     @relation(fields: [customerId], references: [id])
+  items       QuoteItem[]
+  orders      SalesOrder[]
+
+  @@unique([tenantId, quoteNumber])
+  @@index([tenantId])
+  @@index([customerId])
+}
+
+model QuoteItem {
+  id          String @id @default(cuid())
+  quoteId     String
+  productId   String
+  productName String
+  variantId   String?
+  quantity    Int
+  unitPrice   Float
+  discount    Float  @default(0)
+  total       Float
+
+  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+}
+
+model Activity {
+  id            String    @id @default(cuid())
+  tenantId      String
+  leadId        String?
+  opportunityId String?
+  customerId    String?
+  type          String    // CALL, EMAIL, MEETING, NOTE, TASK
+  subject       String
+  notes         String?
+  dueAt         DateTime?
+  completedAt   DateTime?
+  userId        String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([leadId])
+  @@index([opportunityId])
 }
 
 model SalesOrder {
   id          String   @id @default(cuid())
   tenantId    String
-  orderNumber String   @unique
+  orderNumber String
   customerId  String
   userId      String
+  quoteId     String?
+  warehouseId String?
   date        DateTime
-  status      String   @default("DRAFT")
+  status      String   @default("DRAFT") // DRAFT, CONFIRMED, PARTIALLY_SHIPPED, SHIPPED, INVOICED, CANCELLED
   subtotal    Float
   tax         Float    @default(0)
   total       Float
@@ -44,8 +157,11 @@ model SalesOrder {
   updatedAt   DateTime @updatedAt
 
   customer Customer        @relation(fields: [customerId], references: [id])
+  quote    Quote?          @relation(fields: [quoteId], references: [id])
   items    SalesOrderItem[]
+  returns  SalesReturn[]
 
+  @@unique([tenantId, orderNumber])
   @@index([tenantId])
   @@index([customerId])
 }
@@ -55,9 +171,53 @@ model SalesOrderItem {
   salesOrderId String
   productId    String
   productName  String
+  variantId    String?
   quantity     Int
+  shippedQty   Int    @default(0)
   unitPrice    Float
   total        Float
 
-  order SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  order       SalesOrder       @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  returnItems SalesReturnItem[]
+}
+
+model SalesReturn {
+  id           String   @id @default(cuid())
+  tenantId     String
+  returnNumber String
+  orderId      String
+  customerId   String
+  userId       String
+  status       String   @default("PENDING") // PENDING, APPROVED, COMPLETED, REJECTED
+  reason       String?
+  notes        String?
+  subtotal     Float
+  tax          Float    @default(0)
+  total        Float
+  creditNoteId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  order    SalesOrder        @relation(fields: [orderId], references: [id])
+  customer Customer          @relation(fields: [customerId], references: [id])
+  items    SalesReturnItem[]
+
+  @@unique([tenantId, returnNumber])
+  @@index([tenantId])
+  @@index([customerId])
+}
+
+model SalesReturnItem {
+  id          String @id @default(cuid())
+  returnId    String
+  orderItemId String
+  productId   String
+  productName String
+  variantId   String?
+  quantity    Int
+  unitPrice   Float
+  total       Float
+
+  return    SalesReturn    @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  orderItem SalesOrderItem @relation(fields: [orderItemId], references: [id])
 }

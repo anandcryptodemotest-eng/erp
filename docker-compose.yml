@@ -54,6 +54,8 @@ services:
       SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
       GATEWAY_URL: http://gateway:3000
       INVENTORY_SERVICE_URL: http://inventory:3002
+      ACCOUNTING_SERVICE_URL: http://accounting:3003
+      TAX_RATE: ${TAX_RATE:-0.10}
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,6 +88,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
       GATEWAY_URL: http://gateway:3000
+      SALES_SERVICE_URL: http://sales:3001
+      HR_SERVICE_URL: http://hr:3004
+      PROCUREMENT_SERVICE_URL: http://procurement:3005
     depends_on:
       postgres:
         condition: service_healthy
@@ -102,6 +107,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
       GATEWAY_URL: http://gateway:3000
+      ACCOUNTING_SERVICE_URL: http://accounting:3003
     depends_on:
       postgres:
         condition: service_healthy
@@ -119,6 +125,8 @@ services:
       SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
       GATEWAY_URL: http://gateway:3000
       INVENTORY_SERVICE_URL: http://inventory:3002
+      ACCOUNTING_SERVICE_URL: http://accounting:3003
+      TAX_RATE: ${TAX_RATE:-0.10}
     depends_on:
       postgres:
         condition: service_healthy

@@ -4,31 +4,53 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model Employee {
-  id         String   @id @default(cuid())
-  tenantId   String
-  employeeId String
-  firstName  String
-  lastName   String
-  email      String
-  phone      String?
-  department String
-  position   String
-  hireDate   DateTime
-  salary     Float
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String   @id @default(cuid())
+  tenantId     String
+  employeeId   String
+  firstName    String
+  lastName     String
+  email        String
+  phone        String?
+  department   String
+  position     String
+  hireDate     DateTime
+  salary       Float
+  taxSlabId    String?
+  bankAccount  String?
+  bankName     String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  payroll PayrollRecord[]
-  leave   LeaveRequest[]
+  taxSlab  TaxSlab?       @relation(fields: [taxSlabId], references: [id])
+  payroll  PayrollRecord[]
+  payslips Payslip[]
+  leave    LeaveRequest[]
 
   @@unique([tenantId, employeeId])
   @@unique([tenantId, email])
+  @@index([tenantId])
+}
+
+model TaxSlab {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  minIncome   Float
+  maxIncome   Float?
+  rate        Float
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  employees Employee[]
+
   @@index([tenantId])
 }
 
@@ -36,18 +58,42 @@ model PayrollRecord {
   id          String    @id @default(cuid())
   tenantId    String
   employeeId  String
-  period      String
+  period      String    // e.g. "2024-01"
   basicSalary Float
   allowances  Float     @default(0)
   deductions  Float     @default(0)
+  tax         Float     @default(0)
   netPay      Float
-  status      String    @default("DRAFT")
+  status      String    @default("DRAFT") // DRAFT, PROCESSED, PAID
   processedAt DateTime?
+  paidAt      DateTime?
   createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  employee Employee @relation(fields: [employeeId], references: [id])
+  employee Employee  @relation(fields: [employeeId], references: [id])
+  payslip  Payslip?
+
+  @@unique([tenantId, employeeId, period])
+  @@index([tenantId])
+}
+
+model Payslip {
+  id             String   @id @default(cuid())
+  tenantId       String
+  employeeId     String
+  payrollRecordId String  @unique
+  period         String
+  grossPay       Float
+  tax            Float
+  deductions     Float
+  netPay         Float
+  issuedAt       DateTime @default(now())
+
+  employee      Employee      @relation(fields: [employeeId], references: [id])
+  payrollRecord PayrollRecord @relation(fields: [payrollRecordId], references: [id])
 
   @@index([tenantId])
+  @@index([employeeId])
 }
 
 model LeaveRequest {
@@ -58,7 +104,7 @@ model LeaveRequest {
   startDate  DateTime
   endDate    DateTime
   reason     String?
-  status     String   @default("PENDING")
+  status     String   @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

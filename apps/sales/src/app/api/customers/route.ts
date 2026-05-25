@@ -10,6 +10,7 @@ const createCustomerSchema = z.object({
   city: z.string().optional(),
   country: z.string().optional(),
   taxId: z.string().optional(),
+  creditLimit: z.number().min(0).default(0),
 });
 
 // GET /api/customers
@@ -17,12 +18,18 @@ export async function GET(request: Request) {
   const tenantId = request.headers.get("x-tenant-id");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
 
-  const customers = await prisma.customer.findMany({
-    where: { tenantId, isActive: true },
-    orderBy: { name: "asc" },
-  });
+  const url = new URL(request.url);
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1"));
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20")));
+  const skip = (page - 1) * limit;
 
-  return NextResponse.json({ data: customers });
+  const where = { tenantId, isActive: true };
+  const [customers, total] = await Promise.all([
+    prisma.customer.findMany({ where, orderBy: { name: "asc" }, skip, take: limit }),
+    prisma.customer.count({ where }),
+  ]);
+
+  return NextResponse.json({ data: customers, meta: { page, limit, total, pages: Math.ceil(total / limit) } });
 }
 
 // POST /api/customers

@@ -9,6 +9,7 @@ const createPOSchema = z.object({
   items: z.array(z.object({
     productId: z.string(),
     productName: z.string(),
+    variantId: z.string().optional(),
     quantity: z.number().int().positive(),
     unitPrice: z.number().positive(),
   })),
@@ -18,14 +19,27 @@ export async function GET(request: Request) {
   const tenantId = request.headers.get("x-tenant-id");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
 
-  const orders = await prisma.purchaseOrder.findMany({
-    where: { tenantId },
-    include: { vendor: true, items: true },
-    orderBy: { date: "desc" },
-    take: 50,
-  });
+  const url = new URL(request.url);
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1"));
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20")));
+  const skip = (page - 1) * limit;
 
-  return NextResponse.json({ data: orders });
+  const status = url.searchParams.get("status") ?? undefined;
+  const vendorId = url.searchParams.get("vendorId") ?? undefined;
+
+  const where = { tenantId, ...(status && { status }), ...(vendorId && { vendorId }) };
+  const [orders, total] = await Promise.all([
+    prisma.purchaseOrder.findMany({
+      where,
+      include: { vendor: { select: { id: true, name: true } }, items: true },
+      orderBy: { date: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.purchaseOrder.count({ where }),
+  ]);
+
+  return NextResponse.json({ data: orders, meta: { page, limit, total, pages: Math.ceil(total / limit) } });
 }
 
 export async function POST(request: Request) {
@@ -39,7 +53,8 @@ export async function POST(request: Request) {
 
     const items = data.items.map((i) => ({ ...i, total: i.quantity * i.unitPrice }));
     const subtotal = items.reduce((s, i) => s + i.total, 0);
-    const tax = subtotal * 0.1;
+    const TAX_RATE = parseFloat(process.env.TAX_RATE ?? "0.10");
+    const tax = subtotal * TAX_RATE;
     const total = subtotal + tax;
 
     const count = await prisma.purchaseOrder.count({ where: { tenantId } });

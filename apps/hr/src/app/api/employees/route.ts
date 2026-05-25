@@ -18,12 +18,19 @@ export async function GET(request: Request) {
   const tenantId = request.headers.get("x-tenant-id");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
 
-  const employees = await prisma.employee.findMany({
-    where: { tenantId, isActive: true },
-    orderBy: { lastName: "asc" },
-  });
+  const url = new URL(request.url);
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1"));
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20")));
+  const skip = (page - 1) * limit;
+  const department = url.searchParams.get("department") ?? undefined;
 
-  return NextResponse.json({ data: employees });
+  const where = { tenantId, isActive: true, ...(department && { department }) };
+  const [employees, total] = await Promise.all([
+    prisma.employee.findMany({ where, orderBy: { lastName: "asc" }, skip, take: limit }),
+    prisma.employee.count({ where }),
+  ]);
+
+  return NextResponse.json({ data: employees, meta: { page, limit, total, pages: Math.ceil(total / limit) } });
 }
 
 export async function POST(request: Request) {
