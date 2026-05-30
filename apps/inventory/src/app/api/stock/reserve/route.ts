@@ -7,7 +7,7 @@ const reserveSchema = z.object({
     productId: z.string(),
     warehouseId: z.string(),
     variantId: z.string().optional(),
-    quantity: z.number().int().positive(),
+    quantity: z.number().positive(), // Float supports kg-based reservations (e.g. 2.5 kg)
   })).min(1),
   reference: z.string().min(1),
   expiresAt: z.string().datetime().optional(),

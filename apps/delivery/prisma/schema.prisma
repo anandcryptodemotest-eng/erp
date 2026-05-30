@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model DeliveryZone {
+  id              String   @id @default(cuid())
+  tenantId        String
+  name            String
+  pincodes        Json     // String[] — list of serviced pincodes
+  deliveryFee     Float    @default(0)
+  minOrderAmount  Float    @default(0)
+  estimatedMins   Int      @default(60)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model DeliveryCompensationConfig {
+  id             String   @id @default(cuid())
+  tenantId       String
+  baseFee        Float    @default(0)
+  perKmRate      Float    @default(0)
+  bonusPerOrder  Float    @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model DeliveryAssignment {
+  id            String    @id @default(cuid())
+  tenantId      String
+  orderId       String    // ref: sales.SalesOrder.id
+  orderNumber   String    // denormalised for display
+  executiveId   String    // ref: hr.Employee.id
+  status        String    @default("ASSIGNED")
+  // ASSIGNED | ACCEPTED | PICKED_UP | DELIVERED | FAILED | CANCELLED
+  assignedAt    DateTime  @default(now())
+  acceptedAt    DateTime?
+  pickedUpAt    DateTime?
+  deliveredAt   DateTime?
+  failedAt      DateTime?
+  failureReason String?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tracking DeliveryTracking[]
+
+  @@index([tenantId])
+  @@index([tenantId, executiveId])
+  @@index([tenantId, orderId])
+  @@index([tenantId, status])
+}
+
+model DeliveryTracking {
+  id           String   @id @default(cuid())
+  tenantId     String
+  assignmentId String
+  latitude     Float
+  longitude    Float
+  accuracy     Float?
+  capturedAt   DateTime @default(now())
+
+  assignment DeliveryAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([assignmentId])
+}
+
+model DeliveryEarningLog {
+  id           String   @id @default(cuid())
+  tenantId     String
+  executiveId  String   // ref: hr.Employee.id
+  assignmentId String   // ref: DeliveryAssignment.id
+  baseFee      Float    @default(0)
+  bonus        Float    @default(0)
+  total        Float
+  period       String   // YYYY-MM
+  isPaid       Boolean  @default(false)
+  paidAt       DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId, executiveId])
+  @@index([tenantId, period])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  tenantId   String
+  userId     String
+  action     String   // ASSIGN | REASSIGN | STATUS_CHANGE | ZONE_UPDATE, etc.
+  resourceId String?
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, resourceId])
+}

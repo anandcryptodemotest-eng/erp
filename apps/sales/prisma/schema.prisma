@@ -11,25 +11,53 @@ datasource db {
 // Sales service owns: Customers, Leads, Opportunities, Quotes, Orders, Returns
 
 model Customer {
-  id           String   @id @default(cuid())
-  tenantId     String
-  name         String
-  email        String?
-  phone        String?
-  address      String?
-  city         String?
-  country      String?
-  taxId        String?
-  creditLimit  Float    @default(0)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String    @id @default(cuid())
+  tenantId       String
+  name           String
+  email          String?
+  phone          String?
+  address        String?
+  city           String?
+  country        String?
+  taxId          String?
+  creditLimit    Float     @default(0)
+  paymentTerms   Int       @default(0)
+  customerGroup  String?
+  priceListId    String?
+  wallet         Float     @default(0)
+  isBlocked      Boolean   @default(false)
+  blockedReason  String?
+  blockedAt      DateTime?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  orders  SalesOrder[]
-  quotes  Quote[]
-  returns SalesReturn[]
+  orders    SalesOrder[]
+  quotes    Quote[]
+  returns   SalesReturn[]
+  addresses CustomerAddress[]
 
   @@index([tenantId])
+}
+
+model CustomerAddress {
+  id         String   @id @default(cuid())
+  tenantId   String
+  customerId String
+  label      String   @default("Home") // Home | Work | Other
+  line1      String
+  line2      String?
+  city       String
+  state      String?
+  pincode    String
+  isDefault  Boolean  @default(false)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, customerId])
 }
 
 model Lead {
@@ -140,21 +168,29 @@ model Activity {
 }
 
 model SalesOrder {
-  id          String   @id @default(cuid())
-  tenantId    String
-  orderNumber String
-  customerId  String
-  userId      String
-  quoteId     String?
-  warehouseId String?
-  date        DateTime
-  status      String   @default("DRAFT") // DRAFT, CONFIRMED, PARTIALLY_SHIPPED, SHIPPED, INVOICED, CANCELLED
-  subtotal    Float
-  tax         Float    @default(0)
-  total       Float
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                String   @id @default(cuid())
+  tenantId          String
+  orderNumber       String
+  customerId        String
+  userId            String
+  quoteId           String?
+  warehouseId       String?
+  date              DateTime
+  status            String   @default("DRAFT")
+  // DRAFT | CONFIRMED | AWAITING_PICKUP | OUT_FOR_DELIVERY | DELIVERED | INVOICED | CANCELLED
+  isOnlineOrder     Boolean  @default(false)
+  deliveryAddressId String?  // ref: CustomerAddress.id
+  deliveryFee       Float    @default(0)
+  paymentMethod     String   @default("COD") // COD | UPI | CARD | WALLET | SPLIT
+  paymentStatus     String   @default("PENDING") // PENDING | PAID | REFUNDED | PARTIAL
+  couponId          String?
+  couponDiscount    Float    @default(0)
+  subtotal          Float
+  tax               Float    @default(0)
+  total             Float
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   customer Customer        @relation(fields: [customerId], references: [id])
   quote    Quote?          @relation(fields: [quoteId], references: [id])
@@ -164,6 +200,8 @@ model SalesOrder {
   @@unique([tenantId, orderNumber])
   @@index([tenantId])
   @@index([customerId])
+  @@index([tenantId, status])
+  @@index([tenantId, paymentStatus])
 }
 
 model SalesOrderItem {

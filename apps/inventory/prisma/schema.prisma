@@ -10,15 +10,34 @@ datasource db {
 
 // Inventory service owns: Products, Variants, Categories, Warehouses, Stock, PriceLists, BOM
 
+model Brand {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  logoUrl   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
 model ProductCategory {
-  id          String   @id @default(cuid())
-  tenantId    String
-  name        String
-  description String?
-  parentId    String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(cuid())
+  tenantId       String
+  name           String
+  description    String?
+  parentId       String?
+  sortOrder      Int      @default(0)
+  isFeatured     Boolean  @default(false)
+  bannerImageUrl String?
+  iconUrl        String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   parent   ProductCategory?  @relation("CategoryChildren", fields: [parentId], references: [id])
   children ProductCategory[] @relation("CategoryChildren")
@@ -34,15 +53,26 @@ model Product {
   name         String
   description  String?
   categoryId   String?
-  unit         String   @default("pcs")
+  brandId      String?
+  barcode      String?
+  pluCode      String?  // PLU lookup code for weight-based items (e.g. "4011" for banana)
+  imageUrls    Json?    // String[] of image URLs
+  weight       Float?
+  weightUnit   String?  // g | kg | ml | L | pcs
+  unit         String   @default("pcs")  // pcs | kg | g | liter | ml | dozen | bag
+  sellByWeight Boolean  @default(false)  // true = price × weight at billing
   costPrice    Float
-  sellPrice    Float
-  reorderLevel Int      @default(10)
+  sellPrice    Float    // per unit; for weight items = price per kg
+  reorderLevel Float    @default(10)     // Float so loose items can have e.g. 5.0 kg minimum
+  hasVariants  Boolean  @default(false)
+  isFeatured   Boolean  @default(false)
+  sortOrder    Int      @default(0)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   category       ProductCategory? @relation(fields: [categoryId], references: [id])
+  brand          Brand?           @relation(fields: [brandId], references: [id])
   variants       ProductVariant[]
   stocks         WarehouseStock[]
   movements      StockMovement[]
@@ -53,6 +83,7 @@ model Product {
 
   @@unique([tenantId, sku])
   @@index([tenantId])
+  @@index([tenantId, barcode])
 }
 
 model ProductVariant {
@@ -159,15 +190,18 @@ model Warehouse {
 
 model WarehouseStock {
   id          String   @id @default(cuid())
+  tenantId    String
   productId   String
   warehouseId String
-  quantity    Int      @default(0)
+  quantity    Float    @default(0)  // Float supports kg-based products (e.g. 2.5 kg)
+  reservedQty Float    @default(0)
   updatedAt   DateTime @updatedAt
 
   product   Product   @relation(fields: [productId], references: [id])
   warehouse Warehouse @relation(fields: [warehouseId], references: [id])
 
   @@unique([productId, warehouseId])
+  @@index([tenantId])
 }
 
 model StockMovement {
@@ -177,7 +211,7 @@ model StockMovement {
   warehouseId String
   variantId   String?
   type        String   // IN, OUT, TRANSFER, ADJUSTMENT, RESERVE, RELEASE
-  quantity    Int
+  quantity    Float    // Float supports weight-based movements (e.g. 0.5 kg)
   reference   String?
   notes       String?
   createdAt   DateTime @default(now())
@@ -195,7 +229,7 @@ model StockReservation {
   productId   String
   warehouseId String
   variantId   String?
-  reservedQty Int
+  reservedQty Float    // Float for weight-based reservations
   reference   String
   expiresAt   DateTime?
   isReleased  Boolean   @default(false)

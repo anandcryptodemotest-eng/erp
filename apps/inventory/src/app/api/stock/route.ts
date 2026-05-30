@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   const warehouseId = url.searchParams.get("warehouseId") ?? undefined;
 
   const where = {
-    product: { tenantId },
+    tenantId,
     ...(warehouseId && { warehouseId }),
   };
 
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
       await tx.warehouseStock.upsert({
         where: { productId_warehouseId: { productId: data.productId, warehouseId: data.warehouseId } },
         update: { quantity: { increment: quantityDelta } },
-        create: { productId: data.productId, warehouseId: data.warehouseId, quantity: quantityDelta },
+        create: { tenantId, productId: data.productId, warehouseId: data.warehouseId, quantity: Math.max(0, quantityDelta) },
       });
       return m;
     });

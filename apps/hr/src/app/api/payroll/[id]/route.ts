@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { serviceClient } from "@erp/config";
 
 // GET /api/payroll/:id
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -31,6 +32,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { id } = await params;
   const url = new URL(request.url);
   const action = url.searchParams.get("action");
+  const userId = request.headers.get("x-user-id") ?? "";
 
   const record = await prisma.payrollRecord.findFirst({ where: { id, tenantId } });
   if (!record) return NextResponse.json({ error: "Payroll record not found" }, { status: 404 });
@@ -61,6 +63,27 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       });
     });
 
+    // Post salary expense journal entry to accounting
+    const today = new Date().toISOString().split("T")[0];
+    await serviceClient.call("accounting", "/api/journals", {
+      method: "POST",
+      body: {
+        date: today,
+        reference: `PAYROLL-${record.id}`,
+        description: `Salary expense for ${record.period} — ${record.employeeId}`,
+        lines: [
+          { accountCode: "6000", description: "Salary Expense", debit: record.basicSalary + record.allowances, credit: 0 },
+          { accountCode: "2100", description: "Salary Payable", debit: 0, credit: record.netPay },
+          { accountCode: "2110", description: "Tax Deducted at Source", debit: 0, credit: record.tax },
+          ...(record.deductions > 0
+            ? [{ accountCode: "2120", description: "Other Deductions Payable", debit: 0, credit: record.deductions }]
+            : []),
+        ],
+      },
+      tenantId,
+      userId,
+    });
+
     return NextResponse.json({ data: updated });
   }
 
@@ -72,6 +95,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       where: { id },
       data: { status: "PAID", paidAt: new Date() },
     });
+
+    // Post bank payment journal entry to accounting
+    const payDate = new Date().toISOString().split("T")[0];
+    await serviceClient.call("accounting", "/api/journals", {
+      method: "POST",
+      body: {
+        date: payDate,
+        reference: `PAYROLL-PAY-${record.id}`,
+        description: `Salary disbursement for ${record.period} — ${record.employeeId}`,
+        lines: [
+          { accountCode: "2100", description: "Salary Payable", debit: record.netPay, credit: 0 },
+          { accountCode: "1010", description: "Bank / Cash", debit: 0, credit: record.netPay },
+        ],
+      },
+      tenantId,
+      userId,
+    });
+
     return NextResponse.json({ data: updated });
   }
 

@@ -6,7 +6,7 @@ import { z } from "zod";
 const receiveSchema = z.object({
   items: z.array(z.object({
     orderItemId: z.string(),
-    receivedQty: z.number().int().positive(),
+    receivedQty: z.number().positive(), // Float for weight-based receiving (e.g. 25.5 kg)
   })).min(1),
   warehouseId: z.string(),
   notes: z.string().optional(),
@@ -136,6 +136,27 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           },
           include: { items: true, vendor: { select: { id: true, name: true } } },
         });
+      });
+
+      // Create AP invoice in accounting
+      const today = new Date();
+      const due = new Date(today);
+      due.setDate(due.getDate() + 30);
+      await serviceClient.call("accounting", "/api/invoices", {
+        method: "POST",
+        body: {
+          type: "PAYABLE",
+          entityId: order.vendorId,
+          entityName: (updated as { vendor?: { name?: string } }).vendor?.name,
+          sourceRef: order.id,
+          date: today.toISOString().split("T")[0],
+          dueDate: due.toISOString().split("T")[0],
+          subtotal: order.subtotal,
+          tax: order.tax,
+          notes: `Auto-generated from PO ${order.orderNumber}`,
+        },
+        tenantId,
+        userId,
       });
 
       return NextResponse.json({ data: updated });

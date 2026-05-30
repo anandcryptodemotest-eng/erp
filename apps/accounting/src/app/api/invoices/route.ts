@@ -6,6 +6,7 @@ const invoiceSchema = z.object({
   type: z.enum(["RECEIVABLE", "PAYABLE"]),
   entityId: z.string().optional(),
   entityName: z.string().optional(),
+  sourceRef: z.string().optional(),
   date: z.string(),
   dueDate: z.string(),
   subtotal: z.number().positive(),

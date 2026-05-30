@@ -214,7 +214,82 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ data: updated });
     }
 
-    return NextResponse.json({ error: "Invalid action. Use ?action=confirm|ship|cancel" }, { status: 400 });
+    // Grocery-specific transitions
+    if (action === "awaiting_pickup") {
+      if (order.status !== "CONFIRMED") {
+        return NextResponse.json({ error: "Order must be CONFIRMED" }, { status: 409 });
+      }
+      const updated = await prisma.salesOrder.update({
+        where: { id },
+        data: { status: "AWAITING_PICKUP" },
+        include: { items: true, customer: { select: { id: true, name: true } } },
+      });
+      return NextResponse.json({ data: updated });
+    }
+
+    if (action === "out_for_delivery") {
+      if (order.status !== "AWAITING_PICKUP") {
+        return NextResponse.json({ error: "Order must be AWAITING_PICKUP" }, { status: 409 });
+      }
+      const updated = await prisma.salesOrder.update({
+        where: { id },
+        data: { status: "OUT_FOR_DELIVERY" },
+        include: { items: true, customer: { select: { id: true, name: true } } },
+      });
+      return NextResponse.json({ data: updated });
+    }
+
+    if (action === "delivered") {
+      if (order.status !== "OUT_FOR_DELIVERY") {
+        return NextResponse.json({ error: "Order must be OUT_FOR_DELIVERY" }, { status: 409 });
+      }
+      // Mark COD orders as paid on delivery; pre-paid orders already paid
+      const paymentStatus = order.paymentMethod === "COD" ? "PAID" : order.paymentStatus;
+      const updated = await prisma.salesOrder.update({
+        where: { id },
+        data: { status: "DELIVERED", paymentStatus },
+        include: { items: true, customer: { select: { id: true, name: true } } },
+      });
+      return NextResponse.json({ data: updated });
+    }
+
+    if (action === "invoice") {
+      if (order.status !== "DELIVERED" && order.status !== "SHIPPED") {
+        return NextResponse.json({ error: "Order must be DELIVERED or SHIPPED to invoice" }, { status: 409 });
+      }
+      // Create AR invoice in accounting service
+      const invoiceResult = await serviceClient.call("accounting", "/api/invoices", {
+        method: "POST",
+        body: {
+          type: "RECEIVABLE",
+          entityId: order.customerId,
+          entityName: order.customer.name,
+          sourceRef: order.id,
+          date: new Date().toISOString(),
+          dueDate: new Date().toISOString(),
+          subtotal: order.subtotal,
+          tax: order.tax,
+          total: order.total,
+          notes: `Invoice for order ${order.orderNumber}`,
+        },
+        tenantId,
+        userId,
+      });
+
+      if (invoiceResult.status !== 201) {
+        const errBody = invoiceResult.data as { error?: string } | undefined;
+        return NextResponse.json({ error: errBody?.error ?? "Invoice creation failed" }, { status: 502 });
+      }
+
+      const updated = await prisma.salesOrder.update({
+        where: { id },
+        data: { status: "INVOICED" },
+        include: { items: true, customer: { select: { id: true, name: true } } },
+      });
+      return NextResponse.json({ data: updated });
+    }
+
+    return NextResponse.json({ error: "Invalid action. Use ?action=confirm|ship|cancel|awaiting_pickup|out_for_delivery|delivered|invoice" }, { status: 400 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });

@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   // Get all stock with their product reorder levels
   const allStocks = await prisma.warehouseStock.findMany({
     where: {
-      product: { tenantId },
+      tenantId,
       ...(warehouseId && { warehouseId }),
     },
     include: {

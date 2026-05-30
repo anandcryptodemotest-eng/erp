@@ -32,9 +32,17 @@ model Employee {
   payslips Payslip[]
   leave    LeaveRequest[]
 
+  // Delivery executive fields
+  isDeliveryExecutive Boolean @default(false)
+  availabilityStatus  String  @default("AVAILABLE") // AVAILABLE | BUSY | OFF_DUTY
+  vehicleType         String? // BIKE | SCOOTER | VAN
+  vehicleNumber       String?
+  currentOrderId      String? // ref: sales.SalesOrder.id (denormalized for quick lookup)
+
   @@unique([tenantId, employeeId])
   @@unique([tenantId, email])
   @@index([tenantId])
+  @@index([tenantId, isDeliveryExecutive])
 }
 
 model TaxSlab {

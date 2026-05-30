@@ -5,15 +5,22 @@ import { z } from "zod";
 const createOrderSchema = z.object({
   customerId: z.string(),
   quoteId: z.string().optional(),
+  warehouseId: z.string().optional(),
   date: z.string(),
   notes: z.string().optional(),
+  isOnlineOrder: z.boolean().default(false),
+  deliveryAddressId: z.string().optional(),
+  deliveryFee: z.number().min(0).default(0),
+  paymentMethod: z.enum(["COD", "UPI", "CARD", "WALLET", "SPLIT"]).default("COD"),
+  couponId: z.string().optional(),
+  couponDiscount: z.number().min(0).default(0),
   items: z.array(z.object({
     productId: z.string(),
     productName: z.string(),
     variantId: z.string().optional(),
     quantity: z.number().int().positive(),
-    unitPrice: z.number().positive(),
-  })),
+    unitPrice: z.number().nonnegative(),
+  })).min(1),
 });
 
 // GET /api/orders
@@ -27,11 +34,15 @@ export async function GET(request: Request) {
   const skip = (page - 1) * limit;
   const status = url.searchParams.get("status") ?? undefined;
   const customerId = url.searchParams.get("customerId") ?? undefined;
+  const paymentStatus = url.searchParams.get("paymentStatus") ?? undefined;
+  const isOnline = url.searchParams.get("isOnlineOrder");
 
   const where = {
     tenantId,
     ...(status && { status }),
     ...(customerId && { customerId }),
+    ...(paymentStatus && { paymentStatus }),
+    ...(isOnline !== null && { isOnlineOrder: isOnline === "true" }),
   };
   const [orders, total] = await Promise.all([
     prisma.salesOrder.findMany({
@@ -59,15 +70,23 @@ export async function POST(request: Request) {
     const body = await request.json();
     const data = createOrderSchema.parse(body);
 
+    // Reject orders from blocked customers
+    const customer = await prisma.customer.findFirst({ where: { id: data.customerId, tenantId } });
+    if (!customer) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+    if (customer.isBlocked) {
+      return NextResponse.json({ error: `Customer is blocked: ${customer.blockedReason ?? "contact support"}` }, { status: 403 });
+    }
+
     const items = data.items.map((item) => ({
       ...item,
       total: item.quantity * item.unitPrice,
     }));
 
     const subtotal = items.reduce((sum, i) => sum + i.total, 0);
+    const discountedSubtotal = Math.max(0, subtotal - data.couponDiscount);
     const TAX_RATE = parseFloat(process.env.TAX_RATE ?? "0.10");
-    const tax = subtotal * TAX_RATE;
-    const total = subtotal + tax;
+    const tax = discountedSubtotal * TAX_RATE;
+    const total = discountedSubtotal + tax + data.deliveryFee;
 
     // Generate tenant-scoped order number
     const count = await prisma.salesOrder.count({ where: { tenantId } });
@@ -79,8 +98,15 @@ export async function POST(request: Request) {
         orderNumber,
         customerId: data.customerId,
         quoteId: data.quoteId,
+        warehouseId: data.warehouseId,
         userId,
         date: new Date(data.date),
+        isOnlineOrder: data.isOnlineOrder,
+        deliveryAddressId: data.deliveryAddressId,
+        deliveryFee: data.deliveryFee,
+        paymentMethod: data.paymentMethod,
+        couponId: data.couponId,
+        couponDiscount: data.couponDiscount,
         subtotal,
         tax,
         total,

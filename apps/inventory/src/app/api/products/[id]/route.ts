@@ -4,12 +4,20 @@ import { z } from "zod";
 
 const updateProductSchema = z.object({
   name: z.string().min(1).optional(),
-  description: z.string().optional(),
-  categoryId: z.string().optional(),
+  description: z.string().nullable().optional(),
+  categoryId: z.string().nullable().optional(),
+  brandId: z.string().nullable().optional(),
+  barcode: z.string().nullable().optional(),
+  imageUrls: z.array(z.string().url()).nullable().optional(),
+  weight: z.number().positive().nullable().optional(),
+  weightUnit: z.string().nullable().optional(),
   unit: z.string().optional(),
-  costPrice: z.number().positive().optional(),
-  sellPrice: z.number().positive().optional(),
+  costPrice: z.number().nonnegative().optional(),
+  sellPrice: z.number().nonnegative().optional(),
   reorderLevel: z.number().int().min(0).optional(),
+  hasVariants: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -23,6 +31,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     where: { id, tenantId },
     include: {
       category: true,
+      brand: true,
       variants: { where: { isActive: true } },
       stocks: { include: { warehouse: true } },
       priceListItems: { include: { priceList: true } },

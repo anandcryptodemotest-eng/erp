@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { serviceClient } from "@erp/config";
 import { z } from "zod";
 
 const createPOSchema = z.object({
@@ -7,10 +8,14 @@ const createPOSchema = z.object({
   date: z.string(),
   notes: z.string().optional(),
   items: z.array(z.object({
-    productId: z.string(),
+    productId: z.string().optional(),
     productName: z.string(),
+    // Fields used to auto-create the product when productId is absent
+    productSku: z.string().optional(),
+    productUnit: z.string().default("pcs"),
+    productCostPrice: z.number().nonnegative().optional(),
     variantId: z.string().optional(),
-    quantity: z.number().int().positive(),
+    quantity: z.number().positive(),    // Float for weight-based purchasing (e.g. 50.5 kg)
     unitPrice: z.number().positive(),
   })),
 });
@@ -51,7 +56,40 @@ export async function POST(request: Request) {
     const body = await request.json();
     const data = createPOSchema.parse(body);
 
-    const items = data.items.map((i) => ({ ...i, total: i.quantity * i.unitPrice }));
+    // Auto-create any new products in inventory service
+    const resolvedItems = await Promise.all(
+      data.items.map(async (item) => {
+        if (item.productId) return item;
+
+        const sku = item.productSku ?? `SKU-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+        const result = await serviceClient.call("inventory", "/api/products", {
+          method: "POST",
+          body: {
+            sku,
+            name: item.productName,
+            unit: item.productUnit,
+            costPrice: item.productCostPrice ?? item.unitPrice,
+            sellPrice: item.unitPrice,
+          },
+          tenantId,
+          userId,
+        });
+
+        const newProduct = (result.data as { data?: { id?: string } });
+        const productId = newProduct?.data?.id;
+        if (!productId) throw new Error(`Failed to create product: ${item.productName}`);
+        return { ...item, productId };
+      })
+    );
+
+    const items = resolvedItems.map((i) => ({
+      productId: i.productId!,
+      productName: i.productName,
+      variantId: i.variantId,
+      quantity: i.quantity,
+      unitPrice: i.unitPrice,
+      total: i.quantity * i.unitPrice,
+    }));
     const subtotal = items.reduce((s, i) => s + i.total, 0);
     const TAX_RATE = parseFloat(process.env.TAX_RATE ?? "0.10");
     const tax = subtotal * TAX_RATE;

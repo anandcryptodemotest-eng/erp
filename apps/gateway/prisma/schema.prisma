@@ -136,6 +136,7 @@ model Notification {
   title     String
   body      String
   isRead    Boolean  @default(false)
+  metadata  Json?    // optional extra payload (resourceId, resourceType, etc.)
   createdAt DateTime @default(now())
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -143,4 +144,77 @@ model Notification {
 
   @@index([userId])
   @@index([tenantId])
+}
+
+// ── Marketing / Grocery Extensions ──────────────────────────────────────────
+
+model Banner {
+  id        String    @id @default(cuid())
+  tenantId  String
+  title     String
+  imageUrl  String
+  linkUrl   String?
+  type      String    @default("HOME") // HOME | PROMOTIONAL | CATEGORY | PRODUCT
+  position  Int       @default(0)
+  isActive  Boolean   @default(true)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, type, isActive])
+}
+
+model Coupon {
+  id             String    @id @default(cuid())
+  tenantId       String
+  code           String
+  description    String?
+  type           String    // PERCENTAGE | FLAT_AMOUNT | FREE_DELIVERY
+  value          Float
+  minOrderAmount Float?
+  maxDiscount    Float?    // cap for PERCENTAGE coupons
+  usageLimit     Int?
+  usageCount     Int       @default(0)
+  perUserLimit   Int       @default(1)
+  isActive       Boolean   @default(true)
+  startsAt       DateTime?
+  endsAt         DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  usages CouponUsage[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model CouponUsage {
+  id        String   @id @default(cuid())
+  couponId  String
+  tenantId  String
+  userId    String
+  orderId   String
+  discount  Float
+  usedAt    DateTime @default(now())
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId])
+  @@index([couponId])
+}
+
+model FCMToken {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  token     String
+  platform  String   // ANDROID | IOS | WEB
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, token])
+  @@index([tenantId, userId])
 }

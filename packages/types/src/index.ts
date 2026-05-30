@@ -73,7 +73,8 @@ export type ModuleId =
   | "inventory"
   | "accounting"
   | "hr"
-  | "procurement";
+  | "procurement"
+  | "delivery";
 
 export interface ModuleInfo {
   id: ModuleId;
@@ -263,3 +264,128 @@ export type ServiceEvent =
   | { type: "PO_RECEIVED"; payload: { poId: string; items: { productId: string; qty: number }[] } }
   | { type: "EMPLOYEE_CREATED"; payload: { employeeId: string } }
   | { type: "PAYROLL_PROCESSED"; payload: { period: string; totalAmount: number } };
+
+// ==================== GROCERY / DELIVERY ====================
+
+export type OrderStatus =
+  | "DRAFT"
+  | "CONFIRMED"
+  | "AWAITING_PICKUP"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
+  | "INVOICED"
+  | "CANCELLED"
+  | "PARTIALLY_SHIPPED"
+  | "SHIPPED";
+
+export type PaymentMethod = "COD" | "UPI" | "CARD" | "WALLET" | "SPLIT" | "CASH";
+
+export type PaymentStatus = "PENDING" | "PAID" | "REFUNDED" | "PARTIAL";
+
+export type BillStatus = "COMPLETED" | "HELD" | "CANCELLED";
+
+export type BannerType = "HOME" | "PROMOTIONAL" | "CATEGORY" | "PRODUCT";
+
+export type CouponType = "PERCENTAGE" | "FLAT_AMOUNT" | "FREE_DELIVERY";
+
+export type DeliveryAssignmentStatus =
+  | "ASSIGNED"
+  | "ACCEPTED"
+  | "PICKED_UP"
+  | "DELIVERED"
+  | "FAILED"
+  | "CANCELLED";
+
+export type AvailabilityStatus = "AVAILABLE" | "BUSY" | "OFF_DUTY";
+
+export interface CustomerAddress {
+  id: string;
+  tenantId: string;
+  customerId: string;
+  label: string;
+  line1: string;
+  line2: string | null;
+  city: string;
+  state: string | null;
+  pincode: string;
+  isDefault: boolean;
+  isActive: boolean;
+}
+
+export interface Brand {
+  id: string;
+  tenantId: string;
+  name: string;
+  logoUrl: string | null;
+  isActive: boolean;
+}
+
+export interface Banner {
+  id: string;
+  tenantId: string;
+  title: string;
+  imageUrl: string;
+  linkUrl: string | null;
+  type: BannerType;
+  position: number;
+  isActive: boolean;
+  startsAt: string | null;
+  endsAt: string | null;
+}
+
+export interface Coupon {
+  id: string;
+  tenantId: string;
+  code: string;
+  description: string | null;
+  type: CouponType;
+  value: number;
+  minOrderAmount: number | null;
+  maxDiscount: number | null;
+  usageLimit: number | null;
+  usageCount: number;
+  perUserLimit: number;
+  isActive: boolean;
+  startsAt: string | null;
+  endsAt: string | null;
+}
+
+export interface DeliveryZone {
+  id: string;
+  tenantId: string;
+  name: string;
+  pincodes: string[];
+  deliveryFee: number;
+  minOrderAmount: number;
+  estimatedMins: number;
+  isActive: boolean;
+}
+
+export interface DeliveryAssignment {
+  id: string;
+  tenantId: string;
+  orderId: string;
+  executiveId: string;
+  status: DeliveryAssignmentStatus;
+  assignedAt: string;
+  pickedUpAt: string | null;
+  deliveredAt: string | null;
+  failedAt: string | null;
+  failureReason: string | null;
+}
+
+export interface Bill {
+  id: string;
+  tenantId: string;
+  billNumber: string;
+  customerId: string | null;
+  customerName: string | null;
+  subtotal: number;
+  discountTotal: number;
+  taxAmount: number;
+  total: number;
+  paymentMethod: PaymentMethod;
+  status: BillStatus;
+  billedBy: string;
+  createdAt: string;
+}

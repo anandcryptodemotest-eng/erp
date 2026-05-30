@@ -1,0 +1,13 @@
+{
+  "name": "@erp/scripts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "tsx seed.ts"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "tsx": "^4.19.2"
+  }
+}

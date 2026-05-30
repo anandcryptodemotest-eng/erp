@@ -96,7 +96,32 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         return NextResponse.json({ error: errBody?.error ?? "Stock deduction failed" }, { status: 500 });
       }
 
-      const updated = await prisma.purchaseReturn.update({ where: { id }, data: { status: "DISPATCHED" } });
+      // Create debit note in accounting
+      const today = new Date();
+      const dnRes = await serviceClient.call<{ data: { id: string } }>(
+        "accounting", "/api/debit-notes",
+        {
+          method: "POST",
+          body: {
+            entityId: purchaseReturn.vendorId,
+            sourceRef: purchaseReturn.orderId,
+            date: today.toISOString().split("T")[0],
+            amount: purchaseReturn.total,
+            notes: `Auto-generated from purchase return ${purchaseReturn.returnNumber}`,
+          },
+          tenantId,
+          userId,
+        }
+      );
+
+      const debitNoteId = dnRes.status === 201
+        ? (dnRes.data as { data: { id: string } }).data?.id
+        : undefined;
+
+      const updated = await prisma.purchaseReturn.update({
+        where: { id },
+        data: { status: "DISPATCHED", ...(debitNoteId && { debitNoteId }) },
+      });
       return NextResponse.json({ data: updated });
     }
 

@@ -10,7 +10,7 @@ const createCustomerSchema = z.object({
   city: z.string().optional(),
   country: z.string().optional(),
   taxId: z.string().optional(),
-  creditLimit: z.number().min(0).default(0),
+  customerGroup: z.string().optional(),
 });
 
 // GET /api/customers
@@ -22,8 +22,15 @@ export async function GET(request: Request) {
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1"));
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20")));
   const skip = (page - 1) * limit;
+  const search = url.searchParams.get("search") ?? undefined;
+  const isBlocked = url.searchParams.get("isBlocked");
 
-  const where = { tenantId, isActive: true };
+  const where = {
+    tenantId,
+    isActive: true,
+    ...(search && { name: { contains: search, mode: "insensitive" as const } }),
+    ...(isBlocked !== null && { isBlocked: isBlocked === "true" }),
+  };
   const [customers, total] = await Promise.all([
     prisma.customer.findMany({ where, orderBy: { name: "asc" }, skip, take: limit }),
     prisma.customer.count({ where }),
@@ -50,6 +57,7 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
     }
+    console.error("[customers POST]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

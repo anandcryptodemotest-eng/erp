@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3000 --turbopack",
+    "dev": "next dev --port 3010 --turbopack",
     "build": "next build",
-    "start": "next start --port 3000",
+    "start": "next start --port 3010",
     "lint": "eslint .",
     "db:generate": "prisma generate",
     "db:push": "prisma db push"
@@ -16,6 +16,8 @@
     "@erp/types": "workspace:*",
     "@erp/ui": "workspace:*",
     "@prisma/client": "^6.0.0",
+    "@zxing/browser": "^0.2.0",
+    "@zxing/library": "^0.22.0",
     "bcryptjs": "^3.0.3",
     "next": "^15.1.0",
     "react": "^19.0.0",

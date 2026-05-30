@@ -7,7 +7,8 @@ const journalSchema = z.object({
   reference: z.string().optional(),
   description: z.string().optional(),
   lines: z.array(z.object({
-    accountId: z.string(),
+    accountId: z.string().optional(),
+    accountCode: z.string().optional(),
     debit: z.number().min(0).default(0),
     credit: z.number().min(0).default(0),
     description: z.string().optional(),
@@ -46,8 +47,22 @@ export async function POST(request: Request) {
     const body = await request.json();
     const data = journalSchema.parse(body);
 
-    const totalDebit = data.lines.reduce((s, l) => s + l.debit, 0);
-    const totalCredit = data.lines.reduce((s, l) => s + l.credit, 0);
+    // Resolve accountCode -> accountId where needed
+    const resolvedLines = await Promise.all(
+      data.lines.map(async (line) => {
+        let accountId = line.accountId;
+        if (!accountId && line.accountCode) {
+          const acct = await prisma.account.findFirst({ where: { tenantId, code: line.accountCode } });
+          if (!acct) throw new Error(`Account code not found: ${line.accountCode}`);
+          accountId = acct.id;
+        }
+        if (!accountId) throw new Error("Each line must have accountId or accountCode");
+        return { accountId, debit: line.debit, credit: line.credit, description: line.description };
+      })
+    );
+
+    const totalDebit = resolvedLines.reduce((s, l) => s + l.debit, 0);
+    const totalCredit = resolvedLines.reduce((s, l) => s + l.credit, 0);
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
       return NextResponse.json({ error: "Debits must equal credits" }, { status: 400 });
     }
@@ -58,7 +73,7 @@ export async function POST(request: Request) {
         date: new Date(data.date),
         reference: data.reference,
         description: data.description,
-        lines: { create: data.lines },
+        lines: { create: resolvedLines },
       },
       include: { lines: true },
     });
@@ -67,6 +82,9 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
+    }
+    if (error instanceof Error && error.message.startsWith("Account code not found")) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

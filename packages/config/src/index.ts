@@ -11,7 +11,7 @@ export const services: Record<ModuleId, ModuleInfo> = {
     id: "core",
     name: "Gateway & Core",
     description: "Authentication, tenant management, and API gateway",
-    port: 3000,
+    port: 3010,
     healthEndpoint: "/api/health",
     subdomain: "app",
     dependencies: [],
@@ -60,6 +60,15 @@ export const services: Record<ModuleId, ModuleInfo> = {
     healthEndpoint: "/api/health",
     subdomain: "procurement",
     dependencies: ["core", "inventory"],
+  },
+  delivery: {
+    id: "delivery",
+    name: "Delivery Management",
+    description: "Delivery zones, executive assignment, and real-time tracking",
+    port: 3006,
+    healthEndpoint: "/api/health",
+    subdomain: "delivery",
+    dependencies: ["core", "sales", "hr"],
   },
 };
 

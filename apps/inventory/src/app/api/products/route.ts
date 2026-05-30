@@ -7,10 +7,20 @@ const createProductSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   categoryId: z.string().optional(),
-  unit: z.string().default("pcs"),
-  costPrice: z.number().positive(),
-  sellPrice: z.number().positive(),
-  reorderLevel: z.number().int().min(0).default(10),
+  brandId: z.string().optional(),
+  barcode: z.string().optional(),
+  pluCode: z.string().optional(),       // PLU for weight-based items (no barcode)
+  imageUrls: z.array(z.string().url()).optional(),
+  weight: z.number().positive().optional(),
+  weightUnit: z.string().optional(),
+  unit: z.string().default("pcs"),      // pcs | kg | g | liter | ml | dozen | bag
+  sellByWeight: z.boolean().default(false), // true = price × weight at billing
+  costPrice: z.number().nonnegative(),
+  sellPrice: z.number().nonnegative(),  // per unit; for weight items = per kg
+  reorderLevel: z.number().min(0).default(10), // Float so loose items support e.g. 5.0 kg min
+  hasVariants: z.boolean().default(false),
+  isFeatured: z.boolean().default(false),
+  sortOrder: z.number().int().min(0).default(0),
 });
 
 // GET /api/products
@@ -24,12 +34,19 @@ export async function GET(request: Request) {
   const skip = (page - 1) * limit;
   const search = url.searchParams.get("search") ?? undefined;
   const categoryId = url.searchParams.get("categoryId") ?? undefined;
+  const brandId = url.searchParams.get("brandId") ?? undefined;
+  const barcode = url.searchParams.get("barcode") ?? undefined;
+  const isFeatured = url.searchParams.get("isFeatured") === "true" ? true : undefined;
+  const lowStock = url.searchParams.get("lowStock") === "true";
 
   const where = {
     tenantId,
     isActive: true,
     ...(search && { name: { contains: search, mode: "insensitive" as const } }),
     ...(categoryId && { categoryId }),
+    ...(brandId && { brandId }),
+    ...(barcode && { barcode }),
+    ...(isFeatured !== undefined && { isFeatured }),
   };
 
   const [products, total] = await Promise.all([
@@ -37,16 +54,22 @@ export async function GET(request: Request) {
       where,
       include: {
         category: { select: { id: true, name: true } },
+        brand: { select: { id: true, name: true } },
         stocks: { include: { warehouse: { select: { id: true, name: true } } } },
       },
-      orderBy: { name: "asc" },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       skip,
       take: limit,
     }),
     prisma.product.count({ where }),
   ]);
 
-  return NextResponse.json({ data: products, meta: { page, limit, total, pages: Math.ceil(total / limit) } });
+  // If lowStock filter requested, post-filter by reorder level
+  const data = lowStock
+    ? products.filter((p) => p.stocks.some((s) => s.quantity <= p.reorderLevel))
+    : products;
+
+  return NextResponse.json({ data, meta: { page, limit, total: lowStock ? data.length : total, pages: Math.ceil((lowStock ? data.length : total) / limit) } });
 }
 
 // POST /api/products

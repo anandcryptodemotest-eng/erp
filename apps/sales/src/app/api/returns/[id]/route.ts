@@ -95,7 +95,32 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         return NextResponse.json({ error: errBody?.error ?? "Stock restock failed" }, { status: 500 });
       }
 
-      const updated = await prisma.salesReturn.update({ where: { id }, data: { status: "COMPLETED" } });
+      // Create credit note in accounting
+      const today = new Date();
+      const cnRes = await serviceClient.call<{ data: { id: string; number: string } }>(
+        "accounting", "/api/credit-notes",
+        {
+          method: "POST",
+          body: {
+            entityId: salesReturn.customerId,
+            sourceRef: salesReturn.orderId,
+            date: today.toISOString().split("T")[0],
+            amount: salesReturn.total,
+            notes: `Auto-generated from sales return ${salesReturn.returnNumber}`,
+          },
+          tenantId,
+          userId,
+        }
+      );
+
+      const creditNoteId = cnRes.status === 201
+        ? (cnRes.data as { data: { id: string } }).data?.id
+        : undefined;
+
+      const updated = await prisma.salesReturn.update({
+        where: { id },
+        data: { status: "COMPLETED", ...(creditNoteId && { creditNoteId }) },
+      });
       return NextResponse.json({ data: updated });
     }
 

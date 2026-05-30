@@ -4,8 +4,12 @@ import { z } from "zod";
 
 const updateCategorySchema = z.object({
   name: z.string().min(1).optional(),
-  description: z.string().optional(),
+  description: z.string().nullable().optional(),
   parentId: z.string().nullable().optional(),
+  sortOrder: z.number().int().min(0).optional(),
+  isFeatured: z.boolean().optional(),
+  bannerImageUrl: z.string().url().nullable().optional(),
+  iconUrl: z.string().url().nullable().optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -45,6 +49,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const existing = await prisma.productCategory.findFirst({ where: { id, tenantId } });
     if (!existing) return NextResponse.json({ error: "Category not found" }, { status: 404 });
 
+    if (data.parentId === id) {
+      return NextResponse.json({ error: "Category cannot be its own parent" }, { status: 400 });
+    }
+
     const category = await prisma.productCategory.update({ where: { id }, data });
     return NextResponse.json({ data: category });
   } catch (error) {
@@ -68,6 +76,10 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const existing = await prisma.productCategory.findFirst({ where: { id, tenantId } });
   if (!existing) return NextResponse.json({ error: "Category not found" }, { status: 404 });
 
-  await prisma.productCategory.update({ where: { id }, data: { isActive: false } });
+  await prisma.$transaction([
+    prisma.productCategory.updateMany({ where: { tenantId, parentId: id }, data: { isActive: false } }),
+    prisma.productCategory.update({ where: { id }, data: { isActive: false } }),
+  ]);
+
   return NextResponse.json({ data: { id } });
 }

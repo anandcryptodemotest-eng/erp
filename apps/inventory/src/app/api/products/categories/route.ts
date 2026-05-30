@@ -6,6 +6,10 @@ const createCategorySchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   parentId: z.string().optional(),
+  sortOrder: z.number().int().min(0).default(0),
+  isFeatured: z.boolean().default(false),
+  bannerImageUrl: z.string().url().optional(),
+  iconUrl: z.string().url().optional(),
 });
 
 // GET /api/products/categories

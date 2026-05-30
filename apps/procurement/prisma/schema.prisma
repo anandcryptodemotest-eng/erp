@@ -59,8 +59,8 @@ model PurchaseOrderItem {
   productId       String
   productName     String
   variantId       String?
-  quantity        Int
-  receivedQty     Int     @default(0)
+  quantity        Float
+  receivedQty     Float   @default(0)
   unitPrice       Float
   total           Float
 
@@ -100,7 +100,7 @@ model PurchaseReturnItem {
   productId       String
   productName     String
   variantId       String?
-  quantity        Int
+  quantity        Float
   unitPrice       Float
   total           Float
 

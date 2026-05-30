@@ -7,7 +7,7 @@ const receiveSchema = z.object({
     productId: z.string(),
     warehouseId: z.string(),
     variantId: z.string().optional(),
-    quantity: z.number().int().positive(),
+    quantity: z.number().positive(), // Float supports kg-based receiving (e.g. 50.5 kg)
   })).min(1),
   reference: z.string().min(1),
   notes: z.string().optional(),
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
         await tx.warehouseStock.upsert({
           where: { productId_warehouseId: { productId: item.productId, warehouseId: item.warehouseId } },
           update: { quantity: { increment: item.quantity } },
-          create: { productId: item.productId, warehouseId: item.warehouseId, quantity: item.quantity },
+          create: { tenantId, productId: item.productId, warehouseId: item.warehouseId, quantity: item.quantity },
         });
 
         const m = await tx.stockMovement.create({

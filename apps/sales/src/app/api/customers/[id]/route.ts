@@ -4,13 +4,15 @@ import { z } from "zod";
 
 const updateCustomerSchema = z.object({
   name: z.string().min(1).optional(),
-  email: z.string().email().optional(),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  country: z.string().optional(),
-  taxId: z.string().optional(),
+  email: z.string().email().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
+  country: z.string().nullable().optional(),
+  taxId: z.string().nullable().optional(),
   creditLimit: z.number().min(0).optional(),
+  paymentTerms: z.number().int().min(0).optional(),
+  customerGroup: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -23,6 +25,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const customer = await prisma.customer.findFirst({
     where: { id, tenantId },
     include: {
+      addresses: { where: { isActive: true }, orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] },
       orders: {
         where: { status: { notIn: ["CANCELLED"] } },
         select: { id: true, orderNumber: true, status: true, total: true, date: true },

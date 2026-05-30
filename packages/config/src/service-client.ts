@@ -2,7 +2,7 @@ import type { ServiceEvent, ModuleId } from "@erp/types";
 
 // Service port map — kept here to avoid circular import with index.ts
 const SERVICE_PORTS: Record<string, number> = {
-  core: 3000, sales: 3001, inventory: 3002, accounting: 3003, hr: 3004, procurement: 3005,
+  core: 3000, sales: 3001, inventory: 3002, accounting: 3003, hr: 3004, procurement: 3005, delivery: 3006,
 };
 
 function getServiceUrl(moduleId: ModuleId): string {
