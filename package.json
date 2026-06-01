@@ -16,6 +16,7 @@
     "dev:pos": "turbo dev --filter=@erp/pos",
     "dev:customer": "turbo dev --filter=@erp/customer",
     "dev:delivery-app": "turbo dev --filter=@erp/delivery-app",
+    "e2e:users": "bash scripts/e2e-user-flows.sh",
     "seed": "pnpm --filter @erp/scripts seed",
     "db:generate": "turbo db:generate",
     "db:push": "turbo db:push",

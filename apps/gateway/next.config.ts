@@ -29,8 +29,8 @@ const nextConfig: NextConfig = {
       // ── Inventory ──────────────────────────────────────────────────────
       { source: "/api/products/:path*",      destination: `${INVENTORY_URL}/api/products/:path*` },
       { source: "/api/products",             destination: `${INVENTORY_URL}/api/products` },
-      { source: "/api/categories/:path*",    destination: `${INVENTORY_URL}/api/categories/:path*` },
-      { source: "/api/categories",           destination: `${INVENTORY_URL}/api/categories` },
+      { source: "/api/categories/:path*",    destination: `${INVENTORY_URL}/api/products/categories/:path*` },
+      { source: "/api/categories",           destination: `${INVENTORY_URL}/api/products/categories` },
       { source: "/api/warehouses/:path*",    destination: `${INVENTORY_URL}/api/warehouses/:path*` },
       { source: "/api/warehouses",           destination: `${INVENTORY_URL}/api/warehouses` },
       { source: "/api/stock/:path*",         destination: `${INVENTORY_URL}/api/stock/:path*` },
@@ -57,8 +57,8 @@ const nextConfig: NextConfig = {
       { source: "/api/employees",            destination: `${HR_URL}/api/employees` },
       { source: "/api/payroll/:path*",       destination: `${HR_URL}/api/payroll/:path*` },
       { source: "/api/payroll",              destination: `${HR_URL}/api/payroll` },
-      { source: "/api/leaves/:path*",        destination: `${HR_URL}/api/leaves/:path*` },
-      { source: "/api/leaves",               destination: `${HR_URL}/api/leaves` },
+      { source: "/api/leaves/:path*",        destination: `${HR_URL}/api/leave/:path*` },
+      { source: "/api/leaves",               destination: `${HR_URL}/api/leave` },
       { source: "/api/tax-slabs/:path*",     destination: `${HR_URL}/api/tax-slabs/:path*` },
       { source: "/api/tax-slabs",            destination: `${HR_URL}/api/tax-slabs` },
 
@@ -67,8 +67,8 @@ const nextConfig: NextConfig = {
       { source: "/api/vendors",                    destination: `${PROCUREMENT_URL}/api/vendors` },
       { source: "/api/purchase-orders/:path*",     destination: `${PROCUREMENT_URL}/api/purchase-orders/:path*` },
       { source: "/api/purchase-orders",            destination: `${PROCUREMENT_URL}/api/purchase-orders` },
-      { source: "/api/purchase-returns/:path*",    destination: `${PROCUREMENT_URL}/api/purchase-returns/:path*` },
-      { source: "/api/purchase-returns",           destination: `${PROCUREMENT_URL}/api/purchase-returns` },
+      { source: "/api/purchase-returns/:path*",    destination: `${PROCUREMENT_URL}/api/returns/:path*` },
+      { source: "/api/purchase-returns",           destination: `${PROCUREMENT_URL}/api/returns` },
 
       // ── Delivery ──────────────────────────────────────────────────────
       { source: "/api/delivery-zones/:path*",      destination: `${DELIVERY_URL}/api/delivery-zones/:path*` },

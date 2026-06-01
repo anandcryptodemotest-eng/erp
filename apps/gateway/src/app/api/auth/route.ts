@@ -148,6 +148,24 @@ async function handleLogin(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
     }
+
+    // Surface a clear error when the database is unavailable in local/dev runs.
+    if (
+      error instanceof Error &&
+      (error.message.includes("Can't reach database server") ||
+        error.message.includes("ECONNREFUSED") ||
+        error.message.includes("P1001"))
+    ) {
+      return NextResponse.json(
+        { error: "Database unavailable. Start PostgreSQL and try again." },
+        { status: 503 }
+      );
+    }
+
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[auth:login] unexpected error", error);
+    }
+
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
