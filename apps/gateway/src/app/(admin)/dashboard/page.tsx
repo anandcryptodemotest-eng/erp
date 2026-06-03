@@ -43,23 +43,46 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="bg-white rounded-xl border p-6">
-        <h2 className="font-semibold text-gray-800 mb-4">E2E Test Flow</h2>
-        <ol className="space-y-2 text-sm text-gray-600">
-          {[
-            ["📦 Products", "Add stock to a product", "/products"],
-            ["👥 Customers", "Create a customer", "/customers"],
-            ["🧾 Orders", "Create order → Confirm → Ship", "/orders"],
-            ["💰 Invoices", "View auto-created invoice → Mark Paid", "/invoices"],
-            ["🛒 POS", "Billing at counter", "http://localhost:3008"],
-          ].map(([icon, desc, href]) => (
-            <li key={desc} className="flex items-center gap-3">
-              <span className="w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold shrink-0">→</span>
-              <a href={href} className="hover:text-green-700 hover:underline font-medium">{icon}</a>
-              <span className="text-gray-400">— {desc}</span>
-            </li>
-          ))}
-        </ol>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl border p-6">
+          <h2 className="font-semibold text-gray-800 mb-4">B2B Lead-to-Cash Flow</h2>
+          <ol className="space-y-2 text-sm text-gray-600">
+            {[
+              ["📦 Products", "Add products & stock", "/products"],
+              ["👥 Customers", "Create a customer", "/customers"],
+              ["🎯 Leads", "Create lead → Mark Qualified", "/leads"],
+              ["📄 Quotes", "Create quote → Send → Accept", "/quotes"],
+              ["🧾 Orders", "Convert to order → Confirm → Ship", "/orders"],
+              ["💰 Invoices", "View auto-created invoice → Mark Paid", "/invoices"],
+              ["↩️ Returns", "If needed: create sales return", "/returns"],
+            ].map(([icon, desc, href]) => (
+              <li key={desc} className="flex items-center gap-3">
+                <span className="w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold shrink-0">→</span>
+                <a href={href} className="hover:text-green-700 hover:underline font-medium">{icon}</a>
+                <span className="text-gray-400">— {desc}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div className="bg-white rounded-xl border p-6">
+          <h2 className="font-semibold text-gray-800 mb-4">Retail / POS Flow</h2>
+          <ol className="space-y-2 text-sm text-gray-600">
+            {[
+              ["📦 Products", "Add products with barcode & stock", "/products"],
+              ["🏧 POS Billing", "Open shift → Scan & bill → Close shift", "http://localhost:3008"],
+              ["🛒 Online Orders", "Customer app → Checkout → Deliver", "http://localhost:3007"],
+              ["🚚 Delivery", "Assign rider → Track delivery", "http://localhost:3010/delivery-executives"],
+              ["📋 Procurement", "Restock from vendor → Receive stock", "/purchase-orders"],
+            ].map(([icon, desc, href]) => (
+              <li key={desc} className="flex items-center gap-3">
+                <span className="w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold shrink-0">→</span>
+                <a href={href} className="hover:text-blue-700 hover:underline font-medium">{icon}</a>
+                <span className="text-gray-400">— {desc}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
       </div>
     </div>
   );

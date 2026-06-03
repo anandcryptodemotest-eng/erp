@@ -1,13 +1,7 @@
+import type { CartItem } from "@erp/types";
+export type { CartItem } from "@erp/types";
+
 // Cart stored in localStorage — no server-side cart needed
-export interface CartItem {
-  productId: string;
-  variantId?: string;
-  name: string;
-  sku: string;
-  price: number;
-  qty: number;
-  imageUrl?: string;
-}
 
 const KEY = "customer_cart";
 

@@ -49,17 +49,17 @@
 
 | Feature | BE Status | FE Status | Service | Endpoint |
 |---------|-----------|-----------|---------|---------|
-| List orders (paginated, filterable) | ⬜ | ⬜ | sales | `GET /api/orders` |
-| Get order detail | ⬜ | ⬜ | sales | `GET /api/orders/:id` |
-| Create order (online) | ⬜ | ⬜ | sales | `POST /api/orders` |
-| Confirm order | ⬜ | ⬜ | sales | `PATCH /api/orders/:id/confirm` |
-| Cancel order | ⬜ | ⬜ | sales | `PATCH /api/orders/:id/cancel` |
-| Mark as out-for-delivery | ⬜ | ⬜ | sales | `PATCH /api/orders/:id/status` |
-| Mark as delivered | ⬜ | ⬜ | sales | `PATCH /api/orders/:id/status` |
-| Apply coupon to order | ⬜ | ⬜ | gateway | `POST /api/coupons/validate` |
-| Invoice generation after delivery | ⬜ | ⬜ | accounting | `POST /api/invoices` |
-| Stock reservation on confirm | ⬜ | ⬜ | inventory | `POST /api/stock/reserve` |
-| Stock release on cancel | ⬜ | ⬜ | inventory | `POST /api/stock/release` |
+| List orders (paginated, filterable) | ✅ | 🔄 | sales | `GET /api/orders` |
+| Get order detail | ✅ | 🔄 | sales | `GET /api/orders/:id` |
+| Create order (online) | ✅ | 🔄 | sales | `POST /api/orders` |
+| Confirm order (+ stock reserve) | ✅ | 🔄 | sales | `POST /api/orders/:id/confirm` |
+| Cancel order (+ stock release) | ✅ | 🔄 | sales | `POST /api/orders/:id/cancel` |
+| Ship order (+ stock deduct + invoice) | ✅ | 🔄 | sales | `POST /api/orders/:id/ship` |
+| Apply coupon to order | ✅ | 🔄 | gateway | `POST /api/coupons/validate` |
+| Invoice generation after delivery | ✅ | 🔄 | accounting | Auto on ship via sales→accounting |
+| Stock reservation on confirm | ✅ | ✅ | inventory | `POST /api/stock/reserve` |
+| Stock release on cancel | ✅ | ✅ | inventory | `POST /api/stock/release` |
+| Sales return (online) | ✅ | 🔄 | sales | `POST /api/sales-returns` |
 
 ---
 
@@ -102,21 +102,24 @@
 ## Module 5 — POS Billing
 
 | Feature | BE Status | FE Status | Service | Endpoint |
-|---------|-----------|-----------|---------|---------|
-| Open cash shift | ⬜ | ⬜ | accounting | `POST /api/shifts` |
-| Close cash shift | ⬜ | ⬜ | accounting | `PATCH /api/shifts/:id/close` |
-| Get active shift | ⬜ | ⬜ | accounting | `GET /api/shifts/active` |
-| Create bill | ⬜ | ⬜ | accounting | `POST /api/bills` |
-| Barcode product lookup (POS) | ⬜ | ⬜ | inventory | `GET /api/products?barcode=:code` |
-| Apply discount to bill | ⬜ | ⬜ | accounting | included in POST /api/bills |
-| Apply tax to bill | ⬜ | ⬜ | accounting | included in POST /api/bills |
-| Print receipt (bill detail) | ⬜ | ⬜ | accounting | `GET /api/bills/:id` |
-| Hold bill | ⬜ | ⬜ | accounting | `PATCH /api/bills/:id/hold` |
-| Resume held bill | ⬜ | ⬜ | accounting | `PATCH /api/bills/:id/resume` |
-| Bill return / refund | ⬜ | ⬜ | accounting | `POST /api/bills/:id/returns` |
-| List bills (shift filter) | ⬜ | ⬜ | accounting | `GET /api/bills?shiftId=:id` |
-| Daily cash summary | ⬜ | ⬜ | accounting | `GET /api/shifts/:id/summary` |
-| Stock deduction on bill complete | ⬜ | ⬜ | inventory | `POST /api/stock/deduct` |
+|---------|-----------|-----------|---------|----------|
+| Open cash shift | ✅ | ✅ | accounting | `POST /api/shifts` |
+| Close cash shift (with variance) | ✅ | 🔄 | accounting | `PATCH /api/shifts/:id` |
+| List/filter shifts | ✅ | ✅ | accounting | `GET /api/shifts` |
+| Shift detail with entries | ✅ | 🔄 | accounting | `GET /api/shifts/:id` |
+| Create bill (COMPLETED or HELD) | ✅ | ✅ | accounting | `POST /api/bills` |
+| Barcode product lookup (POS) | ✅ | ✅ | inventory | `GET /api/products?barcode=:code` |
+| Apply per-item discount and tax | ✅ | ✅ | accounting | Included in `POST /api/bills` |
+| Bill detail / receipt | ✅ | ✅ | accounting | `GET /api/bills/:id` |
+| Hold bill | ✅ | ✅ | accounting | `POST /api/bills` with `status=HELD` |
+| Resume held bill (HELD→COMPLETED) | ✅ | ✅ | accounting | `PATCH /api/bills/:id` |
+| Cancel bill (ADMIN/MANAGER) | ✅ | 🔄 | accounting | `PATCH /api/bills/:id` with `status=CANCELLED` |
+| Bill return / refund + stock restore | ✅ | ✅ | accounting | `POST /api/bills/:id/returns` |
+| List bill returns | ✅ | 🔄 | accounting | `GET /api/bills/:id/returns` |
+| List bills (shift/status/customer) | ✅ | ✅ | accounting | `GET /api/bills?shiftId=:id` |
+| Shift summary report | ✅ | 🔄 | accounting | `GET /api/reports/shifts` |
+| Cash-in / cash-out entries | ✅ | 🔄 | accounting | `POST /api/shifts/:id/entries` |
+| Stock deduction on bill complete | ✅ | ✅ | inventory | `POST /api/stock/deduct` (from bill route) |
 
 ---
 
@@ -124,15 +127,15 @@
 
 | Feature | BE Status | FE Status | Service | Endpoint |
 |---------|-----------|-----------|---------|---------|
-| List banners | ⬜ | ⬜ | gateway | `GET /api/banners` |
-| Create banner | ⬜ | ⬜ | gateway | `POST /api/banners` |
-| Update banner | ⬜ | ⬜ | gateway | `PATCH /api/banners/:id` |
-| Delete banner | ⬜ | ⬜ | gateway | `DELETE /api/banners/:id` |
-| List coupons | ⬜ | ⬜ | gateway | `GET /api/coupons` |
-| Create coupon | ⬜ | ⬜ | gateway | `POST /api/coupons` |
-| Update coupon | ⬜ | ⬜ | gateway | `PATCH /api/coupons/:id` |
-| Validate & apply coupon | ⬜ | ⬜ | gateway | `POST /api/coupons/validate` |
-| Coupon usage tracking | ⬜ | ⬜ | gateway | automatic in validate route |
+| List banners | ✅ | ✅ | gateway | `GET /api/banners` |
+| Create banner | ✅ | 🔄 | gateway | `POST /api/banners` |
+| Update banner | ✅ | 🔄 | gateway | `PATCH /api/banners/:id` |
+| Delete/deactivate banner | ✅ | 🔄 | gateway | `PATCH /api/banners/:id` |
+| List coupons | ✅ | 🔄 | gateway | `GET /api/coupons` |
+| Create coupon | ✅ | 🔄 | gateway | `POST /api/coupons` |
+| Update coupon | ✅ | 🔄 | gateway | `PATCH /api/coupons/:id` |
+| Validate & apply coupon | ✅ | ✅ | gateway | `POST /api/coupons/validate` |
+| Coupon usage tracking | ✅ | N/A | gateway | Automatic in validate route |
 
 ---
 
@@ -140,15 +143,16 @@
 
 | Feature | BE Status | FE Status | Service | Endpoint |
 |---------|-----------|-----------|---------|---------|
-| Manage delivery zones | ✅ | ⬜ | delivery | `GET/POST /api/zones` |
-| Update/delete zone | ✅ | ⬜ | delivery | `PATCH/DELETE /api/zones/:id` |
-| Assign order to executive | ✅ | ⬜ | delivery | `POST /api/assignments` |
-| List assignments | ✅ | ⬜ | delivery | `GET /api/assignments` |
-| Get assignment detail | ✅ | ⬜ | delivery | `GET /api/assignments/:id` |
-| Update assignment status | ✅ | ⬜ | delivery | `PATCH /api/assignments/:id` |
-| Live location tracking | ✅ | ⬜ | delivery | `POST /api/assignments/:id/track` |
-| Earnings log | ✅ | ⬜ | delivery | `GET /api/earnings` |
-| Compensation config | ✅ | ⬜ | delivery | `GET/PUT /api/compensation` |
+| Manage delivery zones | ✅ | 🔄 | delivery | `GET/POST /api/zones` |
+| Update/delete zone | ✅ | 🔄 | delivery | `PATCH/DELETE /api/zones/:id` |
+| Check pincode serviceability | ✅ | ✅ | delivery | `POST /api/zones/check-pincode` |
+| Assign order to executive | ✅ | 🔄 | delivery | `POST /api/assignments` |
+| List assignments | ✅ | ✅ | delivery | `GET /api/assignments` |
+| Get assignment detail | ✅ | ✅ | delivery | `GET /api/assignments/:id` |
+| Update assignment status (state machine) | ✅ | ✅ | delivery | `PATCH /api/assignments/:id` |
+| Live location tracking | ✅ | 🔄 | delivery | `POST /api/assignments/:id/track` |
+| Earnings summary | ✅ | ✅ | delivery | `GET /api/earnings` |
+| Compensation config | ✅ | 🔄 | delivery | `GET/PUT /api/compensation` |
 
 ---
 
@@ -183,14 +187,14 @@
 
 | Feature | BE Status | FE Status | Service | Endpoint |
 |---------|-----------|-----------|---------|---------|
-| Daily/weekly/monthly sales | ⬜ | ⬜ | sales | `GET /api/reports/sales` |
-| Category-wise sales | ⬜ | ⬜ | sales | `GET /api/reports/by-category` |
-| Top customers | ⬜ | ⬜ | sales | `GET /api/reports/top-customers` |
-| Inventory valuation | ⬜ | ⬜ | inventory | `GET /api/reports/valuation` |
-| Stock movement history | ⬜ | ⬜ | inventory | `GET /api/stock/movements` |
-| Bill summary per shift | ⬜ | ⬜ | accounting | `GET /api/shifts/:id/summary` |
-| Executive delivery report | ⬜ | ⬜ | delivery | `GET /api/reports/executive-summary` |
-| Coupon usage stats | ⬜ | ⬜ | gateway | `GET /api/coupons/:id/usage` |
+| Daily/weekly/monthly sales + top products | ✅ | 🔄 | sales | `GET /api/reports/sales` |
+| Category-wise sales | 🔄 | ⬜ | sales | `GET /api/reports/by-category` |
+| Top customers | ✅ | 🔄 | sales | Included in `GET /api/reports/sales` |
+| Inventory valuation + low-stock | ✅ | 🔄 | inventory | `GET /api/reports/stock` |
+| Stock movement history | ✅ | 🔄 | inventory | `GET /api/stock/movements` |
+| Shift summary (bills, totals, variance) | ✅ | 🔄 | accounting | `GET /api/reports/shifts` |
+| Executive delivery report | ✅ | 🔄 | delivery | `GET /api/earnings` |
+| Coupon usage stats | 🔄 | ⬜ | gateway | Tracked via CouponUsage model |
 
 ---
 

@@ -30,6 +30,9 @@ model ProductCategory {
   tenantId       String
   name           String
   description    String?
+  defaultHsnCode String?
+  defaultTaxCode String?
+  defaultTaxRate Float?
   parentId       String?
   sortOrder      Int      @default(0)
   isFeatured     Boolean  @default(false)
@@ -54,6 +57,16 @@ model Product {
   description  String?
   categoryId   String?
   brandId      String?
+  countryCode  String   @default("IN")
+  taxCode      String?
+  hsnCode      String?
+  taxRate      Float?
+  hsnConfidence String   @default("MISSING") // EXACT | PARTIAL | MISSING | MANUAL
+  taxApprovalStatus String @default("APPROVED") // APPROVED | PENDING_REVIEW
+  taxReviewNotes String?
+  taxApprovedAt DateTime?
+  taxApprovedBy String?
+  taxIncluded  Boolean  @default(false)
   barcode      String?
   pluCode      String?  // PLU lookup code for weight-based items (e.g. "4011" for banana)
   imageUrls    Json?    // String[] of image URLs

@@ -19,6 +19,8 @@ const nextConfig: NextConfig = {
       { source: "/api/quotes",               destination: `${SALES_URL}/api/quotes` },
       { source: "/api/leads/:path*",         destination: `${SALES_URL}/api/leads/:path*` },
       { source: "/api/leads",                destination: `${SALES_URL}/api/leads` },
+      { source: "/api/opportunities/:path*", destination: `${SALES_URL}/api/opportunities/:path*` },
+      { source: "/api/opportunities",        destination: `${SALES_URL}/api/opportunities` },
       { source: "/api/returns/:path*",       destination: `${SALES_URL}/api/returns/:path*` },
       { source: "/api/returns",              destination: `${SALES_URL}/api/returns` },
       { source: "/api/bills/:path*",         destination: `${ACCOUNTING_URL}/api/bills/:path*` },

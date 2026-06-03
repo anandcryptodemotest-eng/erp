@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { serviceClient } from "@erp/config";
 
 const patchSchema = z.object({
   status: z.enum(["COMPLETED", "CANCELLED"]),
+  warehouseId: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -31,7 +33,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
   const { id } = await params;
 
-  const bill = await prisma.bill.findFirst({ where: { id, tenantId } });
+  const bill = await prisma.bill.findFirst({ where: { id, tenantId }, include: { items: true } });
   if (!bill) return NextResponse.json({ error: "Bill not found" }, { status: 404 });
   if (bill.status === "CANCELLED") {
     return NextResponse.json({ error: "Bill is already cancelled" }, { status: 409 });
@@ -51,15 +53,54 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (parsed.data.status === "COMPLETED" && bill.status !== "HELD") {
     return NextResponse.json({ error: "Only HELD bills can be completed" }, { status: 409 });
   }
+  if (parsed.data.status === "COMPLETED" && !parsed.data.warehouseId) {
+    return NextResponse.json({ error: "Warehouse is required to complete a held bill" }, { status: 400 });
+  }
 
-  const updated = await prisma.bill.update({
-    where: { id },
-    data: {
-      status: parsed.data.status,
-      paymentStatus: parsed.data.status === "CANCELLED" ? "CANCELLED" : "PAID",
-      notes: parsed.data.notes ?? bill.notes,
-    },
-    include: { items: true },
+  const updated = await prisma.$transaction(async (tx) => {
+    const next = await tx.bill.update({
+      where: { id },
+      data: {
+        status: parsed.data.status,
+        paymentStatus: parsed.data.status === "CANCELLED" ? "CANCELLED" : "PAID",
+        notes: parsed.data.notes ?? bill.notes,
+      },
+      include: { items: true },
+    });
+
+    if (parsed.data.status === "COMPLETED" && bill.shiftId) {
+      await tx.cashShiftEntry.create({
+        data: {
+          tenantId,
+          shiftId: bill.shiftId,
+          type: "BILL_PAYMENT",
+          amount: bill.total,
+          reference: bill.id,
+          notes: `Bill ${bill.billNumber}`,
+        },
+      });
+    }
+
+    return next;
   });
+
+  if (parsed.data.status === "COMPLETED") {
+    for (const item of bill.items) {
+      if (!item.variantId) {
+        await serviceClient.call("inventory", "/api/stock/deduct", {
+          method: "POST",
+          body: {
+            productId: item.productId,
+            warehouseId: parsed.data.warehouseId,
+            quantity: item.quantity,
+            reference: bill.id,
+          },
+          tenantId,
+          userId,
+        }).catch(() => null);
+      }
+    }
+  }
+
   return NextResponse.json({ data: updated });
 }

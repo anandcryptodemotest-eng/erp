@@ -1,0 +1,11 @@
+-- Inventory tax metadata for country-aware taxation
+ALTER TABLE "ProductCategory"
+  ADD COLUMN IF NOT EXISTS "defaultTaxCode" TEXT,
+  ADD COLUMN IF NOT EXISTS "defaultTaxRate" DOUBLE PRECISION;
+
+ALTER TABLE "Product"
+  ADD COLUMN IF NOT EXISTS "countryCode" TEXT NOT NULL DEFAULT 'IN',
+  ADD COLUMN IF NOT EXISTS "taxCode" TEXT,
+  ADD COLUMN IF NOT EXISTS "hsnCode" TEXT,
+  ADD COLUMN IF NOT EXISTS "taxRate" DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS "taxIncluded" BOOLEAN NOT NULL DEFAULT false;

@@ -5,6 +5,9 @@ import { z } from "zod";
 const updateCategorySchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
+  defaultHsnCode: z.string().nullable().optional(),
+  defaultTaxCode: z.string().nullable().optional(),
+  defaultTaxRate: z.number().min(0).nullable().optional(),
   parentId: z.string().nullable().optional(),
   sortOrder: z.number().int().min(0).optional(),
   isFeatured: z.boolean().optional(),

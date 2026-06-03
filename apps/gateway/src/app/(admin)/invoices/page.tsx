@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/admin-api";
+import LeadToCashGuide from "@/components/LeadToCashGuide";
+import LeadToCashUnderstanding from "@/components/LeadToCashUnderstanding";
 
 interface Invoice { id: string; number: string; type: string; status: string; total: number; paidAmount: number; dueDate: string; customer?: { name: string } | null; vendor?: { name: string } | null; createdAt: string; }
 
@@ -51,6 +53,9 @@ export default function InvoicesPage() {
 
   return (
     <div className="p-8">
+      <LeadToCashGuide current="invoices" />
+      <LeadToCashUnderstanding current="invoices" />
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
       </div>

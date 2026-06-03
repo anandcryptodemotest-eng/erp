@@ -139,6 +139,28 @@ export interface SalesOrder {
   items: SalesOrderItem[];
 }
 
+export type LeadStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "DISQUALIFIED" | "CONVERTED";
+
+export type OpportunityStage =
+  | "PROSPECTING"
+  | "QUALIFICATION"
+  | "PROPOSAL"
+  | "NEGOTIATION"
+  | "WON"
+  | "LOST";
+
+export type QuoteStatus = "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED";
+
+export type SalesOrderStatus =
+  | "DRAFT"
+  | "CONFIRMED"
+  | "PARTIALLY_SHIPPED"
+  | "SHIPPED"
+  | "INVOICED"
+  | "CANCELLED";
+
+export type SalesReturnStatus = "PENDING" | "APPROVED" | "COMPLETED" | "REJECTED";
+
 export interface SalesOrderItem {
   id: string;
   productId: string;
@@ -297,6 +319,24 @@ export type DeliveryAssignmentStatus =
   | "CANCELLED";
 
 export type AvailabilityStatus = "AVAILABLE" | "BUSY" | "OFF_DUTY";
+
+export interface CartItem {
+  productId: string;
+  variantId?: string;
+  name: string;
+  sku: string;
+  price: number;
+  qty: number;
+  imageUrl?: string;
+}
+
+export interface CartSummary {
+  subtotal: number;
+  tax: number;
+  deliveryFee: number;
+  discount: number;
+  total: number;
+}
 
 export interface CustomerAddress {
   id: string;

@@ -5,6 +5,9 @@ import { z } from "zod";
 const createCategorySchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
+  defaultHsnCode: z.string().optional(),
+  defaultTaxCode: z.string().optional(),
+  defaultTaxRate: z.number().min(0).optional(),
   parentId: z.string().optional(),
   sortOrder: z.number().int().min(0).default(0),
   isFeatured: z.boolean().default(false),

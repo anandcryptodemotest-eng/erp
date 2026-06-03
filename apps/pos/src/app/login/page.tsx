@@ -11,21 +11,48 @@ export default function LoginPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true); setError("");
+    setError("");
 
-    const res = await api<{ token: string; user?: { id: string }; tenant?: { id: string }; tenants?: { id: string }[] }>(
-      "gateway", "/api/auth",
-      { method: "POST", skipAuth: true, body: JSON.stringify({ action: "login", ...form }) }
+    const email = form.email.trim();
+    const password = form.password;
+    const tenantSlug = form.tenantSlug.trim();
+
+    if (!email) { setError("Email is required"); return; }
+    if (!email.includes("@")) { setError("Enter a valid email"); return; }
+    if (!password) { setError("Password is required"); return; }
+
+    setLoading(true);
+
+    const res = await api<{
+      data?: { accessToken?: string; user?: { id: string }; tenant?: { id: string }; tenants?: { id: string }[] };
+      accessToken?: string;
+      token?: string;
+      user?: { id: string };
+      tenant?: { id: string };
+      tenants?: { id: string }[];
+    }>(
+      "gateway", "/api/auth?action=login",
+      { method: "POST", skipAuth: true, body: JSON.stringify({ email, password, tenantSlug: tenantSlug || undefined }) }
     );
 
     setLoading(false);
     if (res.error) { setError(res.error); return; }
 
-    const tenantId = res.data.tenant?.id ?? res.data.tenants?.[0]?.id ?? "";
-    const userId = res.data.user?.id ?? "";
-    if (!tenantId) { setError("Tenant not found"); return; }
+    const payload = res.data.data ?? res.data;
+    const token = payload.accessToken ?? res.data.accessToken ?? res.data.token ?? "";
+    const tenantId = payload.tenant?.id ?? payload.tenants?.[0]?.id ?? "";
+    const userId = payload.user?.id ?? "";
 
-    saveAuth(res.data.token, tenantId, userId);
+    if (!tenantId) {
+      setError("No tenant is assigned to this user. Ask a system admin to add you to a tenant.");
+      return;
+    }
+    if (!token) {
+      setError("Login token missing in response. Please retry.");
+      return;
+    }
+
+    saveAuth(token, tenantId, userId);
     router.replace("/");
   }
 
@@ -42,7 +69,7 @@ export default function LoginPage() {
           {[
             { key: "email",      label: "Email",      type: "email",    placeholder: "cashier@store.com" },
             { key: "password",   label: "Password",   type: "password", placeholder: "••••••••" },
-            { key: "tenantSlug", label: "Store Code", type: "text",     placeholder: "your-store (optional)" },
+            { key: "tenantSlug", label: "Store Code", type: "text",     placeholder: "simhapuri-fresh (optional)" },
           ].map(({ key, label, type, placeholder }) => (
             <div key={key}>
               <label className="mb-1 block text-xs font-medium text-slate-400">{label}</label>

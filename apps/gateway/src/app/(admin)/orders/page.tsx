@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { api } from "@/lib/admin-api";
+import LeadToCashGuide from "@/components/LeadToCashGuide";
+import LeadToCashUnderstanding from "@/components/LeadToCashUnderstanding";
 
 const BarcodeScannerModal = dynamic(() => import("@/components/BarcodeScannerModal"), { ssr: false });
 
@@ -198,29 +200,43 @@ export default function OrdersPage() {
   async function createOrder(e: React.FormEvent) {
     e.preventDefault();
     if (lines.length === 0) { notify("Add at least one product", "err"); return; }
+    if (!customerId) { notify("Select a customer first", "err"); return; }
+    if (lines.some((l) => l.productId === "__NEW__")) {
+      notify("Some lines are new/unknown products. Please create/select valid products first.", "err");
+      return;
+    }
     if (saleMode === "quicksale") { await completeSale(); return; }
     try {
-      const items = lines.map(l => l.productId === "__NEW__"
-        ? { productName: l.productName, productSku: l.productSku || undefined, productUnit: l.productUnit || "pcs", quantity: Number(l.qty), unitPrice: Number(l.unitPrice) }
-        : { productId: l.productId, productName: l.productName, quantity: Number(l.qty), unitPrice: Number(l.unitPrice) }
-      );
-      await api("/api/orders", { method: "POST", body: JSON.stringify({ customerId, date: new Date().toISOString(), paymentMethod: "CASH", items }) });
+      const items = lines.map((l) => ({
+        productId: l.productId,
+        productName: l.productName,
+        quantity: Number(l.qty),
+        unitPrice: Number(l.unitPrice),
+      }));
+      await api("/api/orders", { method: "POST", body: JSON.stringify({ customerId, date: new Date().toISOString(), paymentMethod: "COD", items }) });
       notify("\u2713 Sales order created"); setShowForm(false); load();
     } catch (err: unknown) { notify(`Error: ${err instanceof Error ? err.message : String(err)}`, "err"); }
   }
 
   async function completeSale() {
     if (!quickSaleWarehouse) { notify("Select a warehouse first", "err"); return; }
+    if (!customerId) { notify("Select a customer first", "err"); return; }
+    if (lines.some((l) => l.productId === "__NEW__")) {
+      notify("Some lines are new/unknown products. Please create/select valid products first.", "err");
+      return;
+    }
     try {
       notify("Processing sale\u2026");
       // Step 1 — create DRAFT order
-      const items = lines.map(l => l.productId === "__NEW__"
-        ? { productName: l.productName, productSku: l.productSku || undefined, productUnit: l.productUnit || "pcs", quantity: Number(l.qty), unitPrice: Number(l.unitPrice) }
-        : { productId: l.productId, productName: l.productName, quantity: Number(l.qty), unitPrice: Number(l.unitPrice) }
-      );
+      const items = lines.map((l) => ({
+        productId: l.productId,
+        productName: l.productName,
+        quantity: Number(l.qty),
+        unitPrice: Number(l.unitPrice),
+      }));
       const created = await api("/api/orders", {
         method: "POST",
-        body: JSON.stringify({ customerId, date: new Date().toISOString(), paymentMethod: "CASH", items }),
+        body: JSON.stringify({ customerId, date: new Date().toISOString(), paymentMethod: "COD", items }),
       });
       const orderId: string = created.data.id;
       // Step 2 — confirm (reserves stock)
@@ -286,6 +302,9 @@ export default function OrdersPage() {
 
   return (
     <div className="p-8">
+      <LeadToCashGuide current="orders" />
+      <LeadToCashUnderstanding current="orders" />
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Sales Orders</h1>
         <button

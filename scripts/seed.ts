@@ -160,13 +160,26 @@ async function seedInventory(tenantId: string) {
     ["dairy",      "Dairy & Eggs"],
     ["staples",    "Staples & Grains"],
   ]) {
+    const categoryTaxMap: Record<string, { code: string; rate: number }> = {
+      vegetables: { code: "GST_5", rate: 0.05 },
+      fruits: { code: "GST_0", rate: 0.0 },
+      dairy: { code: "GST_12", rate: 0.12 },
+      staples: { code: "GST_5", rate: 0.05 },
+    };
+    const tax = categoryTaxMap[key];
+
     const cat = await invDb.productCategory.upsert({
       where:  { id: `seed-cat-${key}` },
-      update: {},
+      update: {
+        defaultTaxCode: tax.code,
+        defaultTaxRate: tax.rate,
+      },
       create: {
         id:       `seed-cat-${key}`,
         tenantId,
         name,
+        defaultTaxCode: tax.code,
+        defaultTaxRate: tax.rate,
       },
     });
     categories[key] = cat.id;
@@ -174,21 +187,39 @@ async function seedInventory(tenantId: string) {
 
   log("Creating sample products...");
   const products = [
-    { key: "tomato", sku: "VEG-001", name: "Tomato",       categoryKey: "vegetables", cost: 20,  sell: 30,  unit: "kg",  barcode: "8901234560001" },
-    { key: "banana", sku: "FRT-001", name: "Banana",       categoryKey: "fruits",     cost: 25,  sell: 40,  unit: "dozen", barcode: "8901234560002" },
-    { key: "milk",   sku: "DRY-001", name: "Full Cream Milk", categoryKey: "dairy",  cost: 55,  sell: 70,  unit: "L",   barcode: "8901234560003" },
-    { key: "rice",   sku: "STA-001", name: "Basmati Rice", categoryKey: "staples",    cost: 80,  sell: 110, unit: "kg",  barcode: "8901234560004" },
+    { key: "tomato", sku: "VEG-001", name: "Tomato", categoryKey: "vegetables", cost: 20, sell: 30, unit: "kg", barcode: "8901234560001", hsnCode: "070200", taxCode: "GST_5", taxRate: 0.05 },
+    { key: "banana", sku: "FRT-001", name: "Banana", categoryKey: "fruits", cost: 25, sell: 40, unit: "dozen", barcode: "8901234560002", hsnCode: "080390", taxCode: "GST_0", taxRate: 0.0 },
+    { key: "milk", sku: "DRY-001", name: "Full Cream Milk", categoryKey: "dairy", cost: 55, sell: 70, unit: "L", barcode: "8901234560003", hsnCode: "040120", taxCode: "GST_12", taxRate: 0.12 },
+    { key: "rice", sku: "STA-001", name: "Basmati Rice", categoryKey: "staples", cost: 80, sell: 110, unit: "kg", barcode: "8901234560004", hsnCode: "100630", taxCode: "GST_5", taxRate: 0.05 },
   ];
 
   for (const p of products) {
     const product = await invDb.product.upsert({
       where:  { tenantId_sku: { tenantId, sku: p.sku } },
-      update: {},
+      update: {
+        name:        p.name,
+        categoryId:  categories[p.categoryKey],
+        countryCode: "IN",
+        taxCode:     p.taxCode,
+        hsnCode:     p.hsnCode,
+        taxRate:     p.taxRate,
+        barcode:     p.barcode,
+        unit:        p.unit,
+        costPrice:   p.cost,
+        sellPrice:   p.sell,
+        reorderLevel: 20,
+        weight:       1,
+        weightUnit:  p.unit === "kg" ? "kg" : null,
+      },
       create: {
         tenantId,
         sku:         p.sku,
         name:        p.name,
         category:    { connect: { id: categories[p.categoryKey] } },
+        countryCode: "IN",
+        taxCode:     p.taxCode,
+        hsnCode:     p.hsnCode,
+        taxRate:     p.taxRate,
         barcode:     p.barcode,
         unit:        p.unit,
         costPrice:   p.cost,
@@ -275,6 +306,43 @@ async function seedAccounting(tenantId: string) {
     });
     idByCode[acc.code] = record.id;
     log(`  CoA: ${acc.code} ${acc.name}`);
+  }
+
+  log("Creating tax rates...");
+  const taxRates = [
+    { code: "GST_0", name: "GST Exempt", rate: 0, isDefault: false },
+    { code: "GST_5", name: "GST 5%", rate: 0.05, isDefault: true },
+    { code: "GST_12", name: "GST 12%", rate: 0.12, isDefault: false },
+    { code: "GST_18", name: "GST 18%", rate: 0.18, isDefault: false },
+  ];
+
+  for (const t of taxRates) {
+    const existing = await accDb.taxRate.findFirst({ where: { tenantId, countryCode: "IN", code: t.code } });
+    if (existing) {
+      await accDb.taxRate.update({
+        where: { id: existing.id },
+        data: {
+          name: t.name,
+          rate: t.rate,
+          taxType: "GST",
+          isDefault: t.isDefault,
+          isActive: true,
+        },
+      });
+    } else {
+      await accDb.taxRate.create({
+        data: {
+          tenantId,
+          countryCode: "IN",
+          taxType: "GST",
+          name: t.name,
+          code: t.code,
+          rate: t.rate,
+          isDefault: t.isDefault,
+          isActive: true,
+        },
+      });
+    }
   }
 }
 

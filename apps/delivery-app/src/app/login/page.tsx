@@ -15,7 +15,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true); setError("");
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:3000"}/api/auth`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:3010"}/api/auth`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "login", email, password, tenantSlug }),

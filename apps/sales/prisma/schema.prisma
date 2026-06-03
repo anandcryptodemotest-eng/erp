@@ -34,6 +34,7 @@ model Customer {
 
   orders    SalesOrder[]
   quotes    Quote[]
+  opportunities Opportunity[]
   returns   SalesReturn[]
   addresses CustomerAddress[]
 
@@ -99,9 +100,11 @@ model Opportunity {
   updatedAt     DateTime  @updatedAt
 
   lead   Lead?   @relation(fields: [leadId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
   quotes Quote[]
 
   @@index([tenantId])
+  @@index([customerId])
 }
 
 model Quote {

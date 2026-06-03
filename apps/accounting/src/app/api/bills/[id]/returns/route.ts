@@ -74,13 +74,24 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
   }
 
-  const totalRefund = parsed.data.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+  const returnItems = parsed.data.items.map((i) => {
+    const source = bill.items.find((b) => b.productId === i.productId && b.variantId === (i.variantId ?? null));
+    const sourceTaxRate = source ? Number((source as unknown as Record<string, unknown>).taxRate ?? 0) : 0;
+    const sourceTaxCode = source ? ((source as unknown as Record<string, unknown>).taxCode as string | undefined) : undefined;
+    const sourceTaxAmount = source ? Number((source as unknown as Record<string, unknown>).taxAmount ?? 0) : 0;
+    const taxPerUnit = source && source.quantity > 0 ? sourceTaxAmount / source.quantity : i.unitPrice * sourceTaxRate;
+    const taxAmount = taxPerUnit * i.quantity;
+    const refundAmount = i.quantity * i.unitPrice + taxAmount;
 
-  const TAX_RATE = parseFloat(process.env.TAX_RATE ?? "0.10");
-  const returnItems = parsed.data.items.map((i) => ({
-    ...i,
-    refundAmount: i.quantity * i.unitPrice * (1 + TAX_RATE),
-  }));
+    return {
+      ...i,
+      taxCode: sourceTaxCode,
+      taxRate: sourceTaxRate,
+      taxAmount,
+      refundAmount,
+    };
+  });
+
   const totalRefundWithTax = returnItems.reduce((s, i) => s + i.refundAmount, 0);
 
   const billReturn = await prisma.$transaction(async (tx) => {
@@ -92,7 +103,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         totalRefund: totalRefundWithTax,
         refundMethod: parsed.data.refundMethod,
         processedBy: userId,
-        items: { create: returnItems },
+        items: { create: returnItems as unknown as Record<string, unknown>[] },
       },
       include: { items: true },
     });
@@ -112,8 +123,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Mark bill as REFUNDED if return covers all items
-    const totalBillQty = bill.items.reduce((s, i) => s + i.quantity, 0);
-    if (totalRefund >= totalBillQty * (bill.total / totalBillQty)) {
+    if (totalRefundWithTax >= bill.total) {
       await tx.bill.update({ where: { id }, data: { paymentStatus: "REFUNDED" } });
     }
 

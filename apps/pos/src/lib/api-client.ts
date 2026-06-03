@@ -1,8 +1,9 @@
 const SERVICE_URLS: Record<string, string> = {
-  gateway:    process.env.NEXT_PUBLIC_GATEWAY_URL    ?? "http://localhost:3000",
-  sales:      process.env.NEXT_PUBLIC_SALES_URL      ?? "http://localhost:3001",
-  inventory:  process.env.NEXT_PUBLIC_INVENTORY_URL  ?? "http://localhost:3002",
-  accounting: process.env.NEXT_PUBLIC_ACCOUNTING_URL ?? "http://localhost:3003",
+  // Keep browser requests same-origin; next.config.ts rewrites these to real services.
+  gateway: "/_svc/gateway",
+  sales: "/_svc/sales",
+  inventory: "/_svc/inventory",
+  accounting: "/_svc/accounting",
 };
 
 export type ServiceName = keyof typeof SERVICE_URLS;

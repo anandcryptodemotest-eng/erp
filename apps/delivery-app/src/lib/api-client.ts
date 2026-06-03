@@ -1,6 +1,6 @@
 // Service URL map — delivery-app calls gateway (auth) and delivery (assignments/earnings)
 const SERVICE_URLS: Record<string, string> = {
-  gateway: process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:3000",
+  gateway: process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:3010",
   delivery: process.env.NEXT_PUBLIC_DELIVERY_URL ?? "http://localhost:3006",
 };
 

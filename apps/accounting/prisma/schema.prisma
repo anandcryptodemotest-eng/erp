@@ -138,17 +138,24 @@ model DebitNote {
 model TaxRate {
   id          String   @id @default(cuid())
   tenantId    String
+  countryCode String   @default("IN")
+  taxType     String   @default("GST") // GST | VAT | SALES_TAX | OTHER
+  regionCode  String?
   name        String
   code        String
-  rate        Float
+  rate        Float // supports both decimal (0.18) and percent (18)
+  components  Json?
+  effectiveFrom DateTime?
+  effectiveTo DateTime?
   description String?
   isDefault   Boolean  @default(false)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@unique([tenantId, code])
+  @@unique([tenantId, countryCode, code])
   @@index([tenantId])
+  @@index([tenantId, countryCode, isActive])
 }
 
 // ── POS / Store Billing ──────────────────────────────────────────────────────
@@ -193,6 +200,8 @@ model CashShiftEntry {
 model Bill {
   id            String    @id @default(cuid())
   tenantId      String
+  countryCode   String    @default("IN")
+  currency      String    @default("INR")
   billNumber    String
   shiftId       String?
   customerId    String?
@@ -231,6 +240,10 @@ model BillItem {
   quantity    Float
   unitPrice   Float
   discount    Float   @default(0)
+  taxableAmount Float @default(0)
+  taxCode     String?
+  taxType     String?
+  taxRate     Float   @default(0)
   taxAmount   Float   @default(0)
   total       Float
 
@@ -261,6 +274,9 @@ model BillReturnItem {
   productName  String
   quantity     Float
   unitPrice    Float
+  taxCode      String?
+  taxRate      Float   @default(0)
+  taxAmount    Float   @default(0)
   refundAmount Float
 
   billReturn BillReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)

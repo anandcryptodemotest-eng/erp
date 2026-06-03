@@ -37,7 +37,9 @@ export async function GET(request: Request) {
   const [opportunities, total] = await Promise.all([
     prisma.opportunity.findMany({
       where,
-      include: { lead: { select: { id: true, name: true } } },
+      include: {
+        lead: { select: { id: true, name: true } },
+      },
       orderBy: { createdAt: "desc" },
       skip,
       take: limit,
