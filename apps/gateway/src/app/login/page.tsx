@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveAuth } from "@/lib/admin-api";
+import { defaultHomePath, resolveNavModules } from "@/lib/nav-access";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,8 +21,16 @@ export default function LoginPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Login failed");
-      saveAuth(json.data.accessToken, json.data.tenant.id);
-      router.push("/dashboard");
+      const user = {
+        id: json.data.user?.id as string | undefined,
+        email: json.data.user?.email as string,
+        name: (json.data.user?.name as string | null) ?? null,
+        role: (json.data.user?.role as string) ?? "USER",
+        navModules: (json.data.navModules as string[] | undefined) ?? null,
+      };
+      saveAuth(json.data.accessToken, json.data.tenant.id, user);
+      const home = defaultHomePath(resolveNavModules(user.role, user.navModules));
+      router.push(home);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

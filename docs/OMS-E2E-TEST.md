@@ -16,14 +16,16 @@ Covers: **Customer places order** → Sales → Pricing → Dispatch → Deliver
 
 ## Users
 
-| Persona | Email | Password | App |
-|---------|-------|----------|-----|
-| **End customer** | `customer@oms.test` | `Test@123` | http://localhost:3007/login |
-| Org Admin | `admin@simhapurifresh.com` | `Admin@123` | http://localhost:3010/login |
-| Sales | `sales@oms.test` | `Test@123` | Admin OMS |
-| Pricing | `pricing@oms.test` | `Test@123` | Admin OMS |
-| Dispatch | `dispatch@oms.test` | `Test@123` | Admin OMS |
-| Delivery | `delivery@oms.test` | `Test@123` | Admin OMS |
+| Persona | Email | Password | App | Sees in admin |
+|---------|-------|----------|-----|---------------|
+| **End customer** | `customer@oms.test` | `Test@123` | http://localhost:3007/login | Portal only |
+| Org Admin | `admin@simhapurifresh.com` | `Admin@123` | Admin | All modules |
+| Sales | `sales@oms.test` | `Test@123` | Admin | Sales Flow + OMS + Products + Customers |
+| Pricing | `pricing@oms.test` | `Test@123` | Admin | OMS + Products (+ Dashboard) |
+| Dispatch | `dispatch@oms.test` | `Test@123` | Admin | OMS (+ Dashboard) |
+| Delivery | `delivery@oms.test` | `Test@123` | Admin | OMS (+ Dashboard) |
+
+Nav visibility is **role-configured** in `apps/gateway/src/lib/nav-access.ts` (`DEFAULT_ROLE_NAV`). Optional per-user override via `navModules` on the session user.
 
 Tenant: `simhapuri-fresh`
 

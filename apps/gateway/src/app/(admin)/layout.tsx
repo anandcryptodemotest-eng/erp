@@ -2,7 +2,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { getToken, clearAuth } from "@/lib/admin-api";
+import { getToken, clearAuth, getAdminUser } from "@/lib/admin-api";
+import {
+  canAccessModule,
+  defaultHomePath,
+  pathToModuleKey,
+  resolveNavModules,
+  type NavModuleKey,
+} from "@/lib/nav-access";
 
 type NavItem = {
   href: string;
@@ -10,6 +17,7 @@ type NavItem = {
   icon: string;
   badge?: string;
   keywords: string[];
+  module: NavModuleKey;
 };
 
 type NavGroup = {
@@ -19,16 +27,17 @@ type NavGroup = {
 };
 
 const SALES_FLOW_CHILDREN: NavItem[] = [
-  { href: "/leads", label: "Leads", icon: "LD", keywords: ["prospects", "pipeline"] },
-  { href: "/opportunities", label: "Deals", icon: "DL", keywords: ["opportunity", "deal", "stage"] },
-  { href: "/quotes", label: "Quotes", icon: "QT", keywords: ["proposal", "pricing"] },
-  { href: "/orders", label: "Orders", icon: "SO", keywords: ["sales order", "fulfillment"] },
+  { href: "/leads", label: "Leads", icon: "LD", keywords: ["prospects", "pipeline"], module: "leads" },
+  { href: "/opportunities", label: "Deals", icon: "DL", keywords: ["opportunity", "deal", "stage"], module: "opportunities" },
+  { href: "/quotes", label: "Quotes", icon: "QT", keywords: ["proposal", "pricing"], module: "quotes" },
+  { href: "/orders", label: "Orders", icon: "SO", keywords: ["sales order", "fulfillment"], module: "orders" },
 ];
 
 const SALES_FLOW_ITEM: NavItem = {
   href: "/leads",
   label: "Sales Flow",
   icon: "SF",
+  module: "sales_flow",
   keywords: ["lead to cash", "sales flow", ...SALES_FLOW_CHILDREN.flatMap((item) => [item.label, ...item.keywords])],
 };
 
@@ -37,8 +46,8 @@ const NAV_GROUPS: NavGroup[] = [
     key: "core",
     title: "Core",
     items: [
-      { href: "/dashboard", label: "Dashboard", icon: "DB", keywords: ["home", "kpi", "summary"] },
-      { href: "/customers", label: "Customers", icon: "CU", keywords: ["crm", "accounts", "buyers"] },
+      { href: "/dashboard", label: "Dashboard", icon: "DB", keywords: ["home", "kpi", "summary"], module: "dashboard" },
+      { href: "/customers", label: "Customers", icon: "CU", keywords: ["crm", "accounts", "buyers"], module: "customers" },
     ],
   },
   {
@@ -50,29 +59,30 @@ const NAV_GROUPS: NavGroup[] = [
     key: "ops",
     title: "Operations",
     items: [
-      { href: "/products", label: "Products", icon: "PR", keywords: ["catalog", "inventory", "attributes", "custom fields", "thickness", "grade"] },
-      { href: "/oms", label: "OMS Workflow", icon: "OM", keywords: ["order lifecycle", "pricing", "dispatch", "whatsapp"] },
-      { href: "/vendors", label: "Vendors", icon: "VN", keywords: ["supplier", "partner"] },
-      { href: "/purchase-orders", label: "Purchase Orders", icon: "PO", keywords: ["procurement", "buy"] },
-      { href: "/employees", label: "Employees", icon: "EM", keywords: ["staff", "people"] },
-      { href: "/payroll", label: "Payroll", icon: "PY", keywords: ["salary", "compensation"] },
+      { href: "/products", label: "Products", icon: "PR", keywords: ["catalog", "inventory", "attributes", "custom fields"], module: "products" },
+      { href: "/oms", label: "OMS Workflow", icon: "OM", keywords: ["order lifecycle", "pricing", "dispatch"], module: "oms" },
+      { href: "/vendors", label: "Vendors", icon: "VN", keywords: ["supplier", "partner"], module: "vendors" },
+      { href: "/purchase-orders", label: "Purchase Orders", icon: "PO", keywords: ["procurement", "buy"], module: "purchase_orders" },
+      { href: "/employees", label: "Employees", icon: "EM", keywords: ["staff", "people"], module: "employees" },
+      { href: "/payroll", label: "Payroll", icon: "PY", keywords: ["salary", "compensation"], module: "payroll" },
     ],
   },
   {
     key: "finance",
     title: "Finance",
     items: [
-      { href: "/invoices", label: "Invoices", icon: "IV", keywords: ["billing", "ar"] },
-      { href: "/returns", label: "Returns", icon: "RT", keywords: ["sales return", "credit note"] },
+      { href: "/invoices", label: "Invoices", icon: "IV", keywords: ["billing", "ar"], module: "invoices" },
+      { href: "/returns", label: "Returns", icon: "RT", keywords: ["sales return", "credit note"], module: "returns" },
     ],
   },
 ];
 
 const QUICK_ACTIONS: NavItem[] = [
-  { href: "/leads", label: "New Lead", icon: "NL", keywords: ["lead"] },
-  { href: "/quotes", label: "New Quote", icon: "NQ", keywords: ["quote"] },
-  { href: "/orders", label: "New Order", icon: "NO", keywords: ["order"] },
-  { href: "/invoices", label: "New Invoice", icon: "NI", keywords: ["invoice"] },
+  { href: "/leads", label: "New Lead", icon: "NL", keywords: ["lead"], module: "leads" },
+  { href: "/quotes", label: "New Quote", icon: "NQ", keywords: ["quote"], module: "quotes" },
+  { href: "/orders", label: "New Order", icon: "NO", keywords: ["order"], module: "orders" },
+  { href: "/oms", label: "OMS Queue", icon: "OM", keywords: ["oms"], module: "oms" },
+  { href: "/invoices", label: "New Invoice", icon: "NI", keywords: ["invoice"], module: "invoices" },
 ];
 
 function isActivePath(pathname: string, href: string): boolean {
@@ -96,6 +106,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState("");
+  const [sessionUser, setSessionUser] = useState<ReturnType<typeof getAdminUser>>(null);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     core: true,
     leadToCash: true,
@@ -103,10 +114,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     finance: true,
   });
 
+  const allowed = useMemo(
+    () => resolveNavModules(sessionUser?.role, sessionUser?.navModules),
+    [sessionUser?.role, sessionUser?.navModules]
+  );
+
   useEffect(() => {
-    if (!getToken()) { router.replace("/login"); return; }
+    if (!getToken()) {
+      router.replace("/login");
+      return;
+    }
+    const user = getAdminUser();
+    setSessionUser(user);
+    const mods = resolveNavModules(user?.role, user?.navModules);
+    if (mods.size === 0) {
+      clearAuth();
+      router.replace("/login");
+      return;
+    }
+    const mod = pathToModuleKey(pathname);
+    if (mod && !canAccessModule(mods, mod)) {
+      router.replace(defaultHomePath(mods));
+      return;
+    }
     setReady(true);
-  }, [router]);
+  }, [router, pathname]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -115,24 +147,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const normalizedQuery = query.trim().toLowerCase();
 
   const filteredGroups = useMemo(() => {
-    if (!normalizedQuery) return NAV_GROUPS;
+    return NAV_GROUPS.map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        if (!canAccessModule(allowed, item.module)) return false;
+        if (!normalizedQuery) return true;
+        const hay = `${item.label} ${item.href} ${item.keywords.join(" ")}`.toLowerCase();
+        return hay.includes(normalizedQuery);
+      }),
+    })).filter((group) => group.items.length > 0);
+  }, [normalizedQuery, allowed]);
 
-    return NAV_GROUPS
-      .map((group) => ({
-        ...group,
-        items: group.items.filter((item) => {
-          const hay = `${item.label} ${item.href} ${item.keywords.join(" ")}`.toLowerCase();
-          return hay.includes(normalizedQuery);
-        }),
-      }))
-      .filter((group) => group.items.length > 0);
-  }, [normalizedQuery]);
+  const visibleQuickActions = useMemo(
+    () => QUICK_ACTIONS.filter((a) => canAccessModule(allowed, a.module)),
+    [allowed]
+  );
+
+  const visibleSalesChildren = useMemo(
+    () =>
+      SALES_FLOW_CHILDREN.filter((child) => {
+        if (!canAccessModule(allowed, child.module)) return false;
+        if (!normalizedQuery) return true;
+        const hay = `${child.label} ${child.href} ${child.keywords.join(" ")}`.toLowerCase();
+        return hay.includes(normalizedQuery);
+      }),
+    [allowed, normalizedQuery]
+  );
 
   const flatNavItems = [...NAV_GROUPS.flatMap((group) => group.items), ...SALES_FLOW_CHILDREN];
 
   if (!ready) return null;
 
   const activeTitle = flatNavItems.find((item) => isActivePath(pathname, item.href))?.label ?? "Admin";
+  const displayName = sessionUser?.name || sessionUser?.email || "User";
+  const displayRole = sessionUser?.role || "USER";
 
   const Sidebar = (
     <aside
@@ -159,7 +207,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {!collapsed && (
           <div className="mt-3 flex items-center gap-2 text-xs">
             <span className="rounded-full bg-emerald-900/60 text-emerald-300 px-2 py-0.5">DEV</span>
-            <span className="rounded-full bg-sky-900/60 text-sky-300 px-2 py-0.5">ADMIN</span>
+            <span className="rounded-full bg-sky-900/60 text-sky-300 px-2 py-0.5 truncate max-w-[12rem]">
+              {displayRole}
+            </span>
           </div>
         )}
       </div>
@@ -195,11 +245,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   {group.items.map((item) => {
                     const isSalesFlow = group.key === "leadToCash" && item.label === SALES_FLOW_ITEM.label;
                     const activeChild = isSalesFlow
-                      ? SALES_FLOW_CHILDREN.find((child) => isActivePath(pathname, child.href))
+                      ? visibleSalesChildren.find((child) => isActivePath(pathname, child.href))
                       : undefined;
                     const active = isSalesFlow ? Boolean(activeChild) : isActivePath(pathname, item.href);
-                    // Always show Leads/Deals/Quotes/Orders under Sales Flow when sidebar is expanded
-                    const showSalesChildren = isSalesFlow && !collapsed;
+                    const showSalesChildren = isSalesFlow && !collapsed && visibleSalesChildren.length > 0;
                     return (
                       <div key={`${group.key}-${item.href}`}>
                         <Link
@@ -224,22 +273,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                               <span className="truncate">{item.label}</span>
                               {isSalesFlow && (
                                 <span className="ml-auto rounded-full bg-slate-800 text-slate-400 text-[10px] px-2 py-0.5">
-                                  {activeChild?.label ?? "4 steps"}
+                                  {activeChild?.label ?? `${visibleSalesChildren.length} steps`}
                                 </span>
                               )}
                               {item.badge && (
-                                <span className="ml-auto rounded-full bg-slate-800 text-slate-400 text-[10px] px-2 py-0.5">{item.badge}</span>
+                                <span className="ml-auto rounded-full bg-slate-800 text-slate-400 text-[10px] px-2 py-0.5">
+                                  {item.badge}
+                                </span>
                               )}
                             </>
                           )}
                         </Link>
                         {showSalesChildren && (
                           <div className="ml-4 mr-1 mt-1 space-y-1 border-l border-slate-800 pl-3">
-                            {SALES_FLOW_CHILDREN.filter((child) => {
-                              if (!normalizedQuery) return true;
-                              const hay = `${child.label} ${child.href} ${child.keywords.join(" ")}`.toLowerCase();
-                              return hay.includes(normalizedQuery);
-                            }).map((child) => {
+                            {visibleSalesChildren.map((child) => {
                               const childActive = isActivePath(pathname, child.href);
                               return (
                                 <Link
@@ -266,11 +313,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         })}
       </nav>
 
-      {!collapsed && (
+      {!collapsed && visibleQuickActions.length > 0 && (
         <div className="px-4 py-3 border-t border-slate-800">
           <div className="text-[11px] uppercase tracking-wide text-slate-400 mb-2">Quick Actions</div>
           <div className="grid grid-cols-2 gap-2">
-            {QUICK_ACTIONS.map((item) => (
+            {visibleQuickActions.map((item) => (
               <Link
                 key={item.label}
                 href={item.href}
@@ -287,16 +334,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {!collapsed && (
           <div className="mb-3 flex items-center gap-3 rounded-md bg-slate-900 border border-slate-800 px-3 py-2">
             <div className="h-8 w-8 rounded-full bg-cyan-700/30 border border-cyan-500/30 flex items-center justify-center text-xs font-semibold text-cyan-200">
-              {initials("Admin User")}
+              {initials(displayName)}
             </div>
             <div className="min-w-0">
-              <div className="text-sm leading-tight truncate">Admin User</div>
-              <div className="text-[11px] text-slate-400 truncate">Operations Admin</div>
+              <div className="text-sm leading-tight truncate">{displayName}</div>
+              <div className="text-[11px] text-slate-400 truncate">{displayRole}</div>
             </div>
           </div>
         )}
         <button
-          onClick={() => { clearAuth(); router.push("/login"); }}
+          onClick={() => {
+            clearAuth();
+            router.push("/login");
+          }}
           className={`w-full rounded-md border border-slate-700 hover:border-slate-500 hover:bg-slate-800 px-3 py-2 text-sm text-left ${collapsed ? "text-center" : "text-slate-300"}`}
         >
           {collapsed ? "SO" : "Sign Out"}
