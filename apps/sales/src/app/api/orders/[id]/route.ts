@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serviceClient } from "@erp/config";
+import {
+  assertWorkflowAction,
+  nextActionsForStatus,
+  resolveOrderWorkflow,
+} from "@/lib/order-workflow";
 import { z } from "zod";
 
 const shipItemsSchema = z.object({
@@ -16,9 +21,93 @@ const confirmSchema = z.object({
   warehouseId: z.string(),
 });
 
+const reviewSchema = z.object({
+  remarks: z.string().optional(),
+  deliveryDate: z.string().datetime().optional(),
+  items: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        productId: z.string(),
+        productName: z.string(),
+        quantity: z.number().int().positive(),
+        unitPrice: z.number().nonnegative(),
+        remarks: z.string().optional(),
+      })
+    )
+    .optional(),
+});
+
+const stockVerifySchema = z.object({
+  items: z.array(
+    z.object({
+      orderItemId: z.string(),
+      availableQty: z.number().nonnegative(),
+    })
+  ).min(1),
+  remarks: z.string().optional(),
+});
+
+const pricingSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        orderItemId: z.string(),
+        purchasePrice: z.number().nonnegative().optional(),
+        unitPrice: z.number().nonnegative().optional(),
+        discount: z.number().nonnegative().optional(),
+        taxRate: z.number().nonnegative().optional(),
+      })
+    )
+    .optional(),
+  discountAmount: z.number().nonnegative().optional(),
+  transportationCharge: z.number().nonnegative().optional(),
+  additionalCharges: z.number().nonnegative().optional(),
+  tax: z.number().nonnegative().optional(),
+  remarks: z.string().optional(),
+});
+
+const dispatchSchema = z.object({
+  assignedDriverId: z.string().optional(),
+  vehicleInfo: z.string().optional(),
+  trackingNumber: z.string().optional(),
+  dispatchRemarks: z.string().optional(),
+  dispatchedAt: z.string().datetime().optional(),
+});
+
+const documentSchema = z.object({
+  type: z.enum(["ACKNOWLEDGEMENT", "DELIVERY_PROOF", "INVOICE", "OTHER"]),
+  fileName: z.string().min(1),
+  fileUrl: z.string().url(),
+  mimeType: z.string().optional(),
+});
+
+async function logModification(
+  tenantId: string,
+  salesOrderId: string,
+  userId: string,
+  action: string,
+  opts: { field?: string; oldValue?: string; newValue?: string; remarks?: string } = {}
+) {
+  await prisma.orderModification.create({
+    data: {
+      tenantId,
+      salesOrderId,
+      userId,
+      action,
+      field: opts.field,
+      oldValue: opts.oldValue,
+      newValue: opts.newValue,
+      remarks: opts.remarks,
+    },
+  });
+}
+
 // GET /api/orders/:id
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const tenantId = request.headers.get("x-tenant-id");
+  const userId = request.headers.get("x-user-id");
+  const role = request.headers.get("x-user-role");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
 
   const { id } = await params;
@@ -29,14 +118,40 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       quote: { select: { id: true, quoteNumber: true } },
       items: true,
       returns: { select: { id: true, returnNumber: true, status: true, total: true } },
+      modifications: { orderBy: { createdAt: "desc" }, take: 50 },
+      documents: { orderBy: { createdAt: "desc" } },
     },
   });
 
   if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
-  return NextResponse.json({ data: order });
+
+  if (role === "CUSTOMER" && userId) {
+    if (order.customer.portalUserId !== userId) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+  }
+
+  const workflow = await resolveOrderWorkflow(tenantId, order.workflowId);
+  const nextActions = workflow ? nextActionsForStatus(workflow, order.status) : [];
+
+  return NextResponse.json({
+    data: {
+      ...order,
+      workflow: workflow
+        ? {
+            id: workflow.id,
+            code: workflow.code,
+            name: workflow.name,
+            templateId: workflow.templateId,
+          }
+        : null,
+      // Customers don't get internal action buttons
+      nextActions: role === "CUSTOMER" ? [] : nextActions,
+    },
+  });
 }
 
-// PATCH /api/orders/:id?action=confirm|ship|cancel
+// PATCH /api/orders/:id?action=...
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const tenantId = request.headers.get("x-tenant-id");
   const userId = request.headers.get("x-user-id");
@@ -52,6 +167,25 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     include: { items: true, customer: true },
   });
   if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+
+  if (!action) {
+    return NextResponse.json({ error: "Query param action is required" }, { status: 400 });
+  }
+
+  if (role === "CUSTOMER") {
+    if (action !== "cancel") {
+      return NextResponse.json({ error: "Customers cannot advance internal OMS steps" }, { status: 403 });
+    }
+    if (order.customer.portalUserId !== userId) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+  }
+
+  const workflow = await resolveOrderWorkflow(tenantId, order.workflowId);
+  const gate = assertWorkflowAction(workflow, action, order.status);
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
+  }
 
   try {
     if (action === "confirm") {
@@ -192,7 +326,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     if (action === "cancel") {
-      if (!["DRAFT", "CONFIRMED", "PARTIALLY_SHIPPED"].includes(order.status)) {
+      const cancellable = [
+        "DRAFT",
+        "SUBMITTED",
+        "PENDING_SALES_REVIEW",
+        "REVIEWED",
+        "STOCK_VERIFIED",
+        "VENDOR_REQUESTED",
+        "PRICING_PENDING",
+        "PRICING_COMPLETED",
+        "READY_FOR_DISPATCH",
+        "CONFIRMED",
+        "PARTIALLY_SHIPPED",
+      ];
+      if (!cancellable.includes(order.status)) {
         return NextResponse.json({ error: `Cannot cancel order in ${order.status} status` }, { status: 409 });
       }
 
@@ -211,6 +358,345 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         data: { status: "CANCELLED" },
         include: { items: true, customer: { select: { id: true, name: true } } },
       });
+      await logModification(tenantId, id, userId, "STATUS_CHANGE", {
+        field: "status",
+        oldValue: order.status,
+        newValue: "CANCELLED",
+      });
+      return NextResponse.json({ data: updated });
+    }
+
+    // ── OMS lifecycle actions ──────────────────────────────────────────
+    if (action === "submit") {
+      if (order.status !== "DRAFT") {
+        return NextResponse.json({ error: "Only DRAFT orders can be submitted" }, { status: 409 });
+      }
+      const updated = await prisma.salesOrder.update({
+        where: { id },
+        data: { status: "PENDING_SALES_REVIEW" },
+        include: { items: true, customer: { select: { id: true, name: true } } },
+      });
+      await logModification(tenantId, id, userId, "STATUS_CHANGE", {
+        field: "status",
+        oldValue: "DRAFT",
+        newValue: "PENDING_SALES_REVIEW",
+      });
+      return NextResponse.json({ data: updated });
+    }
+
+    if (action === "review") {
+      if (!["PENDING_SALES_REVIEW", "SUBMITTED", "DRAFT"].includes(order.status)) {
+        return NextResponse.json({ error: "Order is not awaiting sales review" }, { status: 409 });
+      }
+      const body = await request.json().catch(() => ({}));
+      const parsed = reviewSchema.parse(body);
+
+      const updated = await prisma.$transaction(async (tx) => {
+        if (parsed.items) {
+          await tx.salesOrderItem.deleteMany({ where: { salesOrderId: id } });
+          await tx.salesOrderItem.createMany({
+            data: parsed.items.map((i) => ({
+              salesOrderId: id,
+              productId: i.productId,
+              productName: i.productName,
+              quantity: i.quantity,
+              unitPrice: i.unitPrice,
+              total: i.quantity * i.unitPrice,
+              remarks: i.remarks,
+            })),
+          });
+          const subtotal = parsed.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+          return tx.salesOrder.update({
+            where: { id },
+            data: {
+              status: "REVIEWED",
+              salesRemarks: parsed.remarks ?? order.salesRemarks,
+              deliveryDate: parsed.deliveryDate ? new Date(parsed.deliveryDate) : order.deliveryDate,
+              subtotal,
+              total: subtotal + order.tax + order.deliveryFee - order.couponDiscount,
+            },
+            include: { items: true, customer: { select: { id: true, name: true } } },
+          });
+        }
+        return tx.salesOrder.update({
+          where: { id },
+          data: {
+            status: "REVIEWED",
+            salesRemarks: parsed.remarks ?? order.salesRemarks,
+            deliveryDate: parsed.deliveryDate ? new Date(parsed.deliveryDate) : order.deliveryDate,
+          },
+          include: { items: true, customer: { select: { id: true, name: true } } },
+        });
+      });
+
+      await logModification(tenantId, id, userId, "REVIEW_EDIT", {
+        remarks: parsed.remarks,
+        oldValue: order.status,
+        newValue: "REVIEWED",
+      });
+      return NextResponse.json({ data: updated });
+    }
+
+    if (action === "verify-stock") {
+      if (!["REVIEWED", "STOCK_VERIFIED"].includes(order.status)) {
+        return NextResponse.json({ error: "Order must be REVIEWED before stock verification" }, { status: 409 });
+      }
+      const body = await request.json();
+      const parsed = stockVerifySchema.parse(body);
+
+      let hasShortage = false;
+      await prisma.$transaction(async (tx) => {
+        for (const line of parsed.items) {
+          const item = order.items.find((i) => i.id === line.orderItemId);
+          if (!item) throw new Error(`Item ${line.orderItemId} not found`);
+          const shortage = Math.max(0, item.quantity - line.availableQty);
+          if (shortage > 0) hasShortage = true;
+          await tx.salesOrderItem.update({
+            where: { id: line.orderItemId },
+            data: { availableQty: line.availableQty, shortageQty: shortage },
+          });
+        }
+        await tx.salesOrder.update({
+          where: { id },
+          data: { status: hasShortage ? "VENDOR_REQUESTED" : "STOCK_VERIFIED" },
+        });
+      });
+
+      const updated = await prisma.salesOrder.findFirst({
+        where: { id },
+        include: { items: true, customer: { select: { id: true, name: true } } },
+      });
+
+      // Auto-create vendor RFQs for shortage lines
+      const shortageItems = (updated?.items ?? []).filter((i) => (i.shortageQty ?? 0) > 0);
+      let vendorRequests: unknown[] = [];
+      if (shortageItems.length) {
+        const rfq = await serviceClient.call("procurement", "/api/vendor-requests", {
+          method: "POST",
+          body: {
+            salesOrderId: id,
+            items: shortageItems.map((i) => ({
+              productId: i.productId,
+              productName: i.productName,
+              quantity: i.shortageQty,
+            })),
+            sendNow: true,
+            channel: "WHATSAPP",
+          },
+          tenantId,
+          userId,
+        });
+        vendorRequests = [rfq.data];
+      } else {
+        await prisma.salesOrder.update({
+          where: { id },
+          data: { status: "PRICING_PENDING" },
+        });
+      }
+
+      await logModification(tenantId, id, userId, "STOCK_VERIFY", {
+        remarks: parsed.remarks,
+        newValue: hasShortage ? "VENDOR_REQUESTED" : "PRICING_PENDING",
+      });
+
+      const finalOrder = await prisma.salesOrder.findFirst({
+        where: { id },
+        include: { items: true, customer: { select: { id: true, name: true } } },
+      });
+      return NextResponse.json({ data: finalOrder, meta: { hasShortage, vendorRequests } });
+    }
+
+    if (action === "request-vendors") {
+      if (!["STOCK_VERIFIED", "VENDOR_REQUESTED", "REVIEWED"].includes(order.status)) {
+        return NextResponse.json({ error: "Invalid status for vendor request" }, { status: 409 });
+      }
+      const body = await request.json().catch(() => ({}));
+      const shortageItems = order.items.filter((i) => (i.shortageQty ?? 0) > 0);
+      const items =
+        (body as { items?: { productId: string; productName: string; quantity: number }[] }).items ??
+        shortageItems.map((i) => ({
+          productId: i.productId,
+          productName: i.productName,
+          quantity: i.shortageQty ?? i.quantity,
+        }));
+      if (!items.length) {
+        return NextResponse.json({ error: "No shortage items to request" }, { status: 400 });
+      }
+      const rfq = await serviceClient.call("procurement", "/api/vendor-requests", {
+        method: "POST",
+        body: {
+          salesOrderId: id,
+          vendorId: (body as { vendorId?: string }).vendorId,
+          items,
+          sendNow: true,
+        },
+        tenantId,
+        userId,
+      });
+      const updated = await prisma.salesOrder.update({
+        where: { id },
+        data: { status: "VENDOR_REQUESTED" },
+        include: { items: true, customer: { select: { id: true, name: true } } },
+      });
+      await logModification(tenantId, id, userId, "STATUS_CHANGE", {
+        field: "status",
+        newValue: "VENDOR_REQUESTED",
+      });
+      return NextResponse.json({ data: updated, meta: { vendorRequest: rfq.data } });
+    }
+
+    if (action === "start-pricing") {
+      if (!["STOCK_VERIFIED", "VENDOR_REQUESTED", "REVIEWED"].includes(order.status)) {
+        return NextResponse.json({ error: "Order not ready for pricing" }, { status: 409 });
+      }
+      const updated = await prisma.salesOrder.update({
+        where: { id },
+        data: { status: "PRICING_PENDING" },
+        include: { items: true, customer: { select: { id: true, name: true } } },
+      });
+      await logModification(tenantId, id, userId, "STATUS_CHANGE", {
+        oldValue: order.status,
+        newValue: "PRICING_PENDING",
+      });
+      return NextResponse.json({ data: updated });
+    }
+
+    if (action === "complete-pricing") {
+      if (!["PRICING_PENDING", "PRICING_COMPLETED"].includes(order.status)) {
+        return NextResponse.json({ error: "Order is not in pricing stage" }, { status: 409 });
+      }
+      const body = await request.json();
+      const parsed = pricingSchema.parse(body);
+
+      if (parsed.items) {
+        for (const line of parsed.items) {
+          const item = order.items.find((i) => i.id === line.orderItemId);
+          if (!item) continue;
+          const unitPrice = line.unitPrice ?? item.unitPrice;
+          const discount = line.discount ?? item.discount;
+          await prisma.salesOrderItem.update({
+            where: { id: line.orderItemId },
+            data: {
+              purchasePrice: line.purchasePrice,
+              unitPrice,
+              discount,
+              taxRate: line.taxRate ?? item.taxRate,
+              total: item.quantity * unitPrice - discount,
+            },
+          });
+        }
+      }
+
+      const fresh = await prisma.salesOrder.findFirst({ where: { id }, include: { items: true } });
+      const purchaseSubtotal = fresh!.items.reduce((s, i) => s + (i.purchasePrice ?? 0) * i.quantity, 0);
+      const subtotal = fresh!.items.reduce((s, i) => s + i.total, 0);
+      const discountAmount = parsed.discountAmount ?? order.discountAmount;
+      const transportationCharge = parsed.transportationCharge ?? order.transportationCharge;
+      const additionalCharges = parsed.additionalCharges ?? order.additionalCharges;
+      const tax = parsed.tax ?? order.tax;
+      const total = subtotal - discountAmount + tax + transportationCharge + additionalCharges + order.deliveryFee;
+      const marginAmount = subtotal - purchaseSubtotal - discountAmount;
+      const marginPercent = purchaseSubtotal > 0 ? (marginAmount / purchaseSubtotal) * 100 : 0;
+
+      const updated = await prisma.salesOrder.update({
+        where: { id },
+        data: {
+          status: "PRICING_COMPLETED",
+          purchaseSubtotal,
+          subtotal,
+          discountAmount,
+          transportationCharge,
+          additionalCharges,
+          tax,
+          total,
+          marginAmount,
+          marginPercent,
+        },
+        include: { items: true, customer: { select: { id: true, name: true } } },
+      });
+      await logModification(tenantId, id, userId, "PRICING", { remarks: parsed.remarks });
+      return NextResponse.json({ data: updated });
+    }
+
+    if (action === "ready-dispatch") {
+      if (order.status !== "PRICING_COMPLETED") {
+        return NextResponse.json({ error: "Pricing must be completed first" }, { status: 409 });
+      }
+      const updated = await prisma.salesOrder.update({
+        where: { id },
+        data: { status: "READY_FOR_DISPATCH" },
+        include: { items: true, customer: { select: { id: true, name: true } } },
+      });
+      await logModification(tenantId, id, userId, "STATUS_CHANGE", { newValue: "READY_FOR_DISPATCH" });
+      return NextResponse.json({ data: updated });
+    }
+
+    if (action === "dispatch") {
+      if (!["READY_FOR_DISPATCH", "PRICING_COMPLETED"].includes(order.status)) {
+        return NextResponse.json({ error: "Order not ready for dispatch" }, { status: 409 });
+      }
+      const body = await request.json().catch(() => ({}));
+      const parsed = dispatchSchema.parse(body);
+      const updated = await prisma.salesOrder.update({
+        where: { id },
+        data: {
+          status: "DISPATCHED",
+          assignedDriverId: parsed.assignedDriverId,
+          vehicleInfo: parsed.vehicleInfo,
+          trackingNumber: parsed.trackingNumber,
+          dispatchRemarks: parsed.dispatchRemarks,
+          dispatchedAt: parsed.dispatchedAt ? new Date(parsed.dispatchedAt) : new Date(),
+        },
+        include: { items: true, customer: { select: { id: true, name: true } } },
+      });
+      await logModification(tenantId, id, userId, "DISPATCH", { remarks: parsed.dispatchRemarks });
+      return NextResponse.json({ data: updated });
+    }
+
+    if (action === "deliver-oms") {
+      if (order.status !== "DISPATCHED" && order.status !== "OUT_FOR_DELIVERY") {
+        return NextResponse.json({ error: "Order must be DISPATCHED" }, { status: 409 });
+      }
+      const updated = await prisma.salesOrder.update({
+        where: { id },
+        data: {
+          status: "DELIVERED",
+          deliveredAt: new Date(),
+          paymentStatus: order.paymentMethod === "COD" ? "PAID" : order.paymentStatus,
+        },
+        include: { items: true, customer: { select: { id: true, name: true } } },
+      });
+      await logModification(tenantId, id, userId, "STATUS_CHANGE", { newValue: "DELIVERED" });
+      return NextResponse.json({ data: updated });
+    }
+
+    if (action === "upload-document") {
+      const body = await request.json();
+      const parsed = documentSchema.parse(body);
+      const doc = await prisma.orderDocument.create({
+        data: {
+          tenantId,
+          salesOrderId: id,
+          type: parsed.type,
+          fileName: parsed.fileName,
+          fileUrl: parsed.fileUrl,
+          mimeType: parsed.mimeType,
+          uploadedBy: userId,
+        },
+      });
+      return NextResponse.json({ data: doc }, { status: 201 });
+    }
+
+    if (action === "close") {
+      if (order.status !== "DELIVERED" && order.status !== "INVOICED") {
+        return NextResponse.json({ error: "Order must be DELIVERED before close" }, { status: 409 });
+      }
+      const updated = await prisma.salesOrder.update({
+        where: { id },
+        data: { status: "CLOSED", closedAt: new Date() },
+        include: { items: true, customer: { select: { id: true, name: true } }, documents: true },
+      });
+      await logModification(tenantId, id, userId, "STATUS_CHANGE", { newValue: "CLOSED" });
       return NextResponse.json({ data: updated });
     }
 
@@ -289,10 +775,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ data: updated });
     }
 
-    return NextResponse.json({ error: "Invalid action. Use ?action=confirm|ship|cancel|awaiting_pickup|out_for_delivery|delivered|invoice" }, { status: 400 });
+    return NextResponse.json({
+      error:
+        "Invalid action. Use ?action=confirm|ship|cancel|submit|review|verify-stock|request-vendors|start-pricing|complete-pricing|ready-dispatch|dispatch|deliver-oms|upload-document|close|awaiting_pickup|out_for_delivery|delivered|invoice",
+    }, { status: 400 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
+    }
+    if (error instanceof Error && error.message.includes("not found")) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveTaxRate, suggestTaxFromHsn } from "@/lib/tax-resolution";
+import {
+  resolveAttributeDefinitions,
+  syncAttributeIndex,
+  validateCustomAttributes,
+} from "@/lib/attributes";
 import { z } from "zod";
 
 const createProductSchema = z.object({
@@ -27,6 +32,7 @@ const createProductSchema = z.object({
   hasVariants: z.boolean().default(false),
   isFeatured: z.boolean().default(false),
   sortOrder: z.number().int().min(0).default(0),
+  customAttributes: z.record(z.unknown()).optional(),
 });
 
 // GET /api/products
@@ -45,6 +51,42 @@ export async function GET(request: Request) {
   const isFeatured = url.searchParams.get("isFeatured") === "true" ? true : undefined;
   const lowStock = url.searchParams.get("lowStock") === "true";
 
+  // Faceted filters: ?attr[grade]=BWR&attr[thickness_mm]=18
+  const attrFilters: { key: string; value: string }[] = [];
+  for (const [param, value] of url.searchParams.entries()) {
+    const m = param.match(/^attr\[(.+)\]$/);
+    if (m && value) attrFilters.push({ key: m[1], value });
+  }
+
+  let productIdsFromAttrs: string[] | undefined;
+  if (attrFilters.length) {
+    const matched = await prisma.productAttributeIndex.findMany({
+      where: {
+        tenantId,
+        OR: attrFilters.map((f) => ({
+          key: f.key,
+          OR: [
+            { valueText: f.value },
+            ...(Number.isNaN(Number(f.value)) ? [] : [{ valueNum: Number(f.value) }]),
+          ],
+        })),
+      },
+      select: { productId: true, key: true },
+    });
+    const byProduct = new Map<string, Set<string>>();
+    for (const row of matched) {
+      if (!byProduct.has(row.productId)) byProduct.set(row.productId, new Set());
+      byProduct.get(row.productId)!.add(row.key);
+    }
+    const needed = new Set(attrFilters.map((f) => f.key));
+    productIdsFromAttrs = [...byProduct.entries()]
+      .filter(([, keys]) => [...needed].every((k) => keys.has(k)))
+      .map(([id]) => id);
+    if (productIdsFromAttrs.length === 0) {
+      return NextResponse.json({ data: [], meta: { page, limit, total: 0, pages: 0 } });
+    }
+  }
+
   const where = {
     tenantId,
     isActive: true,
@@ -53,6 +95,7 @@ export async function GET(request: Request) {
     ...(brandId && { brandId }),
     ...(barcode && { barcode }),
     ...(isFeatured !== undefined && { isFeatured }),
+    ...(productIdsFromAttrs && { id: { in: productIdsFromAttrs } }),
   };
 
   const [products, total] = await Promise.all([
@@ -151,9 +194,16 @@ export async function POST(request: Request) {
       taxReviewNotes = taxReviewNotes ?? "Partial HSN match. Manager approval required.";
     }
 
+    const definitions = await resolveAttributeDefinitions(tenantId, data.categoryId);
+    const attrResult = validateCustomAttributes(definitions, data.customAttributes);
+    if (!attrResult.ok) {
+      return NextResponse.json({ error: attrResult.error }, { status: 400 });
+    }
+
+    const { customAttributes: _ca, ...productFields } = data;
     const product = await prisma.product.create({
       data: {
-        ...data,
+        ...productFields,
         tenantId,
         countryCode,
         hsnCode,
@@ -164,8 +214,11 @@ export async function POST(request: Request) {
         taxApprovedBy: taxApprovalStatus === "APPROVED" ? (userId ?? "SYSTEM") : undefined,
         taxCode,
         taxRate,
+        customAttributes: attrResult.values,
       },
     });
+
+    await syncAttributeIndex(tenantId, product.id, definitions, attrResult.values);
 
     return NextResponse.json({ data: product }, { status: 201 });
   } catch (error) {

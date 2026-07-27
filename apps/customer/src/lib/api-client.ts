@@ -1,13 +1,8 @@
-// Service base URLs — configurable via NEXT_PUBLIC_* env vars
-const SERVICE_URLS: Record<string, string> = {
-  gateway:     process.env.NEXT_PUBLIC_GATEWAY_URL     ?? "http://localhost:3010",
-  sales:       process.env.NEXT_PUBLIC_SALES_URL       ?? "http://localhost:3001",
-  inventory:   process.env.NEXT_PUBLIC_INVENTORY_URL   ?? "http://localhost:3002",
-  accounting:  process.env.NEXT_PUBLIC_ACCOUNTING_URL  ?? "http://localhost:3003",
-  delivery:    process.env.NEXT_PUBLIC_DELIVERY_URL    ?? "http://localhost:3006",
-};
-
-export type ServiceName = keyof typeof SERVICE_URLS;
+/**
+ * Same-origin API client. Paths like `/api/orders` are rewritten by next.config
+ * to the gateway, which proxies to microservices (avoids browser CORS).
+ */
+export type ServiceName = "gateway" | "sales" | "inventory" | "accounting" | "delivery";
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -34,12 +29,13 @@ export function isAuthenticated(): boolean {
 }
 
 export async function api<T = unknown>(
-  service: ServiceName,
+  _service: ServiceName,
   path: string,
   options: RequestInit & { skipAuth?: boolean } = {}
 ): Promise<{ data: T; error?: never } | { error: string; data?: never }> {
-  const base = SERVICE_URLS[service] ?? SERVICE_URLS.gateway;
-  const url = `${base}${path}`;
+  // Same-origin (rewrite → gateway). Absolute origin avoids odd base-URL cases.
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const url = `${origin}${path}`;
   const token = getToken();
   const tenantId = getTenantId();
 
@@ -59,7 +55,7 @@ export async function api<T = unknown>(
     const res = await fetch(url, { ...options, headers });
     const json = await res.json();
     if (!res.ok) {
-      return { error: json.error ?? `Request failed (${res.status})` };
+      return { error: (json as { error?: string }).error ?? `Request failed (${res.status})` };
     }
     return { data: json as T };
   } catch (err) {

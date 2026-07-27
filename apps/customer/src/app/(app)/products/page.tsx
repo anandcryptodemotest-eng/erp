@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api-client";
 
-interface Product { id: string; name: string; sku: string; sellingPrice: number; imageUrl?: string; unit?: string; isActive: boolean }
+interface Product { id: string; name: string; sku: string; sellPrice: number; imageUrl?: string; unit?: string; isActive: boolean }
 interface Category { id: string; name: string }
 
 export default function ProductsPage() {
@@ -82,7 +82,7 @@ export default function ProductsPage() {
               </div>
               <div className="text-sm font-medium text-gray-800 line-clamp-2 leading-tight">{p.name}</div>
               {p.unit && <div className="text-xs text-gray-400 mt-0.5">{p.unit}</div>}
-              <div className="mt-1 font-bold text-green-700">₹{Number(p.sellingPrice).toLocaleString("en-IN")}</div>
+              <div className="mt-1 font-bold text-green-700">₹{Number(p.sellPrice).toLocaleString("en-IN")}</div>
             </Link>
           ))}
         </div>

@@ -19,14 +19,20 @@ export function saveCart(items: CartItem[]): void {
 }
 
 export function addToCart(item: CartItem): CartItem[] {
+  if (!item.productId || !item.name || !Number.isFinite(item.price) || item.price < 0 || item.qty < 1) {
+    throw new Error("Invalid cart item — missing name or price");
+  }
   const cart = getCart();
   const existing = cart.find(
     (c) => c.productId === item.productId && c.variantId === item.variantId
   );
   if (existing) {
     existing.qty += item.qty;
+    // Keep latest catalog price when re-adding
+    existing.price = item.price;
+    existing.name = item.name;
   } else {
-    cart.push(item);
+    cart.push({ ...item, variantId: item.variantId || undefined });
   }
   saveCart(cart);
   return cart;

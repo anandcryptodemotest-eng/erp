@@ -5,7 +5,7 @@ import { api } from "@/lib/api-client";
 import { addToCart } from "@/lib/cart-store";
 
 interface Product {
-  id: string; name: string; sku: string; sellingPrice: number; costPrice: number;
+  id: string; name: string; sku: string; sellPrice: number; costPrice: number;
   imageUrl?: string; unit?: string; description?: string; isActive: boolean;
   brand?: { name: string };
   category?: { name: string };
@@ -38,7 +38,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       productId: product.id,
       name: product.name,
       sku: product.sku,
-      price: product.sellingPrice,
+      price: product.sellPrice,
       qty,
       imageUrl: product.imageUrl,
     });
@@ -74,7 +74,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         {product.category && <div className="text-xs text-gray-400 mt-0.5">{product.category.name}</div>}
 
         <div className="mt-3 flex items-baseline gap-2">
-          <span className="text-2xl font-bold text-green-700">₹{Number(product.sellingPrice).toLocaleString("en-IN")}</span>
+          <span className="text-2xl font-bold text-green-700">₹{Number(product.sellPrice).toLocaleString("en-IN")}</span>
           {product.unit && <span className="text-sm text-gray-500">/ {product.unit}</span>}
         </div>
 
@@ -102,7 +102,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               +
             </button>
           </div>
-          <span className="text-sm text-gray-500">= ₹{(product.sellingPrice * qty).toLocaleString("en-IN")}</span>
+          <span className="text-sm text-gray-500">= ₹{(product.sellPrice * qty).toLocaleString("en-IN")}</span>
         </div>
       </div>
 

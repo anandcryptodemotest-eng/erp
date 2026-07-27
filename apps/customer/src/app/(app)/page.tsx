@@ -4,7 +4,7 @@ import Link from "next/link";
 import { api } from "@/lib/api-client";
 
 interface Banner { id: string; title: string; imageUrl: string; type: string; linkUrl?: string }
-interface Product { id: string; name: string; sellingPrice: number; imageUrl?: string; unit?: string; isFeatured: boolean }
+interface Product { id: string; name: string; sellPrice: number; imageUrl?: string; unit?: string; isFeatured: boolean }
 interface Category { id: string; name: string; imageUrl?: string }
 
 export default function HomePage() {
@@ -117,7 +117,7 @@ export default function HomePage() {
                     </div>
                     <div className="text-sm font-medium text-gray-800 line-clamp-2 leading-tight">{p.name}</div>
                     {p.unit && <div className="mt-0.5 text-xs text-gray-400">{p.unit}</div>}
-                    <div className="mt-1 font-bold text-green-700">₹{Number(p.sellingPrice).toLocaleString("en-IN")}</div>
+                    <div className="mt-1 font-bold text-green-700">₹{Number(p.sellPrice).toLocaleString("en-IN")}</div>
                   </Link>
                 ))}
               </div>

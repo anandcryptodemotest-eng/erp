@@ -18,6 +18,8 @@
     "dev:delivery-app": "turbo dev --filter=@erp/delivery-app",
     "e2e:users": "bash scripts/e2e-user-flows.sh",
     "seed": "pnpm --filter @erp/scripts seed",
+    "reset:oms": "pnpm --filter @erp/scripts reset:oms",
+    "e2e:oms": "pnpm --filter @erp/scripts e2e:oms",
     "db:generate": "turbo db:generate",
     "db:push": "turbo db:push",
     "docker:up": "docker compose up -d",

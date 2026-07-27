@@ -50,7 +50,8 @@ const NAV_GROUPS: NavGroup[] = [
     key: "ops",
     title: "Operations",
     items: [
-      { href: "/products", label: "Products", icon: "PR", keywords: ["catalog", "inventory"] },
+      { href: "/products", label: "Products", icon: "PR", keywords: ["catalog", "inventory", "attributes", "custom fields", "thickness", "grade"] },
+      { href: "/oms", label: "OMS Workflow", icon: "OM", keywords: ["order lifecycle", "pricing", "dispatch", "whatsapp"] },
       { href: "/vendors", label: "Vendors", icon: "VN", keywords: ["supplier", "partner"] },
       { href: "/purchase-orders", label: "Purchase Orders", icon: "PO", keywords: ["procurement", "buy"] },
       { href: "/employees", label: "Employees", icon: "EM", keywords: ["staff", "people"] },
@@ -193,13 +194,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <div className="pb-2">
                   {group.items.map((item) => {
                     const isSalesFlow = group.key === "leadToCash" && item.label === SALES_FLOW_ITEM.label;
-                    const activeChild = SALES_FLOW_CHILDREN.find((child) => isActivePath(pathname, child.href));
+                    const activeChild = isSalesFlow
+                      ? SALES_FLOW_CHILDREN.find((child) => isActivePath(pathname, child.href))
+                      : undefined;
                     const active = isSalesFlow ? Boolean(activeChild) : isActivePath(pathname, item.href);
-                    const showSalesChildren = isSalesFlow && !collapsed && (Boolean(activeChild) || Boolean(normalizedQuery));
+                    // Always show Leads/Deals/Quotes/Orders under Sales Flow when sidebar is expanded
+                    const showSalesChildren = isSalesFlow && !collapsed;
                     return (
-                      <div key={item.href}>
+                      <div key={`${group.key}-${item.href}`}>
                         <Link
-                          href={activeChild?.href ?? item.href}
+                          href={item.href}
                           className={`
                             group relative mx-1 mt-1 flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition
                             ${active ? "bg-cyan-600/15 text-cyan-200" : "text-slate-300 hover:bg-slate-800 hover:text-white"}

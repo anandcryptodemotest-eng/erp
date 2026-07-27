@@ -9,24 +9,108 @@ datasource db {
 }
 
 model Vendor {
-  id          String   @id @default(cuid())
-  tenantId    String
-  name        String
-  email       String?
-  phone       String?
-  address     String?
-  city        String?
-  country     String?
-  taxId       String?
-  creditTerms Int      @default(30) // payment terms in days
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(cuid())
+  tenantId       String
+  name           String
+  contactPerson  String?
+  email          String?
+  phone          String?
+  whatsappNumber String?
+  address        String?
+  city           String?
+  country        String?
+  taxId          String?
+  creditTerms    Int      @default(30) // payment terms in days
+  leadTimeDays   Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  orders  PurchaseOrder[]
-  returns PurchaseReturn[]
+  orders         PurchaseOrder[]
+  returns        PurchaseReturn[]
+  productLinks   ProductVendor[]
+  vendorRequests VendorRequest[]
+  messages       VendorMessage[]
 
   @@index([tenantId])
+}
+
+// Many vendors per product with priority (productId is inventory Product.id)
+model ProductVendor {
+  id           String   @id @default(cuid())
+  tenantId     String
+  productId    String
+  vendorId     String
+  priority     Int      @default(1) // 1 = highest
+  isPreferred  Boolean  @default(false)
+  leadTimeDays Int?
+  notes        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, productId, vendorId])
+  @@index([tenantId, productId])
+  @@index([tenantId, vendorId])
+}
+
+// RFQ / shortage outreach linked to a sales order
+model VendorRequest {
+  id            String   @id @default(cuid())
+  tenantId      String
+  salesOrderId  String
+  vendorId      String
+  status        String   @default("DRAFT") // DRAFT | SENT | REPLIED | CANCELLED
+  channel       String   @default("WHATSAPP") // WHATSAPP | SMS | EMAIL | MANUAL
+  messageBody   String
+  sentAt        DateTime?
+  createdBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  vendor   Vendor               @relation(fields: [vendorId], references: [id])
+  items    VendorRequestItem[]
+  messages VendorMessage[]
+
+  @@index([tenantId])
+  @@index([tenantId, salesOrderId])
+}
+
+model VendorRequestItem {
+  id              String @id @default(cuid())
+  vendorRequestId String
+  productId       String
+  productName     String
+  quantity        Float
+  unit            String @default("pcs")
+  notes           String?
+
+  request VendorRequest @relation(fields: [vendorRequestId], references: [id], onDelete: Cascade)
+
+  @@index([vendorRequestId])
+}
+
+model VendorMessage {
+  id              String   @id @default(cuid())
+  tenantId        String
+  vendorId        String
+  vendorRequestId String?
+  direction       String   @default("OUTBOUND") // OUTBOUND | INBOUND
+  channel         String   @default("WHATSAPP")
+  body            String
+  status          String   @default("QUEUED") // QUEUED | SENT | DELIVERED | FAILED | RECEIVED
+  externalId      String?
+  errorMessage    String?
+  createdAt       DateTime @default(now())
+
+  vendor  Vendor         @relation(fields: [vendorId], references: [id])
+  request VendorRequest? @relation(fields: [vendorRequestId], references: [id])
+
+  @@index([tenantId])
+  @@index([vendorId])
+  @@index([vendorRequestId])
 }
 
 model PurchaseOrder {

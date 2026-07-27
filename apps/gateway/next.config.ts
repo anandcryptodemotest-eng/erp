@@ -15,6 +15,8 @@ const nextConfig: NextConfig = {
       { source: "/api/customers/:path*",     destination: `${SALES_URL}/api/customers/:path*` },
       { source: "/api/orders/:path*",        destination: `${SALES_URL}/api/orders/:path*` },
       { source: "/api/orders",               destination: `${SALES_URL}/api/orders` },
+      { source: "/api/order-workflows/:path*", destination: `${SALES_URL}/api/order-workflows/:path*` },
+      { source: "/api/order-workflows",        destination: `${SALES_URL}/api/order-workflows` },
       { source: "/api/quotes/:path*",        destination: `${SALES_URL}/api/quotes/:path*` },
       { source: "/api/quotes",               destination: `${SALES_URL}/api/quotes` },
       { source: "/api/leads/:path*",         destination: `${SALES_URL}/api/leads/:path*` },
@@ -39,6 +41,12 @@ const nextConfig: NextConfig = {
       { source: "/api/stock",                destination: `${INVENTORY_URL}/api/stock` },
       { source: "/api/price-lists/:path*",   destination: `${INVENTORY_URL}/api/price-lists/:path*` },
       { source: "/api/price-lists",          destination: `${INVENTORY_URL}/api/price-lists` },
+      { source: "/api/brands/:path*",        destination: `${INVENTORY_URL}/api/brands/:path*` },
+      { source: "/api/brands",               destination: `${INVENTORY_URL}/api/brands` },
+      { source: "/api/attribute-definitions/:path*", destination: `${INVENTORY_URL}/api/attribute-definitions/:path*` },
+      { source: "/api/attribute-definitions",        destination: `${INVENTORY_URL}/api/attribute-definitions` },
+      { source: "/api/attribute-templates/:path*",   destination: `${INVENTORY_URL}/api/attribute-templates/:path*` },
+      { source: "/api/attribute-templates",          destination: `${INVENTORY_URL}/api/attribute-templates` },
 
       // ── Accounting ────────────────────────────────────────────────────
       { source: "/api/accounts/:path*",      destination: `${ACCOUNTING_URL}/api/accounts/:path*` },
@@ -67,6 +75,10 @@ const nextConfig: NextConfig = {
       // ── Procurement ───────────────────────────────────────────────────
       { source: "/api/vendors/:path*",             destination: `${PROCUREMENT_URL}/api/vendors/:path*` },
       { source: "/api/vendors",                    destination: `${PROCUREMENT_URL}/api/vendors` },
+      { source: "/api/product-vendors/:path*",     destination: `${PROCUREMENT_URL}/api/product-vendors/:path*` },
+      { source: "/api/product-vendors",            destination: `${PROCUREMENT_URL}/api/product-vendors` },
+      { source: "/api/vendor-requests/:path*",     destination: `${PROCUREMENT_URL}/api/vendor-requests/:path*` },
+      { source: "/api/vendor-requests",            destination: `${PROCUREMENT_URL}/api/vendor-requests` },
       { source: "/api/purchase-orders/:path*",     destination: `${PROCUREMENT_URL}/api/purchase-orders/:path*` },
       { source: "/api/purchase-orders",            destination: `${PROCUREMENT_URL}/api/purchase-orders` },
       { source: "/api/purchase-returns/:path*",    destination: `${PROCUREMENT_URL}/api/returns/:path*` },

@@ -29,6 +29,8 @@ model Customer {
   blockedReason  String?
   blockedAt      DateTime?
   isActive       Boolean   @default(true)
+  /// Gateway User.id for B2B/customer portal login
+  portalUserId   String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -38,7 +40,9 @@ model Customer {
   returns   SalesReturn[]
   addresses CustomerAddress[]
 
+  @@unique([tenantId, portalUserId])
   @@index([tenantId])
+  @@index([tenantId, portalUserId])
 }
 
 model CustomerAddress {
@@ -178,11 +182,16 @@ model SalesOrder {
   userId            String
   quoteId           String?
   warehouseId       String?
+  branchId          String?  // gateway Branch.id (optional multi-branch)
+  workflowId        String?  // OrderWorkflow — tenant lifecycle template instance
   date              DateTime
+  deliveryDate      DateTime?
   status            String   @default("DRAFT")
-  // DRAFT | CONFIRMED | AWAITING_PICKUP | OUT_FOR_DELIVERY | DELIVERED | INVOICED | CANCELLED
+  // Status values come from the tenant's OrderWorkflow steps (template-driven).
+  // Do not add customer-specific statuses to code — add a workflow template instead.
   isOnlineOrder     Boolean  @default(false)
   deliveryAddressId String?  // ref: CustomerAddress.id
+  deliveryAddressText String? // free-text when address master not used
   deliveryFee       Float    @default(0)
   paymentMethod     String   @default("COD") // COD | UPI | CARD | WALLET | SPLIT
   paymentStatus     String   @default("PENDING") // PENDING | PAID | REFUNDED | PARTIAL
@@ -192,34 +201,140 @@ model SalesOrder {
   tax               Float    @default(0)
   total             Float
   notes             String?
+  salesRemarks      String?
+  dispatchRemarks   String?
+  // Order-level pricing (Pricing Executive)
+  purchaseSubtotal     Float @default(0)
+  discountAmount       Float @default(0)
+  transportationCharge Float @default(0)
+  additionalCharges    Float @default(0)
+  marginAmount         Float @default(0)
+  marginPercent        Float @default(0)
+  assignedDriverId     String?
+  vehicleInfo          String?
+  trackingNumber       String?
+  dispatchedAt         DateTime?
+  deliveredAt          DateTime?
+  closedAt             DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  customer Customer        @relation(fields: [customerId], references: [id])
-  quote    Quote?          @relation(fields: [quoteId], references: [id])
-  items    SalesOrderItem[]
-  returns  SalesReturn[]
+  customer      Customer             @relation(fields: [customerId], references: [id])
+  quote         Quote?               @relation(fields: [quoteId], references: [id])
+  workflow      OrderWorkflow?       @relation(fields: [workflowId], references: [id])
+  items         SalesOrderItem[]
+  returns       SalesReturn[]
+  modifications OrderModification[]
+  documents     OrderDocument[]
 
   @@unique([tenantId, orderNumber])
   @@index([tenantId])
   @@index([customerId])
   @@index([tenantId, status])
   @@index([tenantId, paymentStatus])
+  @@index([tenantId, branchId])
+  @@index([workflowId])
+}
+
+/// Tenant-scoped order lifecycle (copied from a platform template on apply).
+model OrderWorkflow {
+  id          String   @id @default(cuid())
+  tenantId    String
+  templateId  String   // workflow.oms_trading | workflow.grocery_delivery | custom
+  code        String   // stable per tenant e.g. OMS_TRADING
+  name        String
+  description String?
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  steps  OrderWorkflowStep[]
+  orders SalesOrder[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, isDefault])
+  @@index([tenantId, isActive])
+}
+
+/// One allowed transition / stage in a workflow.
+model OrderWorkflowStep {
+  id           String  @id @default(cuid())
+  tenantId     String
+  workflowId   String
+  key          String  // sales_review, stock_verify, ...
+  label        String  // UI label
+  action       String  // PATCH ?action= value
+  fromStatuses  Json    // string[] — statuses where this action is allowed
+  toStatus     String? // static next status; null if resolverKey handles it
+  resolverKey  String? // stock_verify | null — dynamic next status in handler
+  sortOrder    Int     @default(0)
+  roleHint     String? // SALES_EXECUTIVE | PRICING_EXECUTIVE | ...
+  uiPanel      String  @default("none") // none | stock | pricing | dispatch | document
+  isTerminal   Boolean @default(false)
+  allowCancel  Boolean @default(true)
+
+  workflow OrderWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowId, key])
+  @@unique([workflowId, action])
+  @@index([tenantId, workflowId])
 }
 
 model SalesOrderItem {
-  id           String @id @default(cuid())
-  salesOrderId String
-  productId    String
-  productName  String
-  variantId    String?
-  quantity     Int
-  shippedQty   Int    @default(0)
-  unitPrice    Float
-  total        Float
+  id            String  @id @default(cuid())
+  salesOrderId  String
+  productId     String
+  productName   String
+  variantId     String?
+  quantity      Int
+  shippedQty    Int     @default(0)
+  availableQty  Float?  // manual stock verification
+  shortageQty   Float?  // max(0, quantity - availableQty)
+  unitPrice     Float
+  purchasePrice Float?
+  discount      Float   @default(0)
+  taxRate       Float   @default(0)
+  total         Float
+  customSnapshot Json?  // product customAttributes at order time
+  remarks       String?
 
   order       SalesOrder       @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
   returnItems SalesReturnItem[]
+}
+
+model OrderModification {
+  id           String   @id @default(cuid())
+  tenantId     String
+  salesOrderId String
+  userId       String
+  action       String   // REVIEW_EDIT | STOCK_VERIFY | PRICING | DISPATCH | STATUS_CHANGE | ITEM_ADD | ITEM_REMOVE | ITEM_UPDATE
+  field        String?
+  oldValue     String?
+  newValue     String?
+  remarks      String?
+  createdAt    DateTime @default(now())
+
+  order SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, salesOrderId])
+}
+
+model OrderDocument {
+  id           String   @id @default(cuid())
+  tenantId     String
+  salesOrderId String
+  type         String   // ACKNOWLEDGEMENT | DELIVERY_PROOF | INVOICE | OTHER
+  fileName     String
+  fileUrl      String
+  mimeType     String?
+  uploadedBy   String
+  createdAt    DateTime @default(now())
+
+  order SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, salesOrderId])
 }
 
 model SalesReturn {

@@ -40,6 +40,40 @@ model Tenant {
   settings      TenantSetting[]
   invitations   Invitation[]
   notifications Notification[]
+  branches      Branch[]
+}
+
+model Branch {
+  id        String   @id @default(cuid())
+  tenantId  String
+  code      String
+  name      String
+  address   String?
+  city      String?
+  phone     String?
+  isDefault Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users  UserBranch[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model UserBranch {
+  id       String  @id @default(cuid())
+  tenantId String
+  userId   String
+  branchId String
+  isPrimary Boolean @default(false)
+
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId, branchId])
+  @@index([tenantId, userId])
 }
 
 model TenantUser {
@@ -47,6 +81,8 @@ model TenantUser {
   tenantId  String
   userId    String
   role      String   @default("USER")
+  // OMS roles also accepted as string: SUPER_ADMIN | ORG_ADMIN | BRANCH_ADMIN |
+  // SALES_EXECUTIVE | PRICING_EXECUTIVE | DISPATCH_EXECUTIVE | DELIVERY_EXECUTIVE | VIEWER
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 

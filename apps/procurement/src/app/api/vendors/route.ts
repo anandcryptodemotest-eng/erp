@@ -4,13 +4,16 @@ import { z } from "zod";
 
 const createVendorSchema = z.object({
   name: z.string().min(1),
+  contactPerson: z.string().optional(),
   email: z.string().email().optional(),
   phone: z.string().optional(),
+  whatsappNumber: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
   country: z.string().optional(),
   taxId: z.string().optional(),
   creditTerms: z.number().int().min(0).default(30),
+  leadTimeDays: z.number().int().min(0).default(0),
 });
 
 export async function GET(request: Request) {

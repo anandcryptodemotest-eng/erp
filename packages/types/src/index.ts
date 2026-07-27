@@ -27,7 +27,17 @@ export type UserRole =
   | "ACCOUNTANT"
   | "HR_MANAGER"
   | "SALES_REP"
-  | "PROCUREMENT_OFFICER";
+  | "PROCUREMENT_OFFICER"
+  // OMS hierarchy (stored as TenantUser.role string)
+  | "SUPER_ADMIN"
+  | "ORG_ADMIN"
+  | "BRANCH_ADMIN"
+  | "SALES_EXECUTIVE"
+  | "PRICING_EXECUTIVE"
+  | "DISPATCH_EXECUTIVE"
+  | "DELIVERY_EXECUTIVE"
+  | "VIEWER"
+  | "CUSTOMER"; // end-customer portal
 
 export interface User {
   id: string;
@@ -99,6 +109,40 @@ export interface Product {
   sellPrice: number;
   reorderLevel: number;
   isActive: boolean;
+  customAttributes?: Record<string, unknown>;
+}
+
+export type AttributeDataType =
+  | "TEXT"
+  | "NUMBER"
+  | "BOOLEAN"
+  | "DATE"
+  | "SELECT"
+  | "MULTI_SELECT"
+  | "UNIT_NUMBER";
+
+export interface ProductAttributeDefinition {
+  id: string;
+  key: string;
+  label: string;
+  dataType: AttributeDataType;
+  unit?: string | null;
+  options?: string[] | null;
+  isRequired: boolean;
+  isFilterable: boolean;
+  isVariantAxis: boolean;
+  showOnLabel: boolean;
+  sortOrder: number;
+}
+
+export interface Branch {
+  id: string;
+  code: string;
+  name: string;
+  address?: string | null;
+  city?: string | null;
+  isDefault: boolean;
+  isActive: boolean;
 }
 
 export interface Warehouse {
@@ -151,13 +195,52 @@ export type OpportunityStage =
 
 export type QuoteStatus = "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED";
 
-export type SalesOrderStatus =
+export type OrderStatus =
   | "DRAFT"
+  | "SUBMITTED"
+  | "PENDING_SALES_REVIEW"
+  | "REVIEWED"
+  | "STOCK_VERIFIED"
+  | "VENDOR_REQUESTED"
+  | "PRICING_PENDING"
+  | "PRICING_COMPLETED"
+  | "READY_FOR_DISPATCH"
+  | "DISPATCHED"
+  | "CLOSED"
   | "CONFIRMED"
-  | "PARTIALLY_SHIPPED"
-  | "SHIPPED"
+  | "AWAITING_PICKUP"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
   | "INVOICED"
-  | "CANCELLED";
+  | "CANCELLED"
+  | "PARTIALLY_SHIPPED"
+  | "SHIPPED";
+
+export type SalesOrderStatus = OrderStatus;
+
+/** Platform workflow template ids — extend here, never per-customer hardcodes */
+export type OrderWorkflowTemplateId =
+  | "workflow.oms_trading"
+  | "workflow.grocery_delivery";
+
+export interface OrderWorkflowStep {
+  key: string;
+  label: string;
+  action: string;
+  fromStatuses: string[];
+  toStatus: string | null;
+  uiPanel: string;
+  roleHint?: string | null;
+}
+
+export interface OrderWorkflow {
+  id: string;
+  templateId: string;
+  code: string;
+  name: string;
+  isDefault: boolean;
+  steps: OrderWorkflowStep[];
+}
 
 export type SalesReturnStatus = "PENDING" | "APPROVED" | "COMPLETED" | "REJECTED";
 
@@ -288,17 +371,6 @@ export type ServiceEvent =
   | { type: "PAYROLL_PROCESSED"; payload: { period: string; totalAmount: number } };
 
 // ==================== GROCERY / DELIVERY ====================
-
-export type OrderStatus =
-  | "DRAFT"
-  | "CONFIRMED"
-  | "AWAITING_PICKUP"
-  | "OUT_FOR_DELIVERY"
-  | "DELIVERED"
-  | "INVOICED"
-  | "CANCELLED"
-  | "PARTIALLY_SHIPPED"
-  | "SHIPPED";
 
 export type PaymentMethod = "COD" | "UPI" | "CARD" | "WALLET" | "SPLIT" | "CASH";
 

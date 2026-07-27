@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveTaxRate, suggestTaxFromHsn } from "@/lib/tax-resolution";
+import {
+  resolveAttributeDefinitions,
+  syncAttributeIndex,
+  validateCustomAttributes,
+} from "@/lib/attributes";
 import { z } from "zod";
 
 const updateProductSchema = z.object({
@@ -25,6 +30,7 @@ const updateProductSchema = z.object({
   isFeatured: z.boolean().optional(),
   sortOrder: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),
+  customAttributes: z.record(z.unknown()).optional(),
 });
 
 // GET /api/products/:id
@@ -45,7 +51,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   });
 
   if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
-  return NextResponse.json({ data: product });
+
+  const attributeDefinitions = await resolveAttributeDefinitions(tenantId, product.categoryId);
+  return NextResponse.json({ data: { ...product, attributeDefinitions } });
 }
 
 // PATCH /api/products/:id
@@ -134,8 +142,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       taxReviewNotes = taxReviewNotes ?? "Partial HSN match. Manager approval required.";
     }
 
+    const { customAttributes: incomingAttrs, ...scalarData } = data;
+
     const updatePayload: Record<string, unknown> = {
-      ...data,
+      ...scalarData,
       countryCode,
       hsnCode,
       hsnConfidence,
@@ -146,6 +156,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       taxCode,
       taxRate,
     };
+
+    if (incomingAttrs !== undefined || data.categoryId !== undefined) {
+      const definitions = await resolveAttributeDefinitions(tenantId, effectiveCategoryId);
+      const mergedAttrs = {
+        ...((existing.customAttributes as Record<string, unknown>) ?? {}),
+        ...(incomingAttrs ?? {}),
+      };
+      const attrResult = validateCustomAttributes(definitions, mergedAttrs);
+      if (!attrResult.ok) {
+        return NextResponse.json({ error: attrResult.error }, { status: 400 });
+      }
+      const product = await prisma.product.update({
+        where: { id },
+        data: { ...updatePayload, customAttributes: attrResult.values },
+      });
+      await syncAttributeIndex(tenantId, product.id, definitions, attrResult.values);
+      return NextResponse.json({ data: product });
+    }
 
     const product = await prisma.product.update({ where: { id }, data: updatePayload });
     return NextResponse.json({ data: product });

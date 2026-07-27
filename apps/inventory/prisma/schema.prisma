@@ -42,11 +42,53 @@ model ProductCategory {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  parent   ProductCategory?  @relation("CategoryChildren", fields: [parentId], references: [id])
-  children ProductCategory[] @relation("CategoryChildren")
-  products Product[]
+  parent          ProductCategory?        @relation("CategoryChildren", fields: [parentId], references: [id])
+  children        ProductCategory[]       @relation("CategoryChildren")
+  products        Product[]
+  attributeLinks  AttributeCategoryLink[]
 
   @@index([tenantId])
+}
+
+// Tenant-scoped custom field registry (hybrid attributes — see docs/OMS-REQUIREMENTS.md)
+model ProductAttributeDefinition {
+  id            String   @id @default(cuid())
+  tenantId      String
+  key           String   // immutable machine key e.g. "thickness_mm"
+  label         String
+  description   String?
+  dataType      String   // TEXT | NUMBER | BOOLEAN | DATE | SELECT | MULTI_SELECT | UNIT_NUMBER
+  unit          String?  // mm | inch | kg — display hint
+  options       Json?    // string[] for SELECT / MULTI_SELECT
+  validation    Json?    // { min?, max?, regex?, maxLength? }
+  isRequired    Boolean  @default(false)
+  isFilterable  Boolean  @default(true)
+  isSearchable  Boolean  @default(false)
+  isVariantAxis Boolean  @default(false)
+  showOnLabel   Boolean  @default(false)
+  sortOrder     Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  categoryLinks AttributeCategoryLink[]
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+}
+
+model AttributeCategoryLink {
+  id                  String  @id @default(cuid())
+  tenantId            String
+  attributeId         String
+  categoryId          String
+  isRequiredOverride  Boolean?
+
+  attribute ProductAttributeDefinition @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  category  ProductCategory            @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([attributeId, categoryId])
+  @@index([tenantId, categoryId])
 }
 
 model Product {
@@ -81,6 +123,9 @@ model Product {
   isFeatured   Boolean  @default(false)
   sortOrder    Int      @default(0)
   isActive     Boolean  @default(true)
+  // Industry-specific fields validated against ProductAttributeDefinition
+  customAttributes       Json @default("{}")
+  attributeSchemaVersion Int  @default(1)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -93,10 +138,28 @@ model Product {
   priceListItems PriceListItem[]
   boms           BOM[]
   bomComponents  BOMLine[] @relation("BOMComponents")
+  attributeIndex ProductAttributeIndex[]
 
   @@unique([tenantId, sku])
   @@index([tenantId])
   @@index([tenantId, barcode])
+}
+
+// Denormalized filter index for filterable custom attributes
+model ProductAttributeIndex {
+  id        String   @id @default(cuid())
+  tenantId  String
+  productId String
+  key       String
+  valueText String?
+  valueNum  Float?
+  valueBool Boolean?
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, productId, key])
+  @@index([tenantId, key, valueText])
+  @@index([tenantId, key, valueNum])
 }
 
 model ProductVariant {
