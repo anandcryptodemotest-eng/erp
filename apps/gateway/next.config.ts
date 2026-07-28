@@ -8,6 +8,9 @@ const PROCUREMENT_URL = process.env.PROCUREMENT_SERVICE_URL ?? "http://localhost
 const DELIVERY_URL    = process.env.DELIVERY_SERVICE_URL    ?? "http://localhost:3006";
 
 const nextConfig: NextConfig = {
+  // Served publicly only via nginx at https://host/admin (apps bind to 127.0.0.1).
+  basePath: "/admin",
+  allowedDevOrigins: ["150.242.201.102", "localhost", "127.0.0.1"],
   transpilePackages: ["@erp/ui", "@erp/types", "@erp/auth", "@erp/config"],
   async rewrites() {
     return [

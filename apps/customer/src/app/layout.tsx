@@ -36,7 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   } as CSSProperties;
 
   return (
-    <html lang="en" className={`${display.variable} ${body.variable}`}>
+    <html lang="en" className={`${display.variable} ${body.variable}`} data-scroll-behavior="smooth">
       <body className="min-h-screen antialiased" style={fontVars}>
         {children}
       </body>

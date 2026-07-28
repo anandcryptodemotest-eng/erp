@@ -19,7 +19,7 @@ const updateProductSchema = z.object({
   taxRate: z.number().min(0).nullable().optional(),
   taxIncluded: z.boolean().optional(),
   barcode: z.string().nullable().optional(),
-  imageUrls: z.array(z.string().url()).nullable().optional(),
+  imageUrls: z.array(z.string().min(1)).nullable().optional(),
   weight: z.number().positive().nullable().optional(),
   weightUnit: z.string().nullable().optional(),
   unit: z.string().optional(),

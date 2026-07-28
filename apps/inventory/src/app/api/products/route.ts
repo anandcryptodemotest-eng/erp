@@ -21,7 +21,7 @@ const createProductSchema = z.object({
   taxIncluded: z.boolean().default(false),
   barcode: z.string().optional(),
   pluCode: z.string().optional(),       // PLU for weight-based items (no barcode)
-  imageUrls: z.array(z.string().url()).optional(),
+  imageUrls: z.array(z.string().min(1)).optional(),
   weight: z.number().positive().optional(),
   weightUnit: z.string().optional(),
   unit: z.string().default("pcs"),      // pcs | kg | g | liter | ml | dozen | bag

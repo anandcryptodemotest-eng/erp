@@ -8,17 +8,26 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Stats>({ products: 0, customers: 0, orders: 0, invoices: 0 });
 
   useEffect(() => {
+    const safe = async (path: string) => {
+      try {
+        return await api(path);
+      } catch {
+        return { meta: { total: 0 } };
+      }
+    };
     Promise.all([
-      api("/api/products?limit=1"),
-      api("/api/customers?limit=1"),
-      api("/api/orders?limit=1"),
-      api("/api/invoices?limit=1"),
-    ]).then(([p, c, o, i]) => setStats({
-      products:  p.meta?.total ?? 0,
-      customers: c.meta?.total ?? 0,
-      orders:    o.meta?.total ?? 0,
-      invoices:  i.meta?.total ?? 0,
-    })).catch(() => {});
+      safe("/api/products?limit=1"),
+      safe("/api/customers?limit=1"),
+      safe("/api/orders?limit=1"),
+      safe("/api/invoices?limit=1"),
+    ]).then(([p, c, o, i]) =>
+      setStats({
+        products: p.meta?.total ?? 0,
+        customers: c.meta?.total ?? 0,
+        orders: o.meta?.total ?? 0,
+        invoices: i.meta?.total ?? 0,
+      })
+    );
   }, []);
 
   const cards = [
@@ -30,15 +39,15 @@ export default function DashboardPage() {
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Dashboard</h1>
-      <p className="text-gray-500 text-sm mb-8">Welcome to Simhapuri Fresh ERP</p>
+      <h1 className="font-display text-2xl font-semibold text-[var(--ink)] mb-2">Dashboard</h1>
+      <p className="text-[var(--ink-soft)]/70 text-sm mb-8">Welcome to Trust Wood ERP</p>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
         {cards.map(c => (
-          <a key={c.label} href={c.href} className={`border rounded-xl p-5 ${c.color} hover:shadow transition`}>
+          <a key={c.label} href={c.href} className="admin-card p-5 hover:shadow-[var(--shadow)] transition">
             <div className="text-3xl mb-2">{c.icon}</div>
-            <div className="text-2xl font-bold text-gray-900">{c.value}</div>
-            <div className="text-sm text-gray-500">{c.label}</div>
+            <div className="text-2xl font-bold text-[var(--ink)]">{c.value}</div>
+            <div className="text-sm text-[var(--ink-soft)]/65">{c.label}</div>
           </a>
         ))}
       </div>

@@ -45,6 +45,10 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+.cursor/
+
+# Runtime uploads / local data
+data/
 
 # TypeScript
 *.tsbuildinfo

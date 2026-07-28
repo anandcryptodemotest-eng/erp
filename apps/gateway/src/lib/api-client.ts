@@ -1,13 +1,40 @@
-// Service base URLs — configurable via NEXT_PUBLIC_* env vars
-const SERVICE_URLS: Record<string, string> = {
-  gateway: process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:3010",
-  sales: process.env.NEXT_PUBLIC_SALES_URL ?? "http://localhost:3001",
-  inventory: process.env.NEXT_PUBLIC_INVENTORY_URL ?? "http://localhost:3002",
-  accounting: process.env.NEXT_PUBLIC_ACCOUNTING_URL ?? "http://localhost:3003",
-  hr: process.env.NEXT_PUBLIC_HR_URL ?? "http://localhost:3004",
-  procurement: process.env.NEXT_PUBLIC_PROCUREMENT_URL ?? "http://localhost:3005",
-  delivery: process.env.NEXT_PUBLIC_DELIVERY_URL ?? "http://localhost:3006",
-};
+// Browser traffic must stay same-origin (nginx → gateway). Never call microservice ports from the client.
+function browserBase(): string {
+  return ""; // same-origin; gateway rewrites /api/* to internal services
+}
+
+function serverBase(service: string): string {
+  // Server-side only (RSC / route handlers). Prefer env overrides; default to loopback.
+  const map: Record<string, string | undefined> = {
+    gateway: process.env.GATEWAY_INTERNAL_URL ?? process.env.NEXT_PUBLIC_GATEWAY_URL,
+    sales: process.env.SALES_SERVICE_URL ?? process.env.NEXT_PUBLIC_SALES_URL,
+    inventory: process.env.INVENTORY_SERVICE_URL ?? process.env.NEXT_PUBLIC_INVENTORY_URL,
+    accounting: process.env.ACCOUNTING_SERVICE_URL ?? process.env.NEXT_PUBLIC_ACCOUNTING_URL,
+    hr: process.env.HR_SERVICE_URL ?? process.env.NEXT_PUBLIC_HR_URL,
+    procurement: process.env.PROCUREMENT_SERVICE_URL ?? process.env.NEXT_PUBLIC_PROCUREMENT_URL,
+    delivery: process.env.DELIVERY_SERVICE_URL ?? process.env.NEXT_PUBLIC_DELIVERY_URL,
+  };
+  const defaults: Record<string, string> = {
+    gateway: "http://127.0.0.1:3010",
+    sales: "http://127.0.0.1:3001",
+    inventory: "http://127.0.0.1:3002",
+    accounting: "http://127.0.0.1:3003",
+    hr: "http://127.0.0.1:3004",
+    procurement: "http://127.0.0.1:3005",
+    delivery: "http://127.0.0.1:3006",
+  };
+  return map[service] ?? defaults[service] ?? defaults.gateway;
+}
+
+const SERVICE_URLS: Record<string, string> = new Proxy(
+  {} as Record<string, string>,
+  {
+    get(_t, prop: string) {
+      if (typeof window !== "undefined") return browserBase();
+      return serverBase(prop);
+    },
+  }
+);
 
 export type ServiceName = keyof typeof SERVICE_URLS;
 

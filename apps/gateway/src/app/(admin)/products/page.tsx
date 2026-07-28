@@ -23,6 +23,7 @@ interface Product {
   barcode?: string | null;
   isActive?: boolean;
   customAttributes?: Record<string, unknown>;
+  imageUrls?: string[] | null;
   stocks: Stock[];
   category?: { id: string; name: string } | null;
   brand?: { id: string; name: string } | null;
@@ -146,6 +147,13 @@ export default function ProductsPage() {
   const [formMode, setFormMode] = useState<"new" | "edit" | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productForm, setProductForm] = useState(EMPTY_FORM);
+  /** When true, user typed SKU manually — stop overwriting on category/brand change */
+  const [skuManual, setSkuManual] = useState(false);
+  const [skuSuggesting, setSkuSuggesting] = useState(false);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [defaultWarehouseId, setDefaultWarehouseId] = useState<string>("");
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [customAttrs, setCustomAttrs] = useState<Record<string, string>>({});
   const [formDefs, setFormDefs] = useState<AttrDef[]>([]);
   const [addAnother, setAddAnother] = useState(false);
@@ -211,6 +219,24 @@ export default function ProductsPage() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  async function ensureDefaultWarehouse(): Promise<string> {
+    if (defaultWarehouseId) return defaultWarehouseId;
+    const list = await api("/api/warehouses?limit=20");
+    const existing = (list.data ?? []) as { id: string; name: string }[];
+    if (existing[0]?.id) {
+      setDefaultWarehouseId(existing[0].id);
+      return existing[0].id;
+    }
+    const created = await api("/api/warehouses", {
+      method: "POST",
+      body: JSON.stringify({ name: "Main Warehouse", location: "Primary" }),
+    });
+    const id = created.data?.id as string;
+    if (!id) throw new Error("Could not create default warehouse");
+    setDefaultWarehouseId(id);
+    return id;
+  }
+
   async function loadCatalog() {
     setLoading(true);
     try {
@@ -222,6 +248,11 @@ export default function ProductsPage() {
       setProducts(p.data ?? []);
       setCategories(c.data ?? []);
       setBrands(b.data ?? []);
+      try {
+        await ensureDefaultWarehouse();
+      } catch {
+        /* warehouse created on first stock receive */
+      }
     } catch (e: unknown) {
       notify(`Error: ${errText(e)}`, "error");
     } finally {
@@ -287,10 +318,11 @@ export default function ProductsPage() {
   async function addStock() {
     if (!stockModal) return;
     try {
+      const warehouseId = await ensureDefaultWarehouse();
       await api("/api/stock/receive", {
         method: "POST",
         body: JSON.stringify({
-          items: [{ productId: stockModal.id, warehouseId: "seed-warehouse-main", quantity: Number(stockQty) }],
+          items: [{ productId: stockModal.id, warehouseId, quantity: Number(stockQty) }],
           reference: "MANUAL",
         }),
       });
@@ -333,6 +365,8 @@ export default function ProductsPage() {
     setFormMode("new");
     setEditingProduct(null);
     setProductForm(EMPTY_FORM);
+    setSkuManual(false);
+    setImageUrls([]);
     setFormDefs([]);
     setCustomAttrs({});
     setAddAnother(false);
@@ -343,6 +377,8 @@ export default function ProductsPage() {
   function openEditProductForm(p: Product) {
     setFormMode("edit");
     setEditingProduct(p);
+    setSkuManual(true);
+    setImageUrls(Array.isArray(p.imageUrls) ? p.imageUrls.filter(Boolean) : []);
     setProductForm({
       sku: p.sku,
       name: p.name,
@@ -367,6 +403,55 @@ export default function ProductsPage() {
     }
   }
 
+  async function uploadProductImages(files: FileList | File[]) {
+    const list = Array.from(files).slice(0, Math.max(0, 4 - imageUrls.length));
+    if (!list.length) return;
+    setImageUploading(true);
+    try {
+      const uploaded: string[] = [];
+      for (const file of list) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const r = await api("/api/uploads/product-image", { method: "POST", body: fd });
+        if (r?.data?.url) uploaded.push(r.data.url as string);
+      }
+      if (uploaded.length) setImageUrls((prev) => [...prev, ...uploaded].slice(0, 4));
+    } catch (e: unknown) {
+      notify(`Image upload failed: ${errText(e)}`, "error");
+    } finally {
+      setImageUploading(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
+    }
+  }
+
+  async function suggestSku(categoryId: string, brandId: string) {
+    if (formMode !== "new") return;
+    setSkuSuggesting(true);
+    try {
+      const q = new URLSearchParams();
+      if (categoryId) q.set("categoryId", categoryId);
+      if (brandId) q.set("brandId", brandId);
+      const r = await api(`/api/products/suggest-sku?${q}`);
+      const sku = r?.data?.sku as string | undefined;
+      if (sku) setProductForm((f) => ({ ...f, sku }));
+    } catch {
+      /* keep current sku */
+    } finally {
+      setSkuSuggesting(false);
+    }
+  }
+
+  // Auto SKU when category/brand changes (create mode only, unless user edited SKU)
+  useEffect(() => {
+    if (formMode !== "new" || skuManual) return;
+    if (!productForm.categoryId && !productForm.brandId) {
+      setProductForm((f) => (f.sku ? { ...f, sku: "" } : f));
+      return;
+    }
+    void suggestSku(productForm.categoryId, productForm.brandId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productForm.categoryId, productForm.brandId, formMode, skuManual]);
+
   async function submitProductForm(e: React.FormEvent) {
     e.preventDefault();
     setCreatingProduct(true);
@@ -385,12 +470,14 @@ export default function ProductsPage() {
             barcode: productForm.barcode || null,
             categoryId: productForm.categoryId || null,
             brandId: productForm.brandId || null,
+            imageUrls: imageUrls.length ? imageUrls : null,
             customAttributes,
           }),
         });
         notify(`Product "${productForm.name}" updated`, "success");
         setFormMode(null);
         setEditingProduct(null);
+        setImageUrls([]);
         loadCatalog();
         return;
       }
@@ -407,26 +494,31 @@ export default function ProductsPage() {
           ...(productForm.barcode && { barcode: productForm.barcode }),
           ...(productForm.categoryId && { categoryId: productForm.categoryId }),
           ...(productForm.brandId && { brandId: productForm.brandId }),
+          ...(imageUrls.length ? { imageUrls } : {}),
           ...(Object.keys(customAttributes).length ? { customAttributes } : {}),
         }),
       });
       const productId = created.data?.id;
       if (productId && Number(productForm.initialStock) > 0) {
+        const warehouseId = await ensureDefaultWarehouse();
         await api("/api/stock/receive", {
           method: "POST",
           body: JSON.stringify({
-            items: [{ productId, warehouseId: "seed-warehouse-main", quantity: Number(productForm.initialStock) }],
+            items: [{ productId, warehouseId, quantity: Number(productForm.initialStock) }],
             reference: "INITIAL",
           }),
         });
       }
       notify(`Product "${productForm.name}" created`, "success");
       if (addAnother) {
+        setSkuManual(false);
+        setImageUrls([]);
         setProductForm((f) => ({ ...f, sku: "", name: "", barcode: "", initialStock: "0" }));
         setCustomAttrs((a) => Object.fromEntries(Object.keys(a).map((k) => [k, ""])));
       } else {
         setFormMode(null);
         setProductForm(EMPTY_FORM);
+        setImageUrls([]);
         setCustomAttrs({});
         setFormDefs([]);
       }
@@ -1497,7 +1589,9 @@ export default function ProductsPage() {
                     <select
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                       value={productForm.brandId}
-                      onChange={(e) => setProductForm((f) => ({ ...f, brandId: e.target.value }))}
+                      onChange={(e) => {
+                        setProductForm((f) => ({ ...f, brandId: e.target.value }));
+                      }}
                     >
                       <option value="">— Optional —</option>
                       {brands.map((b) => (
@@ -1572,17 +1666,115 @@ export default function ProductsPage() {
                         {key === "sku" && formMode === "edit" && (
                           <span className="ml-1.5 font-normal text-gray-400">(cannot be changed)</span>
                         )}
+                        {key === "sku" && formMode === "new" && (
+                          <span className="ml-1.5 font-normal text-gray-400">
+                            {skuSuggesting
+                              ? "(generating…)"
+                              : skuManual
+                                ? "(manual — click Regenerate to auto)"
+                                : "(auto from category + brand)"}
+                          </span>
+                        )}
                       </label>
-                      <input
-                        type={type}
-                        required={label.includes("*")}
-                        disabled={key === "sku" && formMode === "edit"}
-                        value={productForm[key]}
-                        onChange={(e) => setProductForm((f) => ({ ...f, [key]: e.target.value }))}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-100 disabled:text-gray-500"
-                      />
+                      <div className={key === "sku" && formMode === "new" ? "flex gap-2" : undefined}>
+                        <input
+                          type={type}
+                          required={label.includes("*")}
+                          disabled={key === "sku" && formMode === "edit"}
+                          value={productForm[key]}
+                          onChange={(e) => {
+                            if (key === "sku") setSkuManual(true);
+                            setProductForm((f) => ({ ...f, [key]: e.target.value }));
+                          }}
+                          placeholder={
+                            key === "sku" && formMode === "new"
+                              ? "Select category/brand → e.g. PLY-CEN-0001"
+                              : undefined
+                          }
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-100 disabled:text-gray-500 font-mono"
+                        />
+                        {key === "sku" && formMode === "new" && (
+                          <button
+                            type="button"
+                            disabled={skuSuggesting || (!productForm.categoryId && !productForm.brandId)}
+                            onClick={() => {
+                              setSkuManual(false);
+                              void suggestSku(productForm.categoryId, productForm.brandId);
+                            }}
+                            className="shrink-0 text-xs px-3 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 font-semibold disabled:opacity-40"
+                          >
+                            Regenerate
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Images */}
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">
+                  Product images
+                  <span className="ml-2 font-normal normal-case text-gray-400">
+                    up to 4 · JPG/PNG/WebP · max 2 MB · first is primary
+                  </span>
+                </h3>
+                <div className="flex flex-wrap gap-3 items-start">
+                  {imageUrls.map((url, idx) => (
+                    <div
+                      key={url}
+                      className="relative h-24 w-24 rounded-xl overflow-hidden border border-gray-200 bg-gray-50 group"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt="" className="h-full w-full object-cover" />
+                      {idx === 0 && (
+                        <span className="absolute left-1 top-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                          Primary
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setImageUrls((prev) => prev.filter((u) => u !== url))}
+                        className="absolute right-1 top-1 hidden group-hover:inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-white text-xs"
+                        aria-label="Remove image"
+                      >
+                        ×
+                      </button>
+                      {idx > 0 && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setImageUrls((prev) => {
+                              const next = [...prev];
+                              const [item] = next.splice(idx, 1);
+                              next.unshift(item);
+                              return next;
+                            })
+                          }
+                          className="absolute bottom-1 left-1 hidden group-hover:inline-flex rounded bg-black/70 px-1.5 py-0.5 text-[10px] text-white"
+                        >
+                          Make primary
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {imageUrls.length < 4 && (
+                    <label className="flex h-24 w-24 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-white text-center text-xs text-gray-500 hover:border-indigo-400 hover:text-indigo-600">
+                      <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                        className="hidden"
+                        disabled={imageUploading}
+                        onChange={(e) => {
+                          if (e.target.files?.length) void uploadProductImages(e.target.files);
+                        }}
+                      />
+                      {imageUploading ? "Uploading…" : "+ Add"}
+                    </label>
+                  )}
                 </div>
               </div>
 

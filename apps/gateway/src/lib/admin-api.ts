@@ -1,4 +1,6 @@
-const BASE = typeof window !== "undefined" ? "" : "http://localhost:3010";
+// Browser: same-origin `/api` (nginx). Server: loopback gateway (with basePath /admin).
+const BASE =
+  typeof window !== "undefined" ? "" : "http://127.0.0.1:3010/admin";
 
 export type AdminSessionUser = {
   id?: string;
@@ -54,10 +56,11 @@ export function clearAuth() {
 }
 
 export async function api(path: string, options: RequestInit = {}) {
+  const isForm = typeof FormData !== "undefined" && options.body instanceof FormData;
   const res = await fetch(`${BASE}${path}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(isForm ? {} : { "Content-Type": "application/json" }),
       Authorization: `Bearer ${getToken()}`,
       "x-tenant-id": getTenantId(),
       ...(options.headers ?? {}),

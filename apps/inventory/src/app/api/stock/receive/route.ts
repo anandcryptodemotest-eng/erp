@@ -53,6 +53,15 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    const msg = error instanceof Error ? error.message : "Internal server error";
+    // Common: warehouse/product FK missing after catalog wipe
+    if (/Foreign key constraint|WarehouseStock_warehouseId|WarehouseStock_productId/i.test(msg)) {
+      return NextResponse.json(
+        { error: "Invalid warehouse or product. Create a warehouse first, then receive stock." },
+        { status: 400 }
+      );
+    }
+    console.error("[stock/receive]", error);
+    return NextResponse.json({ error: msg || "Internal server error" }, { status: 500 });
   }
 }

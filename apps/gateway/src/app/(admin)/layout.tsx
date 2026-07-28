@@ -191,19 +191,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <aside
       className={`
         ${collapsed ? "w-20" : "w-80"}
-        h-full bg-slate-950 text-slate-100 flex flex-col shrink-0 border-r border-slate-800 transition-all duration-200
+        admin-sidebar h-full flex flex-col shrink-0 transition-all duration-200
       `}
     >
-      <div className="px-4 py-4 border-b border-slate-800">
+      <div className="px-4 py-4 border-b border-white/10">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-xs uppercase tracking-widest text-cyan-300">Tenant</div>
-            {!collapsed && <div className="text-lg font-semibold leading-tight truncate">Simhapuri Fresh ERP</div>}
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--amber-soft)]">
+              Admin
+            </div>
+            {!collapsed && (
+              <div className="font-display text-xl font-semibold leading-tight truncate mt-1">
+                Trust Wood
+              </div>
+            )}
           </div>
           <button
             type="button"
             onClick={() => setCollapsed((v) => !v)}
-            className="hidden md:inline-flex items-center justify-center h-8 w-8 rounded-md border border-slate-700 hover:border-slate-500 hover:bg-slate-800 text-slate-300"
+            className="hidden md:inline-flex items-center justify-center h-8 w-8 rounded-lg border border-white/15 hover:bg-white/10 text-white/70"
             aria-label="Toggle sidebar"
           >
             {collapsed ? ">" : "<"}
@@ -211,8 +217,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         {!collapsed && (
           <div className="mt-3 flex items-center gap-2 text-xs">
-            <span className="rounded-full bg-emerald-900/60 text-emerald-300 px-2 py-0.5">DEV</span>
-            <span className="rounded-full bg-sky-900/60 text-sky-300 px-2 py-0.5 truncate max-w-[12rem]">
+            <span className="rounded-full bg-[var(--amber)]/20 text-[var(--amber-soft)] px-2 py-0.5 font-semibold">
+              ERP
+            </span>
+            <span className="rounded-full bg-white/10 text-white/70 px-2 py-0.5 truncate max-w-[12rem]">
               {displayRole}
             </span>
           </div>
@@ -220,12 +228,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
 
       {!collapsed && (
-        <div className="px-4 py-3 border-b border-slate-800">
+        <div className="px-4 py-3 border-b border-white/10">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search modules"
-            className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm placeholder:text-slate-500 outline-none focus:border-cyan-500"
+            className="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm placeholder:text-white/35 outline-none focus:border-[var(--amber)]/50"
           />
         </div>
       )}
@@ -234,12 +242,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {filteredGroups.map((group) => {
           const expanded = openGroups[group.key] ?? true;
           return (
-            <section key={group.key} className="rounded-lg border border-slate-800 bg-slate-900/40">
+            <section key={group.key} className="rounded-xl border border-white/10 bg-white/[0.03]">
               {!collapsed && (
                 <button
                   type="button"
                   onClick={() => setOpenGroups((prev) => ({ ...prev, [group.key]: !expanded }))}
-                  className="w-full flex items-center justify-between px-3 py-2 text-[11px] uppercase tracking-wide text-slate-400 hover:text-slate-200"
+                  className="w-full flex items-center justify-between px-3 py-2 text-[11px] uppercase tracking-wide text-white/45 hover:text-white/80"
                 >
                   <span>{group.title}</span>
                   <span>{expanded ? "-" : "+"}</span>
@@ -254,16 +262,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         <Link
                           href={item.href}
                           className={`
-                            group relative mx-1 mt-1 flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition
-                            ${active ? "bg-cyan-600/15 text-cyan-200" : "text-slate-300 hover:bg-slate-800 hover:text-white"}
+                            group relative mx-1 mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition
+                            ${active ? "admin-nav-active" : "text-white/70 hover:bg-white/8 hover:text-white"}
                           `}
                           title={collapsed ? item.label : undefined}
                         >
-                          {active && <span className="absolute left-0 top-1 bottom-1 w-1 rounded-r bg-cyan-400" />}
+                          {active && (
+                            <span className="absolute left-0 top-1 bottom-1 w-1 rounded-r bg-[var(--amber)]" />
+                          )}
                           <span
                             className={`
                               inline-flex h-7 w-7 items-center justify-center rounded-md text-[11px] font-semibold border
-                              ${active ? "border-cyan-400/60 bg-cyan-500/15" : "border-slate-700 bg-slate-900"}
+                              ${active ? "border-[var(--amber)]/50 bg-[var(--amber)]/15" : "border-white/15 bg-white/5"}
                             `}
                           >
                             {item.icon}
@@ -272,7 +282,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             <>
                               <span className="truncate">{item.label}</span>
                               {item.badge && (
-                                <span className="ml-auto rounded-full bg-slate-800 text-slate-400 text-[10px] px-2 py-0.5">
+                                <span className="ml-auto rounded-full bg-white/10 text-white/50 text-[10px] px-2 py-0.5">
                                   {item.badge}
                                 </span>
                               )}
@@ -290,14 +300,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </nav>
 
       {!collapsed && visibleQuickActions.length > 0 && (
-        <div className="px-4 py-3 border-t border-slate-800">
-          <div className="text-[11px] uppercase tracking-wide text-slate-400 mb-2">Quick Actions</div>
+        <div className="px-4 py-3 border-t border-white/10">
+          <div className="text-[11px] uppercase tracking-wide text-white/45 mb-2">Quick Actions</div>
           <div className="grid grid-cols-2 gap-2">
             {visibleQuickActions.map((item) => (
               <Link
                 key={item.label}
                 href={item.href}
-                className="rounded-md border border-slate-700 bg-slate-900 hover:bg-slate-800 px-2 py-2 text-xs text-slate-200"
+                className="rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-2 py-2 text-xs text-white/85"
               >
                 {item.label}
               </Link>
@@ -306,15 +316,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       )}
 
-      <div className="px-4 py-4 border-t border-slate-800">
+      <div className="px-4 py-4 border-t border-white/10">
         {!collapsed && (
-          <div className="mb-3 flex items-center gap-3 rounded-md bg-slate-900 border border-slate-800 px-3 py-2">
-            <div className="h-8 w-8 rounded-full bg-cyan-700/30 border border-cyan-500/30 flex items-center justify-center text-xs font-semibold text-cyan-200">
+          <div className="mb-3 flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2">
+            <div className="h-8 w-8 rounded-full bg-[var(--amber)]/20 border border-[var(--amber)]/30 flex items-center justify-center text-xs font-semibold text-[var(--amber-soft)]">
               {initials(displayName)}
             </div>
             <div className="min-w-0">
               <div className="text-sm leading-tight truncate">{displayName}</div>
-              <div className="text-[11px] text-slate-400 truncate">{displayRole}</div>
+              <div className="text-[11px] text-white/45 truncate">{displayRole}</div>
             </div>
           </div>
         )}
@@ -323,7 +333,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             clearAuth();
             router.push("/login");
           }}
-          className={`w-full rounded-md border border-slate-700 hover:border-slate-500 hover:bg-slate-800 px-3 py-2 text-sm text-left ${collapsed ? "text-center" : "text-slate-300"}`}
+          className={`w-full rounded-xl border border-white/15 hover:bg-white/10 px-3 py-2 text-sm text-left ${collapsed ? "text-center" : "text-white/75"}`}
         >
           {collapsed ? "SO" : "Sign Out"}
         </button>
@@ -332,7 +342,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   );
 
   return (
-    <div className="flex h-screen bg-slate-100">
+    <div className="admin-shell">
       <div className="hidden md:flex">{Sidebar}</div>
 
       {mobileOpen && (
@@ -340,26 +350,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <button
             type="button"
             onClick={() => setMobileOpen(false)}
-            className="absolute inset-0 bg-slate-950/60"
+            className="absolute inset-0 bg-[#121a16]/70"
             aria-label="Close sidebar"
           />
           <div className="absolute left-0 top-0 h-full">{Sidebar}</div>
         </div>
       )}
 
-      <main className="flex-1 overflow-y-auto min-w-0">
-        <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200 px-4 md:px-8 py-3 flex items-center gap-3">
+      <main className="admin-main min-w-0">
+        <header className="sticky top-0 z-20 bg-[color-mix(in_srgb,var(--paper)_92%,white)]/90 backdrop-blur border-b border-[var(--line)] px-4 md:px-8 py-3 flex items-center gap-3">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="md:hidden inline-flex items-center justify-center h-9 w-9 rounded-md border border-slate-300 bg-white text-slate-700"
+            className="md:hidden inline-flex items-center justify-center h-9 w-9 rounded-xl border border-[var(--line)] bg-white text-[var(--ink-soft)]"
             aria-label="Open sidebar"
           >
-            ===
+            ≡
           </button>
-          <div className="text-sm text-slate-500">Admin</div>
-          <div className="text-sm text-slate-300">/</div>
-          <div className="text-sm font-semibold text-slate-900 truncate">{activeTitle}</div>
+          <div className="text-sm text-[var(--ink-soft)]/60">Trust Wood</div>
+          <div className="text-sm text-[var(--line)]">/</div>
+          <div className="text-sm font-semibold text-[var(--ink)] truncate">{activeTitle}</div>
         </header>
         {children}
       </main>

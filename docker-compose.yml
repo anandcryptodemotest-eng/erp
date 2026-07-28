@@ -11,7 +11,8 @@ services:
       POSTGRES_PASSWORD: erp_dev_password
       POSTGRES_DB: erp_gateway
     ports:
-      - "5432:5432"
+      # Loopback only — never expose Postgres on the public interface
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./scripts/init-dbs.sql:/docker-entrypoint-initdb.d/init.sql

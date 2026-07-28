@@ -4,8 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "seed": "tsx seed.ts",
-    "reset:oms": "tsx reset-and-seed-oms.ts",
     "e2e:oms": "tsx e2e-oms-journey.ts"
   },
   "dependencies": {
