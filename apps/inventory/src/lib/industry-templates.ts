@@ -3,7 +3,12 @@ export type IndustryTemplate = {
   name: string;
   version: number;
   description: string;
-  categories: { name: string; attributeKeys: string[] }[];
+  categories: {
+    name: string;
+    attributeKeys: string[];
+    /** Per-category SELECT lists keyed by attribute key (e.g. size). Stored as optionsOverride. */
+    optionOverrides?: Record<string, string[]>;
+  }[];
   attributes: {
     key: string;
     label: string;
@@ -24,11 +29,31 @@ export const INDUSTRY_TEMPLATES: IndustryTemplate[] = [
   {
     templateId: "industry.plywood",
     name: "Plywood / Timber",
-    version: 1,
-    description: "Thickness, size, grade for plywood and board products",
+    version: 2,
+    description: "Plywood, Blockboard & Laminates — shared size field, different lists per category",
     categories: [
-      { name: "Plywood", attributeKeys: ["thickness_mm", "size", "grade"] },
-      { name: "Blockboard", attributeKeys: ["thickness_mm", "size", "grade"] },
+      {
+        name: "Plywood",
+        attributeKeys: ["thickness_mm", "size", "grade"],
+        optionOverrides: {
+          size: ["8x4", "7x3", "6x3", "8x3"],
+        },
+      },
+      {
+        name: "Blockboard",
+        attributeKeys: ["thickness_mm", "size", "grade"],
+        optionOverrides: {
+          size: ["8x4", "7x3", "6x3"],
+        },
+      },
+      {
+        name: "Laminates",
+        attributeKeys: ["thickness_mm", "size", "finish"],
+        optionOverrides: {
+          size: ["8x4", "4x8", "1220x2440"],
+          finish: ["Glossy", "Matt", "Texture", "Suede"],
+        },
+      },
     ],
     attributes: [
       {
@@ -40,13 +65,14 @@ export const INDUSTRY_TEMPLATES: IndustryTemplate[] = [
         isFilterable: true,
         isVariantAxis: true,
         showOnLabel: true,
-        validation: { min: 3, max: 50 },
+        validation: { min: 0.5, max: 50 },
         sortOrder: 1,
       },
       {
         key: "size",
         label: "Size",
         dataType: "SELECT",
+        // Default fallback; each category overrides via optionOverrides
         options: ["8x4", "7x3", "6x3", "8x3"],
         isRequired: true,
         isFilterable: true,
@@ -63,6 +89,16 @@ export const INDUSTRY_TEMPLATES: IndustryTemplate[] = [
         isFilterable: true,
         showOnLabel: true,
         sortOrder: 3,
+      },
+      {
+        key: "finish",
+        label: "Finish",
+        dataType: "SELECT",
+        options: ["Glossy", "Matt", "Texture", "Suede"],
+        isRequired: false,
+        isFilterable: true,
+        showOnLabel: true,
+        sortOrder: 4,
       },
     ],
   },

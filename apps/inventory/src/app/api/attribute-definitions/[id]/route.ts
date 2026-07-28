@@ -24,6 +24,15 @@ const updateSchema = z.object({
   sortOrder: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),
   categoryIds: z.array(z.string()).optional(),
+  /** Per-category SELECT lists — same key (e.g. size), different values per category */
+  categoryOptions: z
+    .array(
+      z.object({
+        categoryId: z.string().min(1),
+        options: z.array(z.string()).nullable(),
+      })
+    )
+    .optional(),
 });
 
 // GET /api/attribute-definitions/:id
@@ -58,13 +67,34 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   try {
     const body = await request.json();
     const parsed = updateSchema.parse(body);
-    const { categoryIds, ...rest } = parsed;
+    const { categoryIds, categoryOptions, ...rest } = parsed;
 
     if (categoryIds) {
       await prisma.attributeCategoryLink.deleteMany({ where: { attributeId: id, tenantId } });
       if (categoryIds.length) {
         await prisma.attributeCategoryLink.createMany({
           data: categoryIds.map((categoryId) => ({ tenantId, attributeId: id, categoryId })),
+        });
+      }
+    }
+
+    if (categoryOptions) {
+      for (const row of categoryOptions) {
+        const cat = await prisma.productCategory.findFirst({
+          where: { id: row.categoryId, tenantId },
+        });
+        if (!cat) {
+          return NextResponse.json({ error: `Category not found: ${row.categoryId}` }, { status: 400 });
+        }
+        await prisma.attributeCategoryLink.upsert({
+          where: { attributeId_categoryId: { attributeId: id, categoryId: row.categoryId } },
+          create: {
+            tenantId,
+            attributeId: id,
+            categoryId: row.categoryId,
+            optionsOverride: row.options ?? undefined,
+          },
+          update: { optionsOverride: row.options },
         });
       }
     }
@@ -76,7 +106,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         options: rest.options === undefined ? undefined : rest.options,
         validation: rest.validation === undefined ? undefined : rest.validation,
       },
-      include: { categoryLinks: true },
+      include: {
+        categoryLinks: { include: { category: { select: { id: true, name: true } } } },
+      },
     });
 
     return NextResponse.json({ data: def });

@@ -83,6 +83,9 @@ model AttributeCategoryLink {
   attributeId         String
   categoryId          String
   isRequiredOverride  Boolean?
+  /// Per-category SELECT options. Same attribute key (e.g. size) can have different lists per category.
+  /// When null, fall back to ProductAttributeDefinition.options.
+  optionsOverride     Json?
 
   attribute ProductAttributeDefinition @relation(fields: [attributeId], references: [id], onDelete: Cascade)
   category  ProductCategory            @relation(fields: [categoryId], references: [id], onDelete: Cascade)

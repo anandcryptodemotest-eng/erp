@@ -55,13 +55,18 @@ export async function resolveAttributeDefinitions(
       const link = categoryId
         ? def.categoryLinks.find((l) => l.categoryId === categoryId)
         : undefined;
+      const categoryOptions = link?.optionsOverride;
+      const options =
+        categoryOptions !== null && categoryOptions !== undefined
+          ? categoryOptions
+          : def.options;
       return {
         id: def.id,
         key: def.key,
         label: def.label,
         dataType: def.dataType,
         unit: def.unit,
-        options: def.options,
+        options,
         validation: def.validation,
         isRequired: link?.isRequiredOverride ?? def.isRequired,
         isFilterable: def.isFilterable,

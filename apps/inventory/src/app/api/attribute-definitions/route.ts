@@ -49,6 +49,13 @@ export async function GET(request: Request) {
   const categoryId = url.searchParams.get("categoryId") ?? undefined;
   const includeInactive = url.searchParams.get("includeInactive") === "true";
 
+  // When creating/editing a product for a category, return defs with resolved per-category options
+  if (categoryId) {
+    const { resolveAttributeDefinitions } = await import("@/lib/attributes");
+    const data = await resolveAttributeDefinitions(tenantId, categoryId);
+    return NextResponse.json({ data });
+  }
+
   const defs = await prisma.productAttributeDefinition.findMany({
     where: {
       tenantId,
@@ -62,15 +69,7 @@ export async function GET(request: Request) {
     orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
   });
 
-  const data = categoryId
-    ? defs.filter(
-        (d) =>
-          d.categoryLinks.length === 0 ||
-          d.categoryLinks.some((l) => l.categoryId === categoryId)
-      )
-    : defs;
-
-  return NextResponse.json({ data });
+  return NextResponse.json({ data: defs });
 }
 
 // POST /api/attribute-definitions

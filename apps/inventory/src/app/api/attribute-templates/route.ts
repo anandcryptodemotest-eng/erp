@@ -92,12 +92,18 @@ export async function POST(request: Request) {
         for (const key of cat.attributeKeys) {
           const attributeId = keyToId.get(key);
           if (!attributeId) continue;
+          const optionsOverride = cat.optionOverrides?.[key] ?? null;
           await prisma.attributeCategoryLink.upsert({
             where: {
               attributeId_categoryId: { attributeId, categoryId: category.id },
             },
-            create: { tenantId, attributeId, categoryId: category.id },
-            update: {},
+            create: {
+              tenantId,
+              attributeId,
+              categoryId: category.id,
+              ...(optionsOverride ? { optionsOverride } : {}),
+            },
+            update: optionsOverride ? { optionsOverride } : {},
           });
         }
       }
