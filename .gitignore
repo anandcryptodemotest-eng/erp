@@ -28,6 +28,9 @@ apps/*/src/generated/
 # Turbo cache
 .turbo/
 
+# Local embedded Postgres data directory
+tools/local-pg/data/
+
 # Logs
 *.log
 npm-debug.log*
