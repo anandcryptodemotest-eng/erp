@@ -219,6 +219,9 @@ importers:
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3
+      lucide-react:
+        specifier: ^1.16.0
+        version: 1.16.0(react@19.2.6)
       next:
         specifier: ^15.1.0
         version: 15.5.18(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -555,9 +558,15 @@ importers:
       '@types/react':
         specifier: ^19
         version: 19.2.15
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.3(@types/react@19.2.15)
       react:
         specifier: ^19.2.0
         version: 19.2.6
+      react-dom:
+        specifier: ^19.2.0
+        version: 19.2.6(react@19.2.6)
       typescript:
         specifier: ^5.7.0
         version: 5.9.3

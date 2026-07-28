@@ -1,19 +1,67 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { api } from "@/lib/admin-api";
+import { ClipboardList, Loader2, AlertCircle, PackageSearch, Truck } from "lucide-react";
+import {
+  Button,
+  Card,
+  Input,
+  StatusBadge,
+  KpiCard,
+  PageHeader,
+  EmptyState,
+  Timeline,
+  useToast,
+  type TimelineEvent,
+} from "@erp/ui";
+import { api, getAdminUser } from "@/lib/admin-api";
 
-interface Order {
+interface WorkflowTask {
+  id: string;
+  action: string;
+  title: string;
+  assignedRole: string;
+  assignedUserId?: string | null;
+  status: string;
+  order: OrderSummary;
+}
+
+interface OrderSummary {
   id: string;
   orderNumber: string;
   status: string;
   total: number;
   marginPercent?: number;
-  workflowId?: string | null;
   customer: { name: string } | null;
   items?: OrderItem[];
-  modifications?: { action: string; remarks?: string; createdAt: string }[];
+}
+
+interface OrderDetails extends OrderSummary {
   workflow?: { id: string; code: string; name: string; templateId: string } | null;
   nextActions?: { action: string; label: string; uiPanel: string; roleHint: string | null }[];
+  modifications?: { action: string; remarks?: string; createdAt: string }[];
+  workflowRuntime?: {
+    id: string;
+    currentStatus: string;
+    currentStepKey?: string | null;
+    tasks?: {
+      id: string;
+      title: string;
+      action: string;
+      assignedRole: string;
+      status: string;
+      createdAt: string;
+    }[];
+    events?: {
+      id: string;
+      type: string;
+      action?: string | null;
+      fromStatus?: string | null;
+      toStatus?: string | null;
+      actorRole?: string | null;
+      createdAt: string;
+      remarks?: string | null;
+    }[];
+  } | null;
 }
 
 interface OrderItem {
@@ -44,36 +92,51 @@ interface WorkflowTemplate {
   stepCount: number;
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-600",
-  PENDING_SALES_REVIEW: "bg-amber-100 text-amber-800",
-  REVIEWED: "bg-blue-100 text-blue-700",
-  STOCK_VERIFIED: "bg-cyan-100 text-cyan-800",
-  VENDOR_REQUESTED: "bg-orange-100 text-orange-800",
-  PRICING_PENDING: "bg-purple-100 text-purple-700",
-  PRICING_COMPLETED: "bg-indigo-100 text-indigo-700",
-  READY_FOR_DISPATCH: "bg-teal-100 text-teal-800",
-  DISPATCHED: "bg-sky-100 text-sky-800",
-  DELIVERED: "bg-green-100 text-green-700",
-  CLOSED: "bg-emerald-100 text-emerald-800",
-  CANCELLED: "bg-red-100 text-red-600",
-  CONFIRMED: "bg-blue-100 text-blue-700",
-  AWAITING_PICKUP: "bg-yellow-100 text-yellow-800",
-  OUT_FOR_DELIVERY: "bg-sky-100 text-sky-800",
-  INVOICED: "bg-purple-100 text-purple-700",
+type WorkbenchKey = "SALES_EXECUTIVE" | "PRICING_EXECUTIVE" | "DISPATCH_EXECUTIVE" | "DELIVERY_EXECUTIVE";
+
+const WORKBENCH_LABELS: Record<WorkbenchKey, string> = {
+  SALES_EXECUTIVE: "Sales Executive",
+  PRICING_EXECUTIVE: "Pricing Executive",
+  DISPATCH_EXECUTIVE: "Dispatch Executive",
+  DELIVERY_EXECUTIVE: "Delivery Executive",
 };
 
+function roleToWorkbench(role?: string | null): WorkbenchKey {
+  if (role === "SALES_REP") return "SALES_EXECUTIVE";
+  if (role === "PRICING_EXECUTIVE") return "PRICING_EXECUTIVE";
+  if (role === "DISPATCH_EXECUTIVE") return "DISPATCH_EXECUTIVE";
+  if (role === "DELIVERY_EXECUTIVE") return "DELIVERY_EXECUTIVE";
+  return "SALES_EXECUTIVE";
+}
+
+function eventState(event: NonNullable<OrderDetails["workflowRuntime"]>["events"] extends (infer E)[] | undefined ? E : never): TimelineEvent["state"] {
+  if (event.type === "TASK_CREATED") return "current";
+  return "completed";
+}
+
 export default function OmsOrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [selected, setSelected] = useState<Order | null>(null);
+  const toast = useToast();
+  const adminUser = getAdminUser();
+  const currentRole = adminUser?.role ?? "ADMIN";
+  const canSwitchWorkbench = ["ADMIN", "MANAGER", "ORG_ADMIN", "SUPER_ADMIN", "BRANCH_ADMIN"].includes(currentRole);
+
   const [workflow, setWorkflow] = useState<WorkflowActive | null>(null);
   const [templates, setTemplates] = useState<WorkflowTemplate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [msg, setMsg] = useState("");
+  const [scope, setScope] = useState<"role" | "mine">("role");
+  const [workbench, setWorkbench] = useState<WorkbenchKey>(roleToWorkbench(currentRole));
+  const [tasks, setTasks] = useState<WorkflowTask[]>([]);
+  const [summary, setSummary] = useState({ pending: 0, inProgress: 0, overdue: 0, orders: 0 });
+  const [selected, setSelected] = useState<OrderDetails | null>(null);
   const [stockInputs, setStockInputs] = useState<Record<string, string>>({});
   const [purchaseInputs, setPurchaseInputs] = useState<Record<string, string>>({});
   const [vehicle, setVehicle] = useState("");
   const [driver, setDriver] = useState("");
+  const [actionBusy, setActionBusy] = useState<string | null>(null);
+
+  function reportError(e: unknown) {
+    toast.error(e instanceof Error ? e.message : String(e));
+  }
 
   async function loadWorkflow() {
     const [active, tmpls] = await Promise.all([
@@ -84,36 +147,34 @@ export default function OmsOrdersPage() {
     setTemplates(tmpls.data ?? []);
   }
 
-  async function load() {
+  async function loadTasks(targetWorkbench = workbench, targetScope = scope) {
+    const r = await api(
+      `/api/workflow-tasks?role=${encodeURIComponent(targetWorkbench)}&scope=${encodeURIComponent(targetScope)}`
+    );
+    setTasks(r.data ?? []);
+    setSummary(r.meta ?? { pending: 0, inProgress: 0, overdue: 0, orders: 0 });
+  }
+
+  async function loadAll() {
     setLoading(true);
     try {
-      await loadWorkflow();
-      const r = await api("/api/orders?limit=50");
-      setOrders(r.data ?? []);
+      await Promise.all([loadWorkflow(), loadTasks()]);
     } catch (e: unknown) {
-      setMsg(`Error: ${e instanceof Error ? e.message : String(e)}`);
+      reportError(e);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    load();
+    loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const tracked = useMemo(() => {
-    const set = new Set(workflow?.trackedStatuses ?? []);
-    if (set.size === 0) {
-      // fallback until a template is applied
-      return null;
-    }
-    return set;
-  }, [workflow]);
-
-  const visibleOrders = useMemo(() => {
-    if (!tracked) return orders;
-    return orders.filter((o) => tracked.has(o.status) || o.status === "CANCELLED");
-  }, [orders, tracked]);
+  useEffect(() => {
+    loadTasks(workbench, scope).catch(reportError);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workbench, scope]);
 
   async function applyTemplate(templateId: string) {
     try {
@@ -121,32 +182,51 @@ export default function OmsOrdersPage() {
         method: "POST",
         body: JSON.stringify({ templateId, setDefault: true }),
       });
-      setMsg(`Applied workflow: ${r.data?.name ?? templateId}`);
-      await load();
+      toast.success(`Applied workflow: ${r.data?.name ?? templateId}`);
+      await loadAll();
     } catch (e: unknown) {
-      setMsg(`Error: ${e instanceof Error ? e.message : String(e)}`);
+      reportError(e);
     }
   }
 
-  async function openOrder(id: string) {
+  async function openOrder(orderId: string) {
     try {
-      const r = await api(`/api/orders/${id}`);
-      setSelected(r.data);
+      const r = await api(`/api/orders/${orderId}`);
+      const order: OrderDetails = r.data;
+      setSelected(order);
       const stock: Record<string, string> = {};
       const purchase: Record<string, string> = {};
-      for (const item of r.data.items ?? []) {
+      for (const item of order.items ?? []) {
         stock[item.id] = String(item.availableQty ?? item.quantity);
         purchase[item.id] = String(item.purchasePrice ?? "");
       }
       setStockInputs(stock);
       setPurchaseInputs(purchase);
+      setVehicle("");
+      setDriver("");
     } catch (e: unknown) {
-      setMsg(`Error: ${e instanceof Error ? e.message : String(e)}`);
+      reportError(e);
+    }
+  }
+
+  async function updateTaskState(taskId: string, status: "IN_PROGRESS" | "PENDING") {
+    try {
+      await api(`/api/workflow-tasks/${taskId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+      await loadTasks();
+      if (selected) {
+        await openOrder(selected.id);
+      }
+    } catch (e: unknown) {
+      reportError(e);
     }
   }
 
   async function runAction(action: string, uiPanel: string) {
     if (!selected) return;
+    setActionBusy(action);
     try {
       let body: Record<string, unknown> = {};
       if (action === "verify-stock" || uiPanel === "stock") {
@@ -167,7 +247,7 @@ export default function OmsOrdersPage() {
       } else if (action === "dispatch" || uiPanel === "dispatch") {
         body = { vehicleInfo: vehicle || undefined, assignedDriverId: driver || undefined };
       } else if (action === "review") {
-        body = { remarks: "Reviewed via OMS board" };
+        body = { remarks: "Reviewed via OMS workbench" };
       } else if (action === "confirm") {
         body = { warehouseId: "seed-warehouse-main" };
       }
@@ -176,225 +256,273 @@ export default function OmsOrdersPage() {
         method: "PATCH",
         body: JSON.stringify(body),
       });
-      setMsg(`${action} → ${r.data?.status}`);
-      await openOrder(selected.id);
-      load();
+      toast.success(`Order ${selected.orderNumber} → ${r.data?.status}`);
+      await Promise.all([openOrder(selected.id), loadTasks()]);
     } catch (e: unknown) {
-      setMsg(`Error: ${e instanceof Error ? e.message : String(e)}`);
+      reportError(e);
+    } finally {
+      setActionBusy(null);
     }
   }
 
+  const visibleWorkbenches = useMemo(() => {
+    if (canSwitchWorkbench) {
+      return Object.keys(WORKBENCH_LABELS) as WorkbenchKey[];
+    }
+    return [roleToWorkbench(currentRole)];
+  }, [canSwitchWorkbench, currentRole]);
+
   const nextActions = selected?.nextActions ?? [];
   const showStock = nextActions.some((a) => a.uiPanel === "stock") || selected?.status === "REVIEWED";
-  const showPricing =
-    nextActions.some((a) => a.uiPanel === "pricing") || selected?.status === "PRICING_PENDING";
-  const showDispatch =
-    nextActions.some((a) => a.uiPanel === "dispatch") ||
-    selected?.status === "READY_FOR_DISPATCH";
+  const showPricing = nextActions.some((a) => a.uiPanel === "pricing") || selected?.status === "PRICING_PENDING";
+  const showDispatch = nextActions.some((a) => a.uiPanel === "dispatch") || selected?.status === "READY_FOR_DISPATCH";
+
+  const timelineEvents: TimelineEvent[] = (selected?.workflowRuntime?.events ?? []).map((event) => ({
+    key: event.id,
+    label: `${event.type}${event.action ? ` · ${event.action}` : ""}`,
+    description: `${event.fromStatus ? `${event.fromStatus} → ` : ""}${event.toStatus ?? "—"}${event.actorRole ? ` · ${event.actorRole}` : ""}`,
+    timestamp: new Date(event.createdAt).toLocaleString(),
+    state: eventState(event),
+  }));
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">OMS Workflow</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Lifecycle is tenant-configurable. Active:{" "}
-            <strong>{workflow?.name ?? "None — apply a template below"}</strong>
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="OMS Workbench"
+        breadcrumb={[{ label: "Home", href: "/dashboard" }, { label: "OMS Workbench" }]}
+        secondaryActions={
+          <div className="flex flex-wrap items-center gap-2">
+            {canSwitchWorkbench &&
+              visibleWorkbenches.map((key) => (
+                <Button
+                  key={key}
+                  type="button"
+                  size="sm"
+                  variant={workbench === key ? "primary" : "outline"}
+                  onClick={() => setWorkbench(key)}
+                >
+                  {WORKBENCH_LABELS[key]}
+                </Button>
+              ))}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setScope((s) => (s === "role" ? "mine" : "role"))}
+            >
+              {scope === "role" ? "Team queue" : "My tasks"}
+            </Button>
+          </div>
+        }
+      />
+
+      <p className="text-sm text-slate-500 -mt-4">
+        Active workflow: <strong className="text-slate-700">{workflow?.name ?? "No workflow applied"}</strong>
+      </p>
 
       {!workflow && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
-          <p className="text-sm text-amber-900">
-            No order workflow for this tenant. Apply a pack (do not invent one-off statuses in code):
-          </p>
+        <Card className="border-amber-200 bg-amber-50 p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm text-amber-900">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            No OMS workflow is active for this tenant. Apply a workflow pack first.
+          </div>
           <div className="flex flex-wrap gap-2">
             {templates.map((t) => (
-              <button
-                key={t.templateId}
-                type="button"
-                onClick={() => applyTemplate(t.templateId)}
-                className="px-3 py-2 bg-gray-900 text-white text-sm rounded-lg"
-              >
+              <Button key={t.templateId} type="button" size="sm" onClick={() => applyTemplate(t.templateId)}>
                 Apply {t.name}
-              </button>
+              </Button>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
-      {workflow && (
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-            <div className="text-sm">
-              <span className="font-medium">{workflow.name}</span>
-              <span className="text-gray-400 ml-2 font-mono text-xs">{workflow.templateId}</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {templates.map((t) => (
-                <button
-                  key={t.templateId}
-                  type="button"
-                  onClick={() => applyTemplate(t.templateId)}
-                  className="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
-                >
-                  Switch to {t.name}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {workflow.steps.map((s) => (
-              <span key={s.action} className="text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-600">
-                {s.label}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <KpiCard label="Pending" value={summary.pending} icon={ClipboardList} color="amber" />
+        <KpiCard label="In Progress" value={summary.inProgress} icon={Loader2} color="blue" />
+        <KpiCard label="Orders In Queue" value={summary.orders} icon={PackageSearch} color="indigo" />
+        <KpiCard label="Overdue" value={summary.overdue} icon={AlertCircle} color="red" />
+      </div>
 
-      {msg && (
-        <div className="text-sm px-3 py-2 rounded bg-gray-50 border border-gray-200">{msg}</div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="border border-gray-200 rounded-lg bg-white overflow-hidden">
-          <div className="px-4 py-3 border-b text-sm font-medium text-gray-700">
-            Orders {loading ? "…" : `(${visibleOrders.length})`}
+      <div className="grid grid-cols-1 lg:grid-cols-[420px_minmax(0,1fr)] gap-6">
+        <Card className="overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-200 text-sm font-medium text-slate-700 flex items-center justify-between">
+            <span>{WORKBENCH_LABELS[workbench]} queue</span>
+            <span className="text-xs text-slate-400">{loading ? "Loading…" : `${tasks.length} tasks`}</span>
           </div>
-          <ul className="divide-y max-h-[70vh] overflow-y-auto">
-            {visibleOrders.map((o) => (
-              <li key={o.id}>
-                <button
-                  onClick={() => openOrder(o.id)}
-                  className={`w-full text-left px-4 py-3 hover:bg-gray-50 ${
-                    selected?.id === o.id ? "bg-gray-50" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-sm">{o.orderNumber}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[o.status] ?? "bg-gray-100"}`}>
-                      {o.status}
-                    </span>
+          <ul className="divide-y divide-slate-100 max-h-[72vh] overflow-y-auto">
+            {tasks.map((task) => (
+              <li key={task.id}>
+                <div className={`px-4 py-3 hover:bg-slate-50 ${selected?.id === task.order.id ? "bg-slate-50" : ""}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <button type="button" onClick={() => openOrder(task.order.id)} className="text-left min-w-0">
+                      <div className="text-sm font-medium text-slate-900 truncate">{task.order.orderNumber}</div>
+                      <div className="text-xs text-slate-500 mt-1 truncate">{task.order.customer?.name ?? "—"}</div>
+                    </button>
+                    <StatusBadge status={task.order.status} />
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {o.customer?.name ?? "—"} · ₹{Number(o.total).toFixed(2)}
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <div className="text-xs text-slate-600">{task.title}</div>
+                    {task.status === "PENDING" ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateTaskState(task.id, "IN_PROGRESS");
+                        }}
+                      >
+                        Start
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateTaskState(task.id, "PENDING");
+                        }}
+                      >
+                        In progress
+                      </Button>
+                    )}
                   </div>
-                </button>
+                </div>
               </li>
             ))}
-            {!loading && visibleOrders.length === 0 && (
-              <li className="px-4 py-8 text-center text-gray-400 text-sm">
-                No orders for this workflow. Create a draft under Orders, then advance it here.
-              </li>
-            )}
           </ul>
-        </div>
+          {!loading && tasks.length === 0 && (
+            <EmptyState icon={ClipboardList} title="No work assigned" subtitle="This workbench queue is clear for now." />
+          )}
+        </Card>
 
-        <div className="border border-gray-200 rounded-lg bg-white p-4 space-y-4 min-h-[320px]">
+        <Card className="p-5 space-y-5 min-h-[420px]">
           {!selected ? (
-            <p className="text-sm text-gray-400">Select an order. Next buttons come from the active workflow config.</p>
+            <EmptyState
+              icon={PackageSearch}
+              title="Select a task"
+              subtitle="Choose a task or order from the queue on the left to open workbench details."
+            />
           ) : (
             <>
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="font-semibold">{selected.orderNumber}</h2>
-                  <p className="text-sm text-gray-500">{selected.customer?.name}</p>
-                  {selected.workflow && (
-                    <p className="text-xs text-gray-400 mt-1">Workflow: {selected.workflow.name}</p>
-                  )}
+                  <h2 className="text-lg font-semibold text-slate-900">{selected.orderNumber}</h2>
+                  <p className="text-sm text-slate-500">{selected.customer?.name}</p>
+                  <p className="text-xs text-slate-400 mt-1">{selected.workflow?.name ?? "No workflow bound"}</p>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[selected.status] ?? "bg-gray-100"}`}>
-                  {selected.status}
-                </span>
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={selected.status} />
+                  <span className="text-sm font-medium text-slate-900">₹{Number(selected.total).toFixed(2)}</span>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <h3 className="text-xs font-semibold uppercase text-gray-500">Lines</h3>
-                {(selected.items ?? []).map((item) => (
-                  <div key={item.id} className="border border-gray-100 rounded p-2 text-sm space-y-1">
-                    <div className="flex justify-between">
-                      <span>{item.productName}</span>
-                      <span className="text-gray-500">Qty {item.quantity}</span>
+              <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Order Lines</h3>
+                    <div className="space-y-2">
+                      {(selected.items ?? []).map((item) => (
+                        <div key={item.id} className="rounded-lg border border-slate-100 p-3 text-sm space-y-2">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="font-medium text-slate-800">{item.productName}</span>
+                            <span className="text-slate-500">Qty {item.quantity}</span>
+                          </div>
+
+                          {showStock && (
+                            <Input
+                              label="Available qty"
+                              className="w-32"
+                              value={stockInputs[item.id] ?? ""}
+                              onChange={(e) => setStockInputs({ ...stockInputs, [item.id]: e.target.value })}
+                            />
+                          )}
+
+                          {showPricing && (
+                            <div className="flex items-end gap-3">
+                              <Input
+                                label="Purchase price"
+                                className="w-32"
+                                value={purchaseInputs[item.id] ?? ""}
+                                onChange={(e) => setPurchaseInputs({ ...purchaseInputs, [item.id]: e.target.value })}
+                              />
+                              <span className="text-xs text-slate-400 pb-2">Sell {item.unitPrice}</span>
+                            </div>
+                          )}
+
+                          {(item.shortageQty ?? 0) > 0 && (
+                            <p className="text-xs text-amber-600">Shortage: {item.shortageQty}</p>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                    {showStock && (
-                      <label className="flex items-center gap-2 text-xs">
-                        Available
-                        <input
-                          className="border rounded px-2 py-1 w-24"
-                          value={stockInputs[item.id] ?? ""}
-                          onChange={(e) => setStockInputs({ ...stockInputs, [item.id]: e.target.value })}
+                  </div>
+
+                  {showDispatch && (
+                    <div className="rounded-lg border border-slate-100 p-3 space-y-2">
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 flex items-center gap-1.5">
+                        <Truck className="h-3.5 w-3.5" /> Dispatch Setup
+                      </h3>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input placeholder="Vehicle" value={vehicle} onChange={(e) => setVehicle(e.target.value)} />
+                        <Input
+                          placeholder="Driver / executive id"
+                          value={driver}
+                          onChange={(e) => setDriver(e.target.value)}
                         />
-                      </label>
-                    )}
-                    {showPricing && (
-                      <label className="flex items-center gap-2 text-xs">
-                        Purchase price
-                        <input
-                          className="border rounded px-2 py-1 w-24"
-                          value={purchaseInputs[item.id] ?? ""}
-                          onChange={(e) => setPurchaseInputs({ ...purchaseInputs, [item.id]: e.target.value })}
-                        />
-                        <span className="text-gray-400">Sell {item.unitPrice}</span>
-                      </label>
-                    )}
-                    {(item.shortageQty ?? 0) > 0 && (
-                      <p className="text-xs text-orange-600">Shortage: {item.shortageQty}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    {nextActions.map((a) => (
+                      <Button
+                        key={a.action}
+                        onClick={() => runAction(a.action, a.uiPanel)}
+                        loading={actionBusy === a.action}
+                        title={a.roleHint ?? undefined}
+                      >
+                        {a.label}
+                      </Button>
+                    ))}
+                    {nextActions.length === 0 && (
+                      <p className="text-xs text-slate-400">No next steps available from this stage.</p>
                     )}
                   </div>
-                ))}
-              </div>
-
-              {showDispatch && (
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    className="border rounded px-2 py-1.5 text-sm"
-                    placeholder="Vehicle"
-                    value={vehicle}
-                    onChange={(e) => setVehicle(e.target.value)}
-                  />
-                  <input
-                    className="border rounded px-2 py-1.5 text-sm"
-                    placeholder="Driver id / name"
-                    value={driver}
-                    onChange={(e) => setDriver(e.target.value)}
-                  />
                 </div>
-              )}
 
-              <div className="flex flex-wrap gap-2">
-                {nextActions.map((a) => (
-                  <button
-                    key={a.action}
-                    onClick={() => runAction(a.action, a.uiPanel)}
-                    className="px-3 py-1.5 bg-gray-900 text-white text-sm rounded"
-                    title={a.roleHint ?? undefined}
-                  >
-                    {a.label}
-                  </button>
-                ))}
-                {nextActions.length === 0 && (
-                  <p className="text-xs text-gray-400">No next steps from workflow for this status.</p>
-                )}
-              </div>
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-slate-100 p-3">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Open Tasks</h3>
+                    <ul className="space-y-2 text-xs text-slate-600">
+                      {(selected.workflowRuntime?.tasks ?? []).map((task) => (
+                        <li key={task.id} className="flex items-center justify-between gap-2">
+                          <span>{task.title}</span>
+                          <span className="text-slate-400">{task.assignedRole}</span>
+                        </li>
+                      ))}
+                      {(selected.workflowRuntime?.tasks ?? []).length === 0 && (
+                        <li className="text-slate-400">No open runtime tasks.</li>
+                      )}
+                    </ul>
+                  </div>
 
-              {selected.modifications && selected.modifications.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold uppercase text-gray-500 mb-2">History</h3>
-                  <ul className="text-xs text-gray-600 space-y-1 max-h-40 overflow-y-auto">
-                    {selected.modifications.map((m, i) => (
-                      <li key={i}>
-                        {m.action}
-                        {m.remarks ? ` — ${m.remarks}` : ""} · {new Date(m.createdAt).toLocaleString()}
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="rounded-lg border border-slate-100 p-3">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">Timeline</h3>
+                    <div className="max-h-80 overflow-y-auto">
+                      {timelineEvents.length > 0 ? (
+                        <Timeline events={timelineEvents} />
+                      ) : (
+                        <p className="text-xs text-slate-400">No workflow events yet.</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              )}
+              </div>
             </>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   );

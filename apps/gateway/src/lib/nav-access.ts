@@ -1,12 +1,16 @@
 /**
  * Admin sidebar access — configured by role (not scattered if-checks).
  *
+ * Trading journey (default): Customer mobile order → SE review → stock/procurement
+ * → pricing → dispatch. CRM (Leads / Deals / Quotes / Sales Flow) is hidden until
+ * re-enabled via role config or per-user `navModules`.
+ *
  * How to change visibility:
- * 1. Edit DEFAULT_ROLE_NAV below (tenant-wide defaults), OR
+ * 1. Edit DEFAULT_ROLE_NAV / TRADING_JOURNEY_NAV below, OR
  * 2. Pass per-user `navModules` at login / store in localStorage (override), OR
  * 3. Later: load from TenantSetting `nav.role.<ROLE>` via API into the same keys.
  *
- * `"*"` = all modules. Empty array = no admin modules.
+ * `"*"` = all modules (incl. CRM). Empty array = no admin modules.
  */
 
 export type NavModuleKey =
@@ -44,69 +48,59 @@ export const ALL_NAV_MODULES: NavModuleKey[] = [
   "returns",
 ];
 
-/** Role → allowed module keys. Sales CRM is NOT for every ops role. */
+/**
+ * Default face for trading tenants — no CRM pipeline.
+ * Re-enable CRM by adding sales_flow / leads / opportunities / quotes, or use "*".
+ */
+export const TRADING_JOURNEY_NAV: NavModuleKey[] = [
+  "dashboard",
+  "customers",
+  "products",
+  "oms",
+  "orders",
+  "vendors",
+  "purchase_orders",
+  "invoices",
+];
+
+/** CRM modules hidden in the trading journey (still routable if granted explicitly). */
+export const CRM_NAV_MODULES: NavModuleKey[] = [
+  "sales_flow",
+  "leads",
+  "opportunities",
+  "quotes",
+];
+
+/** Role → allowed module keys. */
 export const DEFAULT_ROLE_NAV: Record<string, NavModuleKey[] | "*"> = {
-  // Full access
-  ADMIN: "*",
+  // Platform / break-glass — full ERP including CRM
   SUPER_ADMIN: "*",
-  ORG_ADMIN: "*",
-  MANAGER: "*",
-  BRANCH_ADMIN: [
-    "dashboard",
-    "customers",
-    "sales_flow",
-    "leads",
-    "opportunities",
-    "quotes",
-    "orders",
-    "products",
-    "oms",
-    "vendors",
-    "purchase_orders",
-    "invoices",
-    "returns",
-  ],
 
-  // Sales / CRM
-  SALES_EXECUTIVE: [
-    "dashboard",
-    "customers",
-    "sales_flow",
-    "leads",
-    "opportunities",
-    "quotes",
-    "orders",
-    "products",
-    "oms",
-  ],
-  SALES_REP: [
-    "dashboard",
-    "customers",
-    "sales_flow",
-    "leads",
-    "opportunities",
-    "quotes",
-    "orders",
-    "products",
-    "oms",
-  ],
+  // Org roles — trading journey (CRM off until needed)
+  ADMIN: TRADING_JOURNEY_NAV,
+  ORG_ADMIN: TRADING_JOURNEY_NAV,
+  MANAGER: TRADING_JOURNEY_NAV,
+  BRANCH_ADMIN: TRADING_JOURNEY_NAV,
 
-  // OMS stage owners — Operations → OMS primarily
-  PRICING_EXECUTIVE: ["dashboard", "products", "oms"],
-  DISPATCH_EXECUTIVE: ["dashboard", "oms"],
+  // Sales desk — mobile orders + OMS
+  SALES_EXECUTIVE: ["dashboard", "customers", "products", "oms", "orders"],
+  SALES_REP: ["dashboard", "customers", "products", "oms", "orders"],
+
+  // OMS stage owners
+  PRICING_EXECUTIVE: ["dashboard", "products", "oms", "orders"],
+  DISPATCH_EXECUTIVE: ["dashboard", "oms", "orders"],
   DELIVERY_EXECUTIVE: ["dashboard", "oms"],
 
-  // Procurement
-  PROCUREMENT_OFFICER: ["dashboard", "products", "vendors", "purchase_orders", "oms"],
+  // Procurement + vendor communication
+  PROCUREMENT_OFFICER: ["dashboard", "products", "vendors", "purchase_orders", "oms", "orders"],
 
-  // Finance / HR
-  ACCOUNTANT: ["dashboard", "customers", "invoices", "returns", "orders"],
+  // Finance (no CRM)
+  ACCOUNTANT: ["dashboard", "customers", "invoices", "orders", "oms"],
   HR_MANAGER: ["dashboard", "employees", "payroll"],
 
   VIEWER: ["dashboard", "customers", "products", "oms", "orders"],
   USER: ["dashboard"],
 
-  // Portal only — no admin modules
   CUSTOMER: [],
 };
 
@@ -143,7 +137,6 @@ export function canAccessModule(
   moduleKey: NavModuleKey | undefined
 ): boolean {
   if (!moduleKey) return true;
-  // Parent sales_flow implies children unless child is explicitly the only check
   if (
     (moduleKey === "leads" ||
       moduleKey === "opportunities" ||
@@ -156,9 +149,9 @@ export function canAccessModule(
   return allowed.has(moduleKey);
 }
 
-/** First landing path for a role after login */
+/** First landing path for a role after login — OMS desk for trading journey. */
 export function defaultHomePath(allowed: Set<NavModuleKey>): string {
-  if (allowed.has("oms") && !allowed.has("sales_flow") && !allowed.has("customers")) {
+  if (allowed.has("oms") && !allowed.has("sales_flow")) {
     return "/oms";
   }
   if (allowed.has("dashboard")) return "/dashboard";

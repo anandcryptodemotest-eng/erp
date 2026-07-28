@@ -26,45 +26,42 @@ type NavGroup = {
   items: NavItem[];
 };
 
-const SALES_FLOW_CHILDREN: NavItem[] = [
-  { href: "/leads", label: "Leads", icon: "LD", keywords: ["prospects", "pipeline"], module: "leads" },
-  { href: "/opportunities", label: "Deals", icon: "DL", keywords: ["opportunity", "deal", "stage"], module: "opportunities" },
-  { href: "/quotes", label: "Quotes", icon: "QT", keywords: ["proposal", "pricing"], module: "quotes" },
-  { href: "/orders", label: "Orders", icon: "SO", keywords: ["sales order", "fulfillment"], module: "orders" },
-];
-
-const SALES_FLOW_ITEM: NavItem = {
-  href: "/leads",
-  label: "Sales Flow",
-  icon: "SF",
-  module: "sales_flow",
-  keywords: ["lead to cash", "sales flow", ...SALES_FLOW_CHILDREN.flatMap((item) => [item.label, ...item.keywords])],
-};
-
 const NAV_GROUPS: NavGroup[] = [
   {
     key: "core",
-    title: "Core",
+    title: "Catalog",
     items: [
       { href: "/dashboard", label: "Dashboard", icon: "DB", keywords: ["home", "kpi", "summary"], module: "dashboard" },
-      { href: "/customers", label: "Customers", icon: "CU", keywords: ["crm", "accounts", "buyers"], module: "customers" },
+      { href: "/products", label: "Products", icon: "PR", keywords: ["catalog", "inventory", "attributes", "custom fields", "size"], module: "products" },
+      { href: "/customers", label: "Customers", icon: "CU", keywords: ["accounts", "buyers", "mobile"], module: "customers" },
     ],
   },
   {
-    key: "leadToCash",
-    title: "Sales",
-    items: [SALES_FLOW_ITEM],
+    key: "orderDesk",
+    title: "Order desk",
+    items: [
+      {
+        href: "/oms",
+        label: "OMS Workflow",
+        icon: "OM",
+        keywords: ["order lifecycle", "review", "pricing", "dispatch", "trading"],
+        module: "oms",
+      },
+      {
+        href: "/orders",
+        label: "Orders",
+        icon: "SO",
+        keywords: ["sales order", "edit lines", "fulfillment"],
+        module: "orders",
+      },
+    ],
   },
   {
-    key: "ops",
-    title: "Operations",
+    key: "supply",
+    title: "Procurement",
     items: [
-      { href: "/products", label: "Products", icon: "PR", keywords: ["catalog", "inventory", "attributes", "custom fields"], module: "products" },
-      { href: "/oms", label: "OMS Workflow", icon: "OM", keywords: ["order lifecycle", "pricing", "dispatch"], module: "oms" },
-      { href: "/vendors", label: "Vendors", icon: "VN", keywords: ["supplier", "partner"], module: "vendors" },
-      { href: "/purchase-orders", label: "Purchase Orders", icon: "PO", keywords: ["procurement", "buy"], module: "purchase_orders" },
-      { href: "/employees", label: "Employees", icon: "EM", keywords: ["staff", "people"], module: "employees" },
-      { href: "/payroll", label: "Payroll", icon: "PY", keywords: ["salary", "compensation"], module: "payroll" },
+      { href: "/vendors", label: "Vendors", icon: "VN", keywords: ["supplier", "partner", "whatsapp"], module: "vendors" },
+      { href: "/purchase-orders", label: "Purchase Orders", icon: "PO", keywords: ["procurement", "buy", "rfq"], module: "purchase_orders" },
     ],
   },
   {
@@ -75,14 +72,31 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/returns", label: "Returns", icon: "RT", keywords: ["sales return", "credit note"], module: "returns" },
     ],
   },
+  {
+    key: "crm",
+    title: "CRM (optional)",
+    items: [
+      { href: "/leads", label: "Leads", icon: "LD", keywords: ["prospects", "pipeline"], module: "leads" },
+      { href: "/opportunities", label: "Deals", icon: "DL", keywords: ["opportunity", "deal", "stage"], module: "opportunities" },
+      { href: "/quotes", label: "Quotes", icon: "QT", keywords: ["proposal", "pricing"], module: "quotes" },
+    ],
+  },
+  {
+    key: "hr",
+    title: "People",
+    items: [
+      { href: "/employees", label: "Employees", icon: "EM", keywords: ["staff", "people"], module: "employees" },
+      { href: "/payroll", label: "Payroll", icon: "PY", keywords: ["salary", "compensation"], module: "payroll" },
+    ],
+  },
 ];
 
 const QUICK_ACTIONS: NavItem[] = [
-  { href: "/leads", label: "New Lead", icon: "NL", keywords: ["lead"], module: "leads" },
-  { href: "/quotes", label: "New Quote", icon: "NQ", keywords: ["quote"], module: "quotes" },
-  { href: "/orders", label: "New Order", icon: "NO", keywords: ["order"], module: "orders" },
-  { href: "/oms", label: "OMS Queue", icon: "OM", keywords: ["oms"], module: "oms" },
-  { href: "/invoices", label: "New Invoice", icon: "NI", keywords: ["invoice"], module: "invoices" },
+  { href: "/oms", label: "OMS Queue", icon: "OM", keywords: ["oms", "review"], module: "oms" },
+  { href: "/orders", label: "Orders", icon: "NO", keywords: ["order"], module: "orders" },
+  { href: "/products", label: "Products", icon: "PR", keywords: ["catalog"], module: "products" },
+  { href: "/purchase-orders", label: "New PO", icon: "PO", keywords: ["procurement"], module: "purchase_orders" },
+  { href: "/invoices", label: "Invoices", icon: "NI", keywords: ["invoice"], module: "invoices" },
 ];
 
 function isActivePath(pathname: string, href: string): boolean {
@@ -109,9 +123,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sessionUser, setSessionUser] = useState<ReturnType<typeof getAdminUser>>(null);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     core: true,
-    leadToCash: true,
-    ops: true,
+    orderDesk: true,
+    supply: true,
     finance: true,
+    crm: false,
+    hr: false,
   });
 
   const allowed = useMemo(
@@ -163,18 +179,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     [allowed]
   );
 
-  const visibleSalesChildren = useMemo(
-    () =>
-      SALES_FLOW_CHILDREN.filter((child) => {
-        if (!canAccessModule(allowed, child.module)) return false;
-        if (!normalizedQuery) return true;
-        const hay = `${child.label} ${child.href} ${child.keywords.join(" ")}`.toLowerCase();
-        return hay.includes(normalizedQuery);
-      }),
-    [allowed, normalizedQuery]
-  );
-
-  const flatNavItems = [...NAV_GROUPS.flatMap((group) => group.items), ...SALES_FLOW_CHILDREN];
+  const flatNavItems = NAV_GROUPS.flatMap((group) => group.items);
 
   if (!ready) return null;
 
@@ -243,12 +248,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {(collapsed || expanded) && (
                 <div className="pb-2">
                   {group.items.map((item) => {
-                    const isSalesFlow = group.key === "leadToCash" && item.label === SALES_FLOW_ITEM.label;
-                    const activeChild = isSalesFlow
-                      ? visibleSalesChildren.find((child) => isActivePath(pathname, child.href))
-                      : undefined;
-                    const active = isSalesFlow ? Boolean(activeChild) : isActivePath(pathname, item.href);
-                    const showSalesChildren = isSalesFlow && !collapsed && visibleSalesChildren.length > 0;
+                    const active = isActivePath(pathname, item.href);
                     return (
                       <div key={`${group.key}-${item.href}`}>
                         <Link
@@ -271,11 +271,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           {!collapsed && (
                             <>
                               <span className="truncate">{item.label}</span>
-                              {isSalesFlow && (
-                                <span className="ml-auto rounded-full bg-slate-800 text-slate-400 text-[10px] px-2 py-0.5">
-                                  {activeChild?.label ?? `${visibleSalesChildren.length} steps`}
-                                </span>
-                              )}
                               {item.badge && (
                                 <span className="ml-auto rounded-full bg-slate-800 text-slate-400 text-[10px] px-2 py-0.5">
                                   {item.badge}
@@ -284,25 +279,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             </>
                           )}
                         </Link>
-                        {showSalesChildren && (
-                          <div className="ml-4 mr-1 mt-1 space-y-1 border-l border-slate-800 pl-3">
-                            {visibleSalesChildren.map((child) => {
-                              const childActive = isActivePath(pathname, child.href);
-                              return (
-                                <Link
-                                  key={child.href}
-                                  href={child.href}
-                                  className={`flex items-center gap-2 rounded-md px-3 py-2 text-xs transition ${childActive ? "bg-cyan-500/10 text-cyan-200" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}
-                                >
-                                  <span className="inline-flex h-5 w-5 items-center justify-center rounded border border-slate-700 bg-slate-900 text-[9px] font-semibold">
-                                    {child.icon}
-                                  </span>
-                                  <span>{child.label}</span>
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        )}
                       </div>
                     );
                   })}
