@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { assertCustomerAccess } from "@/lib/customer-access";
 
 const createSchema = z.object({
   label: z.string().default("Home"),
@@ -14,7 +15,12 @@ const createSchema = z.object({
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const tenantId = request.headers.get("x-tenant-id")!;
+  const userId = request.headers.get("x-user-id");
+  const role = request.headers.get("x-user-role");
   const { id } = await params;
+
+  const access = await assertCustomerAccess({ tenantId, customerId: id, userId, role });
+  if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
 
   const customer = await prisma.customer.findFirst({ where: { id, tenantId }, select: { id: true } });
   if (!customer) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
@@ -28,7 +34,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const tenantId = request.headers.get("x-tenant-id")!;
+  const userId = request.headers.get("x-user-id");
+  const role = request.headers.get("x-user-role");
   const { id } = await params;
+
+  const access = await assertCustomerAccess({ tenantId, customerId: id, userId, role });
+  if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
 
   const customer = await prisma.customer.findFirst({ where: { id, tenantId }, select: { id: true } });
   if (!customer) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
@@ -40,7 +51,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const address = await prisma.$transaction(async (tx) => {
-    // Unset previous default if new one is being set
     if (parsed.data.isDefault) {
       await tx.customerAddress.updateMany({
         where: { customerId: id, tenantId, isDefault: true },

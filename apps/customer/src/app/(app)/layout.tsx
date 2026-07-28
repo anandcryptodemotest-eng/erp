@@ -4,13 +4,14 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { isAuthenticated } from "@/lib/api-client";
 import { cartCount } from "@/lib/cart-store";
+import { IconCart, IconHome, IconOrders, IconProfile, IconShop } from "@/components/nav-icons";
 
 const NAV = [
-  { href: "/",          label: "Home",    icon: "🏠" },
-  { href: "/products",  label: "Shop",    icon: "🛍️" },
-  { href: "/cart",      label: "Cart",    icon: "🛒" },
-  { href: "/orders",    label: "Orders",  icon: "📦" },
-  { href: "/profile",   label: "Profile", icon: "👤" },
+  { href: "/", label: "Home", Icon: IconHome },
+  { href: "/products", label: "Shop", Icon: IconShop },
+  { href: "/cart", label: "Cart", Icon: IconCart },
+  { href: "/orders", label: "Orders", Icon: IconOrders },
+  { href: "/profile", label: "Profile", Icon: IconProfile },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -28,41 +29,58 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [router]);
 
-  // Refresh cart count on navigation
   useEffect(() => {
     setCount(cartCount());
   }, [pathname]);
 
-  if (!ready) return null;
+  if (!ready) {
+    return (
+      <div className="portal-shell flex min-h-dvh items-center justify-center text-sm text-[var(--ink-soft)]">
+        Loading portal…
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col min-h-screen max-w-md mx-auto bg-white shadow-sm">
-      {/* Main scrollable content */}
-      <main className="flex-1 overflow-y-auto pb-20">{children}</main>
+    <div className="portal-shell">
+      <div className="portal-frame relative flex flex-col">
+        <main className="flex-1 overflow-y-auto pb-4">{children}</main>
 
-      {/* Bottom navigation */}
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-200 z-50"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-        <div className="flex">
-          {NAV.map((item) => {
-            const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
-            return (
-              <Link key={item.href} href={item.href}
-                className={`flex flex-1 flex-col items-center py-2 text-xs font-medium transition-colors relative ${active ? "text-green-600" : "text-gray-500 hover:text-gray-700"}`}>
-                <span className="text-xl leading-none relative">
-                  {item.icon}
-                  {item.label === "Cart" && count > 0 && (
-                    <span className="absolute -top-1 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold">
-                      {count > 9 ? "9+" : count}
-                    </span>
+        <nav
+          className="bottom-nav sticky bottom-0 z-50 mt-auto"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <div className="flex px-1">
+            {NAV.map((item) => {
+              const active =
+                pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+              const Icon = item.Icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`relative flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] font-semibold tracking-wide transition-colors ${
+                    active ? "text-[var(--forest-mid)]" : "text-[var(--ink-soft)]/55 hover:text-[var(--ink)]"
+                  }`}
+                >
+                  {active && (
+                    <span className="absolute top-0 h-0.5 w-8 rounded-full bg-[var(--amber)]" />
                   )}
-                </span>
-                <span className="mt-0.5">{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+                  <span className="relative">
+                    <Icon />
+                    {item.label === "Cart" && count > 0 && (
+                      <span className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--amber)] px-1 text-[9px] font-bold text-[var(--ink)]">
+                        {count > 9 ? "9+" : count}
+                      </span>
+                    )}
+                  </span>
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      </div>
     </div>
   );
 }

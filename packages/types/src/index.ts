@@ -400,6 +400,8 @@ export interface CartItem {
   price: number;
   qty: number;
   imageUrl?: string;
+  /** Selected catalog attributes (size, thickness, etc.) for display / order notes */
+  selectedAttributes?: Record<string, string | number | boolean>;
 }
 
 export interface CartSummary {

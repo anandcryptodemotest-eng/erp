@@ -29,6 +29,15 @@ const registerSchema = z.object({
   password: z.string().min(8),
 });
 
+const registerCustomerSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+  password: z.string().min(8),
+  tenantSlug: z.string().min(1),
+  phone: z.string().optional(),
+  companyName: z.string().optional(),
+});
+
 const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 });
@@ -61,6 +70,7 @@ export async function POST(request: Request) {
 
   switch (action) {
     case "register":        return handleRegister(request);
+    case "register-customer": return handleRegisterCustomer(request);
     case "refresh":         return handleRefresh(request);
     case "logout":          return handleLogout(request);
     case "forgot-password": return handleForgotPassword(request);
@@ -207,6 +217,96 @@ async function handleRegister(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
     }
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+// ─── Register portal customer into an existing tenant ─────────────────────────
+
+async function handleRegisterCustomer(request: Request) {
+  try {
+    const body = await request.json();
+    const data = registerCustomerSchema.parse(body);
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug: data.tenantSlug },
+      include: { licenses: { where: { isActive: true } } },
+    });
+    if (!tenant || !tenant.isActive) {
+      return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+    }
+
+    const exists = await prisma.user.findUnique({ where: { email: data.email } });
+    if (exists) {
+      return NextResponse.json({ error: "Email already registered" }, { status: 409 });
+    }
+
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const user = await prisma.user.create({
+      data: { name: data.name, email: data.email, password: hashedPassword },
+    });
+    await prisma.tenantUser.create({
+      data: { tenantId: tenant.id, userId: user.id, role: "CUSTOMER" },
+    });
+
+    // Create linked Sales Customer via service call
+    const salesUrl = process.env.SALES_SERVICE_URL ?? "http://localhost:3001";
+    const serviceSecret = process.env.SERVICE_SECRET || "dev-service-secret";
+    try {
+      await fetch(`${salesUrl}/api/customers`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-service-key": serviceSecret,
+          "x-tenant-id": tenant.id,
+          "x-user-id": user.id,
+          "x-user-role": "CUSTOMER",
+        },
+        body: JSON.stringify({
+          name: data.companyName?.trim() || data.name,
+          email: data.email,
+          phone: data.phone,
+          portalUserId: user.id,
+        }),
+      });
+    } catch (err) {
+      console.error("[auth:register-customer] sales profile create failed", err);
+    }
+
+    const modules = tenant.licenses.map((l) => l.moduleId);
+    const accessToken = await createToken({
+      userId: user.id,
+      tenantId: tenant.id,
+      role: "CUSTOMER" as "ADMIN" | "USER" | "MANAGER",
+      modules,
+    });
+    const rawRefresh = generateToken();
+    await prisma.refreshToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashToken(rawRefresh),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    return NextResponse.json(
+      {
+        data: {
+          accessToken,
+          refreshToken: rawRefresh,
+          expiresIn: 86400,
+          user: { id: user.id, email: user.email, name: user.name, role: "CUSTOMER" },
+          tenant: { id: tenant.id, name: tenant.name, slug: tenant.slug },
+          modules,
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
+    }
+    console.error("[auth:register-customer]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

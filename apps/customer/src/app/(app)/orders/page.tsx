@@ -2,26 +2,30 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api-client";
+import { omsLabel } from "@/lib/oms-status";
 
-interface Order { id: string; orderNumber: string; status: string; total: number; createdAt: string; items?: { name: string }[] }
+interface Order {
+  id: string;
+  orderNumber: string;
+  status: string;
+  total: number;
+  createdAt: string;
+  items?: { productName?: string; name?: string }[];
+}
 
-const STATUS_LABEL: Record<string, { label: string; color: string; icon: string }> = {
-  DRAFT: { label: "Draft", color: "bg-gray-100 text-gray-600", icon: "🕐" },
-  PENDING_SALES_REVIEW: { label: "With Sales", color: "bg-amber-100 text-amber-800", icon: "👀" },
-  REVIEWED: { label: "Reviewed", color: "bg-blue-100 text-blue-700", icon: "✅" },
-  STOCK_VERIFIED: { label: "Stock checked", color: "bg-cyan-100 text-cyan-800", icon: "📦" },
-  VENDOR_REQUESTED: { label: "Sourcing", color: "bg-orange-100 text-orange-800", icon: "📨" },
-  PRICING_PENDING: { label: "Pricing", color: "bg-purple-100 text-purple-700", icon: "💰" },
-  PRICING_COMPLETED: { label: "Priced", color: "bg-indigo-100 text-indigo-700", icon: "💰" },
-  READY_FOR_DISPATCH: { label: "Ready", color: "bg-teal-100 text-teal-800", icon: "🚚" },
-  DISPATCHED: { label: "Dispatched", color: "bg-sky-100 text-sky-800", icon: "🚚" },
-  DELIVERED: { label: "Delivered", color: "bg-green-100 text-green-700", icon: "🎉" },
-  CLOSED: { label: "Closed", color: "bg-emerald-100 text-emerald-800", icon: "✓" },
-  CONFIRMED: { label: "Confirmed", color: "bg-blue-100 text-blue-700", icon: "✅" },
-  AWAITING_PICKUP: { label: "Awaiting Pickup", color: "bg-yellow-100 text-yellow-700", icon: "📦" },
-  OUT_FOR_DELIVERY: { label: "Out for Delivery", color: "bg-orange-100 text-orange-700", icon: "🚚" },
-  INVOICED: { label: "Invoiced", color: "bg-purple-100 text-purple-700", icon: "🧾" },
-  CANCELLED: { label: "Cancelled", color: "bg-red-100 text-red-600", icon: "✕" },
+const STATUS_STYLE: Record<string, string> = {
+  DRAFT: "bg-slate-100 text-slate-700",
+  PENDING_SALES_REVIEW: "bg-amber-100 text-amber-900",
+  REVIEWED: "bg-sky-100 text-sky-800",
+  STOCK_VERIFIED: "bg-cyan-100 text-cyan-900",
+  VENDOR_REQUESTED: "bg-orange-100 text-orange-900",
+  PRICING_PENDING: "bg-violet-100 text-violet-900",
+  PRICING_COMPLETED: "bg-indigo-100 text-indigo-900",
+  READY_FOR_DISPATCH: "bg-teal-100 text-teal-900",
+  DISPATCHED: "bg-blue-100 text-blue-900",
+  DELIVERED: "bg-emerald-100 text-emerald-900",
+  CLOSED: "bg-emerald-200 text-emerald-950",
+  CANCELLED: "bg-red-100 text-red-700",
 };
 
 export default function OrdersPage() {
@@ -30,51 +34,114 @@ export default function OrdersPage() {
 
   useEffect(() => {
     api<{ data: Order[] }>("sales", "/api/orders?limit=20").then((r) => {
-      if (!r.error) setOrders(r.data.data);
+      if (!r.error) setOrders(r.data.data ?? []);
       setLoading(false);
     });
   }, []);
 
   return (
-    <div className="pb-4">
-      <div className="px-4 py-4">
-        <h1 className="text-xl font-bold text-gray-900">My Orders</h1>
+    <div className="pb-6">
+      <div
+        className="relative overflow-hidden px-4 pb-10 pt-6 text-white md:px-8"
+        style={{
+          background:
+            "linear-gradient(135deg, #121a16 0%, #1e3d32 55%, #3d4f2f 100%)",
+        }}
+      >
+        <div
+          className="pointer-events-none absolute inset-0 opacity-30"
+          style={{
+            backgroundImage:
+              "url(https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=1400&q=60)",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            mixBlendMode: "overlay",
+          }}
+        />
+        <div className="relative">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--amber-soft)]">
+            Tracking
+          </p>
+          <h1 className="font-display mt-1 text-3xl font-semibold md:text-4xl">My orders</h1>
+          <p className="mt-2 max-w-lg text-sm text-white/70">
+            Follow each order from sales review through pricing, dispatch and delivery.
+          </p>
+        </div>
       </div>
 
-      {loading && <div className="flex items-center justify-center py-16 text-gray-400">Loading…</div>}
+      <div className="relative z-10 -mt-5 px-4 md:px-8">
+        {loading && (
+          <div className="rounded-2xl bg-white py-16 text-center text-sm text-[var(--ink-soft)]/60 shadow-sm">
+            Loading orders…
+          </div>
+        )}
 
-      {!loading && orders.length === 0 && (
-        <div className="flex flex-col items-center py-20 text-gray-400">
-          <div className="text-5xl">📦</div>
-          <div className="mt-3 text-base font-medium">No orders yet</div>
-          <Link href="/products"
-            className="mt-4 rounded-full bg-green-600 px-6 py-2.5 text-sm font-semibold text-white">
-            Start Shopping
-          </Link>
-        </div>
-      )}
-
-      {!loading && orders.length > 0 && (
-        <div className="divide-y divide-gray-100 px-4">
-          {orders.map((o) => {
-            const st = STATUS_LABEL[o.status] ?? { label: o.status, color: "bg-gray-100 text-gray-600", icon: "📋" };
-            return (
-              <Link key={o.id} href={`/orders/${o.id}`}
-                className="flex items-center gap-3 py-4 active:bg-gray-50">
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-2xl">{st.icon}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-900">{o.orderNumber}</span>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${st.color}`}>{st.label}</span>
-                  </div>
-                  <div className="text-xs text-gray-400 mt-0.5">{new Date(o.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>
-                </div>
-                <div className="text-sm font-bold text-gray-900">₹{Number(o.total).toLocaleString("en-IN")}</div>
+        {!loading && orders.length === 0 && (
+          <div className="overflow-hidden rounded-3xl border border-[var(--line)] bg-white shadow-sm">
+            <div
+              className="h-36 bg-cover bg-center"
+              style={{
+                backgroundImage:
+                  "linear-gradient(to top, rgba(18,26,22,0.7), transparent), url(https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=1200&q=80)",
+              }}
+            />
+            <div className="px-6 py-8 text-center">
+              <p className="font-display text-xl text-[var(--ink)]">No orders yet</p>
+              <p className="mt-1 text-sm text-[var(--ink-soft)]">Place your first site order from the shop.</p>
+              <Link href="/products" className="btn-dark mt-5">
+                Browse catalog
               </Link>
-            );
-          })}
-        </div>
-      )}
+            </div>
+          </div>
+        )}
+
+        {!loading && orders.length > 0 && (
+          <div className="space-y-3">
+            {orders.map((o) => {
+              const style = STATUS_STYLE[o.status] ?? "bg-slate-100 text-slate-700";
+              const firstItem = o.items?.[0]?.productName ?? o.items?.[0]?.name;
+              return (
+                <Link
+                  key={o.id}
+                  href={`/orders/${o.id}`}
+                  className="block overflow-hidden rounded-2xl border border-[var(--line)] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="flex items-stretch">
+                    <div className="w-1.5 bg-[var(--amber)]" />
+                    <div className="flex flex-1 items-center gap-3 p-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--mist)] font-display text-sm font-bold text-[var(--forest)]">
+                        {o.orderNumber.replace(/\D/g, "").slice(-3) || "SO"}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-bold text-[var(--ink)]">{o.orderNumber}</span>
+                          <span className={`status-pill ${style}`}>{omsLabel(o.status)}</span>
+                        </div>
+                        <div className="mt-0.5 truncate text-xs text-[var(--ink-soft)]/70">
+                          {new Date(o.createdAt).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                          {firstItem ? ` · ${firstItem}` : ""}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-display text-lg font-semibold text-[var(--ink)]">
+                          ₹{Number(o.total).toLocaleString("en-IN")}
+                        </div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--amber)]">
+                          View
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

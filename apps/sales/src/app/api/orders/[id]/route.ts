@@ -11,6 +11,7 @@ import {
   ensureWorkflowRuntimeForOrder,
   recordWorkflowTransition,
 } from "@/lib/workflow-runtime";
+import { notifyPortalCustomer } from "@/lib/notify-customer";
 import { z } from "zod";
 
 const shipItemsSchema = z.object({
@@ -192,6 +193,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
     if (order.customer.portalUserId !== userId) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+    // Portal can only cancel before sales locks the order
+    if (!["DRAFT", "PENDING_SALES_REVIEW"].includes(order.status)) {
+      return NextResponse.json(
+        { error: "You can only cancel while the order is awaiting sales review" },
+        { status: 409 }
+      );
     }
   }
 
@@ -423,6 +431,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           actorRole: role,
         }
       );
+      await notifyPortalCustomer({
+        tenantId,
+        portalUserId: order.customer.portalUserId,
+        type: "ORDER_CANCELLED",
+        title: "Order cancelled",
+        body: `${order.orderNumber} was cancelled.`,
+        metadata: { orderId: id, orderNumber: order.orderNumber },
+      });
       return NextResponse.json({ data: updated });
     }
 

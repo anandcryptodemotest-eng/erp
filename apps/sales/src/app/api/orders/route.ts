@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getDefaultWorkflow } from "@/lib/order-workflow";
 import { ensureWorkflowRuntimeForOrder } from "@/lib/workflow-runtime";
+import { notifyPortalCustomer } from "@/lib/notify-customer";
+import { serviceClient } from "@erp/config";
 import { z } from "zod";
 
 const createOrderSchema = z.object({
@@ -146,13 +148,32 @@ export async function POST(request: Request) {
         quantity,
         unitPrice: item.unitPrice,
         total: quantity * item.unitPrice,
+        taxRate: 0,
       };
     });
 
+    // Resolve GST from inventory product.taxRate (e.g. GST_18 → 0.18), not a fake flat %.
+    const fallbackRate = parseFloat(process.env.TAX_RATE ?? "0");
+    await Promise.all(
+      items.map(async (line) => {
+        const res = await serviceClient.call<{ data?: { taxRate?: number | null } }>(
+          "inventory",
+          `/api/products/${line.productId}`,
+          { method: "GET", tenantId, userId }
+        );
+        const rate = res.data?.data?.taxRate;
+        line.taxRate =
+          typeof rate === "number" && Number.isFinite(rate) ? rate : fallbackRate;
+      })
+    );
+
     const subtotal = items.reduce((sum, i) => sum + i.total, 0);
     const discountedSubtotal = Math.max(0, subtotal - data.couponDiscount);
-    const TAX_RATE = parseFloat(process.env.TAX_RATE ?? "0.10");
-    const tax = discountedSubtotal * TAX_RATE;
+    const tax = items.reduce((sum, i) => {
+      const lineShare =
+        subtotal > 0 ? (i.total / subtotal) * discountedSubtotal : i.total;
+      return sum + lineShare * i.taxRate;
+    }, 0);
     const total = discountedSubtotal + tax + data.deliveryFee;
 
     const count = await prisma.salesOrder.count({ where: { tenantId } });
@@ -212,11 +233,25 @@ export async function POST(request: Request) {
       orderNumber: order.orderNumber,
     });
 
+    if (shouldSubmit) {
+      await notifyPortalCustomer({
+        tenantId,
+        portalUserId: customer.portalUserId,
+        type: "ORDER_PLACED",
+        title: "Order submitted",
+        body: `${order.orderNumber} is with sales for review.`,
+        metadata: { orderId: order.id, orderNumber: order.orderNumber },
+      });
+    }
+
     return NextResponse.json({ data: order }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("[POST /api/orders]", error);
+    const message =
+      error instanceof Error ? error.message.split("\n").slice(0, 6).join(" ").slice(0, 500) : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

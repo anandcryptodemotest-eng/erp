@@ -16,10 +16,14 @@ export async function POST(request: NextRequest) {
   const tenantId = request.headers.get("x-tenant-id");
   const senderId = request.headers.get("x-user-id");
   const role = request.headers.get("x-user-role");
-  if (!tenantId || !senderId) {
+  const serviceKey = request.headers.get("x-service-key");
+  const serviceSecret = process.env.SERVICE_SECRET || "dev-service-secret";
+  const isService = !!serviceSecret && serviceKey === serviceSecret;
+
+  if (!tenantId || (!senderId && !isService)) {
     return NextResponse.json({ error: "Auth context required" }, { status: 400 });
   }
-  if (!["ADMIN", "MANAGER"].includes(role ?? "")) {
+  if (!isService && !["ADMIN", "MANAGER"].includes(role ?? "")) {
     return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { assertCustomerAccess } from "@/lib/customer-access";
 
 const updateSchema = z.object({
   label: z.string().optional(),
@@ -17,7 +18,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string; addrId: string }> }
 ) {
   const tenantId = request.headers.get("x-tenant-id")!;
+  const userId = request.headers.get("x-user-id");
+  const role = request.headers.get("x-user-role");
   const { id, addrId } = await params;
+
+  const access = await assertCustomerAccess({ tenantId, customerId: id, userId, role });
+  if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
 
   const address = await prisma.customerAddress.findFirst({
     where: { id: addrId, customerId: id, tenantId, isActive: true },
@@ -31,7 +37,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; addrId: string }> }
 ) {
   const tenantId = request.headers.get("x-tenant-id")!;
+  const userId = request.headers.get("x-user-id");
+  const role = request.headers.get("x-user-role");
   const { id, addrId } = await params;
+
+  const access = await assertCustomerAccess({ tenantId, customerId: id, userId, role });
+  if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
 
   const existing = await prisma.customerAddress.findFirst({
     where: { id: addrId, customerId: id, tenantId, isActive: true },
@@ -62,7 +73,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; addrId: string }> }
 ) {
   const tenantId = request.headers.get("x-tenant-id")!;
+  const userId = request.headers.get("x-user-id");
+  const role = request.headers.get("x-user-role");
   const { id, addrId } = await params;
+
+  const access = await assertCustomerAccess({ tenantId, customerId: id, userId, role });
+  if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
 
   const existing = await prisma.customerAddress.findFirst({
     where: { id: addrId, customerId: id, tenantId, isActive: true },

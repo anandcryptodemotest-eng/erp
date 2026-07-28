@@ -176,7 +176,7 @@ async function seedGateway() {
   console.log("\n[2/4] Seeding gateway (tenant + users)…");
   const tenant = await gwDb.tenant.create({
     data: {
-      name: "OMS Demo Trading",
+      name: "Trust Wood",
       slug: "simhapuri-fresh",
       plan: "enterprise",
     },
@@ -306,6 +306,8 @@ async function seedCatalog(tenantId: string) {
       costPrice: 1200,
       sellPrice: 1600,
       reorderLevel: 10,
+      isFeatured: true,
+      imageUrls: ["/products/plywood-marine.jpg", "/products/timber.jpg"],
       customAttributes: { thickness_mm: 18, size: "8x4", grade: "BWR" },
       hsnCode: "441231",
       taxCode: "GST_18",

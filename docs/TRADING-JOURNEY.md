@@ -10,12 +10,14 @@ Admin nav defaults to this journey (CRM hidden). Workflow template: `workflow.om
 
 | # | Screen | User does | System |
 |---|--------|-----------|--------|
-| 1 | Login / OTP | Signs in as customer | JWT + tenant; role `CUSTOMER` |
-| 2 | Product list | Browses plywood / blockboard / laminates | Category filters; **Size** dropdown from category list |
-| 3 | Product detail | Picks size / thickness / qty | Validates against attribute definitions |
+| 1 | Login / Register | Signs in or creates portal account | JWT + tenant; role `CUSTOMER`; Sales `Customer.portalUserId` |
+| 2 | Product list | Browses + category + attribute filters | `attr[key]` faceted search |
+| 3 | Product detail | Picks size / thickness / qty | Attribute pickers → cart |
 | 4 | Cart | Reviews lines | Local cart → checkout |
-| 5 | Checkout | Confirms address / notes | `POST /api/orders` → status **DRAFT** or **PENDING_SALES_REVIEW** |
-| 6 | My orders | Tracks status | Read-only; sees review / dispatch updates |
+| 5 | Checkout | Address, notes, payment | `POST /api/orders` → **PENDING_SALES_REVIEW** |
+| 6 | My orders | Tracks OMS status | Read-only list |
+| 7 | Order detail | Timeline, cancel (in review), reorder | Cancel only `DRAFT` / `PENDING_SALES_REVIEW` |
+| 8 | Profile | Addresses CRUD + inbox | `/customers/me` + notifications |
 
 **Out of scope for v1 mobile:** editing after submit (SE does that on call).
 
