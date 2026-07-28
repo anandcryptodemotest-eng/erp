@@ -6,6 +6,11 @@ import {
   nextActionsForStatus,
   resolveOrderWorkflow,
 } from "@/lib/order-workflow";
+import {
+  assertTaskPermission,
+  ensureWorkflowRuntimeForOrder,
+  recordWorkflowTransition,
+} from "@/lib/workflow-runtime";
 import { z } from "zod";
 
 const shipItemsSchema = z.object({
@@ -120,6 +125,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       returns: { select: { id: true, returnNumber: true, status: true, total: true } },
       modifications: { orderBy: { createdAt: "desc" }, take: 50 },
       documents: { orderBy: { createdAt: "desc" } },
+      workflowTasks: { orderBy: [{ createdAt: "desc" }] },
+      workflowEvents: { orderBy: { createdAt: "desc" }, take: 50 },
     },
   });
 
@@ -132,6 +139,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
 
   const workflow = await resolveOrderWorkflow(tenantId, order.workflowId);
+  const runtime = await ensureWorkflowRuntimeForOrder({
+    id: order.id,
+    tenantId,
+    status: order.status,
+    workflowId: order.workflowId,
+  });
   const nextActions = workflow ? nextActionsForStatus(workflow, order.status) : [];
 
   return NextResponse.json({
@@ -147,6 +160,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         : null,
       // Customers don't get internal action buttons
       nextActions: role === "CUSTOMER" ? [] : nextActions,
+      workflowRuntime: runtime,
     },
   });
 }
@@ -185,6 +199,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const gate = assertWorkflowAction(workflow, action, order.status);
   if (!gate.ok) {
     return NextResponse.json({ error: gate.error }, { status: gate.status });
+  }
+
+  if (role !== "CUSTOMER") {
+    const permission = await assertTaskPermission({
+      tenantId,
+      orderId: id,
+      action,
+      role,
+      userId,
+    });
+    if (!permission.ok) {
+      return NextResponse.json({ error: permission.error }, { status: 403 });
+    }
   }
 
   try {
@@ -251,6 +278,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         data: { status: "CONFIRMED", warehouseId },
         include: { items: true, customer: { select: { id: true, name: true } } },
       });
+      await recordWorkflowTransition(
+        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
+        {
+          action,
+          previousStatus: order.status,
+          currentStatus: updated.status,
+          actorUserId: userId,
+          actorRole: role,
+          payload: { warehouseId },
+        }
+      );
       return NextResponse.json({ data: updated });
     }
 
@@ -322,6 +360,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         });
       });
 
+      await recordWorkflowTransition(
+        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
+        {
+          action,
+          previousStatus: order.status,
+          currentStatus: updated.status,
+          actorUserId: userId,
+          actorRole: role,
+          remarks: notes,
+        }
+      );
+
       return NextResponse.json({ data: updated });
     }
 
@@ -363,6 +413,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         oldValue: order.status,
         newValue: "CANCELLED",
       });
+      await recordWorkflowTransition(
+        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
+        {
+          action,
+          previousStatus: order.status,
+          currentStatus: updated.status,
+          actorUserId: userId,
+          actorRole: role,
+        }
+      );
       return NextResponse.json({ data: updated });
     }
 
@@ -381,6 +441,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         oldValue: "DRAFT",
         newValue: "PENDING_SALES_REVIEW",
       });
+      await recordWorkflowTransition(
+        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
+        {
+          action,
+          previousStatus: "DRAFT",
+          currentStatus: updated.status,
+          actorUserId: userId,
+          actorRole: role,
+        }
+      );
       return NextResponse.json({ data: updated });
     }
 
@@ -434,6 +504,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         oldValue: order.status,
         newValue: "REVIEWED",
       });
+      await recordWorkflowTransition(
+        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
+        {
+          action,
+          previousStatus: order.status,
+          currentStatus: updated.status,
+          actorUserId: userId,
+          actorRole: role,
+          remarks: parsed.remarks,
+        }
+      );
       return NextResponse.json({ data: updated });
     }
 
@@ -503,6 +584,25 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         where: { id },
         include: { items: true, customer: { select: { id: true, name: true } } },
       });
+      if (finalOrder) {
+        await recordWorkflowTransition(
+          {
+            id,
+            tenantId,
+            status: finalOrder.status,
+            workflowId: finalOrder.workflowId,
+          },
+          {
+            action,
+            previousStatus: order.status,
+            currentStatus: finalOrder.status,
+            actorUserId: userId,
+            actorRole: role,
+            remarks: parsed.remarks,
+            payload: { hasShortage, vendorRequestsCount: vendorRequests.length },
+          }
+        );
+      }
       return NextResponse.json({ data: finalOrder, meta: { hasShortage, vendorRequests } });
     }
 
@@ -542,6 +642,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         field: "status",
         newValue: "VENDOR_REQUESTED",
       });
+      await recordWorkflowTransition(
+        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
+        {
+          action,
+          previousStatus: order.status,
+          currentStatus: updated.status,
+          actorUserId: userId,
+          actorRole: role,
+          payload: { vendorRequest: rfq.data },
+        }
+      );
       return NextResponse.json({ data: updated, meta: { vendorRequest: rfq.data } });
     }
 
@@ -558,6 +669,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         oldValue: order.status,
         newValue: "PRICING_PENDING",
       });
+      await recordWorkflowTransition(
+        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
+        {
+          action,
+          previousStatus: order.status,
+          currentStatus: updated.status,
+          actorUserId: userId,
+          actorRole: role,
+        }
+      );
       return NextResponse.json({ data: updated });
     }
 
@@ -615,6 +736,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         include: { items: true, customer: { select: { id: true, name: true } } },
       });
       await logModification(tenantId, id, userId, "PRICING", { remarks: parsed.remarks });
+      await recordWorkflowTransition(
+        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
+        {
+          action,
+          previousStatus: order.status,
+          currentStatus: updated.status,
+          actorUserId: userId,
+          actorRole: role,
+          remarks: parsed.remarks,
+          payload: {
+            marginAmount,
+            marginPercent,
+            total,
+          },
+        }
+      );
       return NextResponse.json({ data: updated });
     }
 
@@ -628,6 +765,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         include: { items: true, customer: { select: { id: true, name: true } } },
       });
       await logModification(tenantId, id, userId, "STATUS_CHANGE", { newValue: "READY_FOR_DISPATCH" });
+      await recordWorkflowTransition(
+        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
+        {
+          action,
+          previousStatus: order.status,
+          currentStatus: updated.status,
+          actorUserId: userId,
+          actorRole: role,
+        }
+      );
       return NextResponse.json({ data: updated });
     }
 
@@ -637,6 +784,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
       const body = await request.json().catch(() => ({}));
       const parsed = dispatchSchema.parse(body);
+      if (!parsed.assignedDriverId) {
+        return NextResponse.json(
+          { error: "assignedDriverId is required to create a delivery assignment" },
+          { status: 400 }
+        );
+      }
       const updated = await prisma.salesOrder.update({
         where: { id },
         data: {
@@ -649,7 +802,35 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         },
         include: { items: true, customer: { select: { id: true, name: true } } },
       });
+      const deliveryAssignment = await serviceClient.call("delivery", "/api/assignments", {
+        method: "POST",
+        body: {
+          orderId: id,
+          orderNumber: updated.orderNumber,
+          executiveId: parsed.assignedDriverId,
+          notes: parsed.dispatchRemarks,
+        },
+        tenantId,
+        userId,
+      });
       await logModification(tenantId, id, userId, "DISPATCH", { remarks: parsed.dispatchRemarks });
+      await recordWorkflowTransition(
+        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
+        {
+          action,
+          previousStatus: order.status,
+          currentStatus: updated.status,
+          actorUserId: userId,
+          actorRole: role,
+          remarks: parsed.dispatchRemarks,
+          payload: {
+            assignedDriverId: parsed.assignedDriverId,
+            vehicleInfo: parsed.vehicleInfo,
+            trackingNumber: parsed.trackingNumber,
+            deliveryAssignmentStatus: deliveryAssignment.status,
+          },
+        }
+      );
       return NextResponse.json({ data: updated });
     }
 
@@ -667,6 +848,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         include: { items: true, customer: { select: { id: true, name: true } } },
       });
       await logModification(tenantId, id, userId, "STATUS_CHANGE", { newValue: "DELIVERED" });
+      await recordWorkflowTransition(
+        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
+        {
+          action,
+          previousStatus: order.status,
+          currentStatus: updated.status,
+          actorUserId: userId,
+          actorRole: role,
+        }
+      );
       return NextResponse.json({ data: updated });
     }
 
@@ -697,6 +888,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         include: { items: true, customer: { select: { id: true, name: true } }, documents: true },
       });
       await logModification(tenantId, id, userId, "STATUS_CHANGE", { newValue: "CLOSED" });
+      await recordWorkflowTransition(
+        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
+        {
+          action,
+          previousStatus: order.status,
+          currentStatus: updated.status,
+          actorUserId: userId,
+          actorRole: role,
+        }
+      );
       return NextResponse.json({ data: updated });
     }
 
@@ -710,6 +911,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         data: { status: "AWAITING_PICKUP" },
         include: { items: true, customer: { select: { id: true, name: true } } },
       });
+      await recordWorkflowTransition(
+        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
+        {
+          action,
+          previousStatus: order.status,
+          currentStatus: updated.status,
+          actorUserId: userId,
+          actorRole: role,
+        }
+      );
       return NextResponse.json({ data: updated });
     }
 
@@ -722,6 +933,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         data: { status: "OUT_FOR_DELIVERY" },
         include: { items: true, customer: { select: { id: true, name: true } } },
       });
+      await recordWorkflowTransition(
+        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
+        {
+          action,
+          previousStatus: order.status,
+          currentStatus: updated.status,
+          actorUserId: userId,
+          actorRole: role,
+        }
+      );
       return NextResponse.json({ data: updated });
     }
 
@@ -736,6 +957,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         data: { status: "DELIVERED", paymentStatus },
         include: { items: true, customer: { select: { id: true, name: true } } },
       });
+      await recordWorkflowTransition(
+        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
+        {
+          action,
+          previousStatus: order.status,
+          currentStatus: updated.status,
+          actorUserId: userId,
+          actorRole: role,
+        }
+      );
       return NextResponse.json({ data: updated });
     }
 
@@ -772,6 +1003,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         data: { status: "INVOICED" },
         include: { items: true, customer: { select: { id: true, name: true } } },
       });
+      await recordWorkflowTransition(
+        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
+        {
+          action,
+          previousStatus: order.status,
+          currentStatus: updated.status,
+          actorUserId: userId,
+          actorRole: role,
+          payload: { invoice: invoiceResult.data },
+        }
+      );
       return NextResponse.json({ data: updated });
     }
 
@@ -786,6 +1028,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (error instanceof Error && error.message.includes("not found")) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
+    console.error(`[orders/${id}?action=${action}] Internal error:`, error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

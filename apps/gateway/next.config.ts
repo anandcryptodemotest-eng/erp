@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
       { source: "/api/orders",               destination: `${SALES_URL}/api/orders` },
       { source: "/api/order-workflows/:path*", destination: `${SALES_URL}/api/order-workflows/:path*` },
       { source: "/api/order-workflows",        destination: `${SALES_URL}/api/order-workflows` },
+      { source: "/api/workflow-tasks/:path*", destination: `${SALES_URL}/api/workflow-tasks/:path*` },
+      { source: "/api/workflow-tasks",        destination: `${SALES_URL}/api/workflow-tasks` },
       { source: "/api/quotes/:path*",        destination: `${SALES_URL}/api/quotes/:path*` },
       { source: "/api/quotes",               destination: `${SALES_URL}/api/quotes` },
       { source: "/api/leads/:path*",         destination: `${SALES_URL}/api/leads/:path*` },

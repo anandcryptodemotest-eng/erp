@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getDefaultWorkflow } from "@/lib/order-workflow";
+import { ensureWorkflowRuntimeForOrder } from "@/lib/workflow-runtime";
 import { z } from "zod";
 
 const createOrderSchema = z.object({
@@ -69,7 +70,7 @@ export async function GET(request: Request) {
   const [orders, total] = await Promise.all([
     prisma.salesOrder.findMany({
       where,
-      include: { customer: true, items: true },
+      include: { customer: true, items: true, workflowTasks: { where: { status: { in: ["PENDING", "IN_PROGRESS"] } } } },
       orderBy: { date: "desc" },
       skip,
       take: limit,
@@ -201,6 +202,14 @@ export async function POST(request: Request) {
           : {}),
       },
       include: { items: true, customer: { select: { id: true, name: true } }, workflow: true },
+    });
+
+    await ensureWorkflowRuntimeForOrder({
+      id: order.id,
+      tenantId,
+      status: order.status,
+      workflowId: order.workflowId,
+      orderNumber: order.orderNumber,
     });
 
     return NextResponse.json({ data: order }, { status: 201 });

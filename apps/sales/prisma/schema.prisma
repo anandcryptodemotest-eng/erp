@@ -222,10 +222,13 @@ model SalesOrder {
   customer      Customer             @relation(fields: [customerId], references: [id])
   quote         Quote?               @relation(fields: [quoteId], references: [id])
   workflow      OrderWorkflow?       @relation(fields: [workflowId], references: [id])
+  workflowInstance WorkflowInstance?
   items         SalesOrderItem[]
   returns       SalesReturn[]
   modifications OrderModification[]
   documents     OrderDocument[]
+  workflowTasks WorkflowTask[]
+  workflowEvents WorkflowEvent[]
 
   @@unique([tenantId, orderNumber])
   @@index([tenantId])
@@ -252,6 +255,7 @@ model OrderWorkflow {
 
   steps  OrderWorkflowStep[]
   orders SalesOrder[]
+  workflowInstances WorkflowInstance[]
 
   @@unique([tenantId, code])
   @@index([tenantId, isDefault])
@@ -280,6 +284,79 @@ model OrderWorkflowStep {
   @@unique([workflowId, key])
   @@unique([workflowId, action])
   @@index([tenantId, workflowId])
+}
+
+/// Runtime process execution for a single order against a workflow definition.
+model WorkflowInstance {
+  id              String   @id @default(cuid())
+  tenantId        String
+  salesOrderId    String   @unique
+  workflowId      String
+  currentStatus   String
+  currentStepKey  String?
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  order    SalesOrder      @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  workflow OrderWorkflow   @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  tasks    WorkflowTask[]
+  events   WorkflowEvent[]
+
+  @@index([tenantId, workflowId])
+  @@index([tenantId, currentStatus])
+}
+
+model WorkflowTask {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  workflowInstanceId String
+  salesOrderId       String
+  stepKey            String
+  action             String
+  title              String
+  assignedRole       String
+  assignedUserId     String?
+  status             String   @default("PENDING") // PENDING | IN_PROGRESS | COMPLETED | CANCELLED
+  dueAt              DateTime?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  completedBy        String?
+  payload            Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  workflowInstance WorkflowInstance @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+  order            SalesOrder       @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+
+  @@index([workflowInstanceId, action, status])
+  @@index([tenantId, assignedRole, status])
+  @@index([tenantId, assignedUserId, status])
+  @@index([tenantId, salesOrderId])
+}
+
+model WorkflowEvent {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  workflowInstanceId String
+  salesOrderId       String
+  type               String   // TASK_CREATED | TASK_COMPLETED | STATUS_SYNC | TRANSITION | INTEGRATION
+  stepKey            String?
+  action             String?
+  fromStatus         String?
+  toStatus           String?
+  actorUserId        String?
+  actorRole          String?
+  remarks            String?
+  payload            Json?
+  createdAt          DateTime @default(now())
+
+  workflowInstance WorkflowInstance @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+  order            SalesOrder       @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, workflowInstanceId, createdAt])
+  @@index([tenantId, salesOrderId, createdAt])
 }
 
 model SalesOrderItem {

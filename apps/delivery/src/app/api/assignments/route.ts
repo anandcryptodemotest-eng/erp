@@ -42,8 +42,9 @@ export async function POST(request: NextRequest) {
   const tenantId = request.headers.get("x-tenant-id")!;
   const userId = request.headers.get("x-user-id")!;
   const role = request.headers.get("x-user-role");
+  const serviceKey = request.headers.get("x-service-key");
 
-  if (role !== "ADMIN" && role !== "MANAGER") {
+  if (!serviceKey && !["ADMIN", "MANAGER", "ORG_ADMIN", "BRANCH_ADMIN", "DISPATCH_EXECUTIVE"].includes(role ?? "")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

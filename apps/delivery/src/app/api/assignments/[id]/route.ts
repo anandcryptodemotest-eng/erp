@@ -72,12 +72,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (parsed.data.status === "DELIVERED" && assignment.orderId) {
     const tenantId = request.headers.get("x-tenant-id")!;
     const userId = request.headers.get("x-user-id") ?? "";
-    await serviceClient.call("sales", `/api/orders/${assignment.orderId}?action=delivered`, {
+    const omsDelivery = await serviceClient.call("sales", `/api/orders/${assignment.orderId}?action=deliver-oms`, {
       method: "PATCH",
       body: {},
       tenantId,
       userId,
     });
+    if (omsDelivery.status >= 400) {
+      await serviceClient.call("sales", `/api/orders/${assignment.orderId}?action=delivered`, {
+        method: "PATCH",
+        body: {},
+        tenantId,
+        userId,
+      });
+    }
   }
 
   return NextResponse.json({ data: assignment });

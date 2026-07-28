@@ -36,7 +36,7 @@ export const OMS_TRADING_TEMPLATE: WorkflowTemplate = {
   name: "OMS Trading",
   description:
     "Sales review → stock verify → vendor RFQ (optional) → pricing → dispatch → deliver → close",
-  version: 1,
+  version: 2,
   trackedStatuses: [
     "DRAFT",
     "PENDING_SALES_REVIEW",
@@ -90,7 +90,7 @@ export const OMS_TRADING_TEMPLATE: WorkflowTemplate = {
       fromStatuses: ["STOCK_VERIFIED", "VENDOR_REQUESTED", "REVIEWED"],
       toStatus: "VENDOR_REQUESTED",
       sortOrder: 35,
-      roleHint: "SALES_EXECUTIVE",
+      roleHint: "PROCUREMENT_OFFICER",
       uiPanel: "none",
     },
     {

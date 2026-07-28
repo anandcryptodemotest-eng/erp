@@ -194,9 +194,14 @@ export function nextActionsForStatus(
   workflow: ResolvedWorkflow,
   status: string
 ): { action: string; label: string; uiPanel: string; roleHint: string | null }[] {
-  return workflow.steps
+  const eligible = workflow.steps
     .filter((s) => s.fromStatuses.includes(status))
-    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+  if (eligible.length === 0) return [];
+
+  const firstSortOrder = eligible[0].sortOrder;
+  return eligible
+    .filter((s) => s.sortOrder === firstSortOrder)
     .map((s) => ({
       action: s.action,
       label: s.label,
