@@ -176,11 +176,12 @@ export interface SalesOrder {
   id: string;
   orderNumber: string;
   customerId: string;
-  status: "DRAFT" | "CONFIRMED" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  status: OrderStatus;
   subtotal: number;
   tax: number;
   total: number;
   items: SalesOrderItem[];
+  salesRequestId?: string | null;
 }
 
 export type LeadStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "DISQUALIFIED" | "CONVERTED";
@@ -195,24 +196,41 @@ export type OpportunityStage =
 
 export type QuoteStatus = "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED";
 
+/** Sales Request (SREQ) — customer intent before SO */
+export type SalesRequestStatus = "OPEN" | "CONVERTED" | "REJECTED" | "CANCELLED";
+
+export interface SalesRequest {
+  id: string;
+  requestNumber: string;
+  customerId: string;
+  status: SalesRequestStatus;
+  salesOrderId: string | null;
+  subtotal: number;
+  tax: number;
+  total: number;
+  /** Mirrored from linked SO when converted */
+  soStatus?: OrderStatus | null;
+  soNumber?: string | null;
+}
+
+/**
+ * Coarse SO statuses.
+ * Trading: DRAFT → CONFIRMED → FULFILLING → READY_FOR_DISPATCH → DISPATCHED → DELIVERED → INVOICED → PAID → CLOSED
+ * Grocery adds AWAITING_PICKUP / OUT_FOR_DELIVERY / SHIPPED / PARTIALLY_SHIPPED
+ */
 export type OrderStatus =
   | "DRAFT"
-  | "SUBMITTED"
-  | "PENDING_SALES_REVIEW"
-  | "REVIEWED"
-  | "STOCK_VERIFIED"
-  | "VENDOR_REQUESTED"
-  | "PRICING_PENDING"
-  | "PRICING_COMPLETED"
+  | "CONFIRMED"
+  | "FULFILLING"
   | "READY_FOR_DISPATCH"
   | "DISPATCHED"
-  | "CLOSED"
-  | "CONFIRMED"
-  | "AWAITING_PICKUP"
-  | "OUT_FOR_DELIVERY"
   | "DELIVERED"
   | "INVOICED"
+  | "PAID"
+  | "CLOSED"
   | "CANCELLED"
+  | "AWAITING_PICKUP"
+  | "OUT_FOR_DELIVERY"
   | "PARTIALLY_SHIPPED"
   | "SHIPPED";
 
@@ -231,6 +249,9 @@ export interface OrderWorkflowStep {
   toStatus: string | null;
   uiPanel: string;
   roleHint?: string | null;
+  phase?: "PREP" | "FULFILL" | "CLOSE";
+  dependsOn?: string[];
+  required?: boolean;
 }
 
 export interface OrderWorkflow {

@@ -1,0 +1,34 @@
+{
+  "title": "Platform Overview",
+  "uid": "erp-platform",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": ["erp", "platform"],
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "OTLP metrics scrape samples",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "up{job=\"otel-collector\"}",
+          "legendFormat": "collector up"
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "prometheus" }
+    },
+    {
+      "type": "logs",
+      "title": "Recent service logs",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "{job=~\".+\"}",
+          "datasource": { "type": "loki", "uid": "loki" }
+        }
+      ],
+      "datasource": { "type": "loki", "uid": "loki" }
+    }
+  ]
+}

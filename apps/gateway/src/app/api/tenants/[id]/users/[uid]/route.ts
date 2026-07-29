@@ -4,7 +4,7 @@ import { verifyToken, extractToken } from "@erp/auth";
 import { z } from "zod";
 
 const updateRoleSchema = z.object({
-  role: z.enum(["ADMIN", "MANAGER", "USER"]),
+  role: z.string().min(2).max(64),
 });
 
 type Params = { params: Promise<{ id: string; uid: string }> };

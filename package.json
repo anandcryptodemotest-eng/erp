@@ -18,12 +18,18 @@
     "dev:delivery-app": "turbo dev --filter=@erp/delivery-app",
     "e2e:users": "bash scripts/e2e-user-flows.sh",
     "e2e:oms": "pnpm --filter @erp/scripts e2e:oms",
+    "arch:fitness": "node scripts/architecture-fitness.cjs",
+    "smoke:foundation": "node scripts/smoke-platform-foundation.cjs",
+    "smoke:otel-slice": "node scripts/smoke-otel-vertical-slice.cjs",
     "db:generate": "turbo db:generate",
     "db:push": "turbo db:push",
     "docker:up": "docker compose up -d",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "docker:obs": "docker compose up -d otel-collector tempo loki prometheus grafana promtail",
+    "docker:obs:down": "docker compose stop otel-collector tempo loki prometheus grafana promtail"
   },
   "devDependencies": {
+    "tsx": "^4.23.1",
     "turbo": "^2.0.0"
   },
   "packageManager": "pnpm@9.15.0",

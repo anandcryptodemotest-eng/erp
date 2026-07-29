@@ -51,7 +51,7 @@ export default function BarcodeScannerModal({ onDetected, onClose }: Props) {
               active = false;
               onDetected(result.getText());
             } else if (err && !(err instanceof NotFoundException)) {
-              console.warn("ZXing:", err);
+              // Non-fatal decode noise; ignore
             }
           }
         );

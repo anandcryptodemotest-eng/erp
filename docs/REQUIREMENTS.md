@@ -43,7 +43,9 @@
 
 **Optional local helper:** `tools/local-pg` (embedded Postgres) for machines without Docker Postgres.
 
-**Not used for primary ERP data:** Redis, MongoDB, Kafka. Cart state in the customer UI is browser `localStorage` until checkout writes an order to Postgres via the API.
+**Trading document flow:** Customer checkout creates a **Sales Request (SREQ)**; sales converts it to a **Sales Order (SO)**. Parallel prep tasks drive fulfillment — not a long sequential SO status ladder. See `docs/TRADING-JOURNEY.md`.
+
+**Not used for primary ERP data:** Redis, MongoDB, Kafka. Cart state in the customer UI is browser `localStorage` until checkout writes a **sales request** to Postgres via the API.
 
 ---
 

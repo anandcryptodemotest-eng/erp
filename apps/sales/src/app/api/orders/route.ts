@@ -1,39 +1,32 @@
+import { createLogger } from "@erp/logger";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getDefaultWorkflow } from "@/lib/order-workflow";
-import { ensureWorkflowRuntimeForOrder } from "@/lib/workflow-runtime";
-import { notifyPortalCustomer } from "@/lib/notify-customer";
-import { serviceClient } from "@erp/config";
+import { startSalesOrderWorkflowV5, getPublishedDefinition } from "@/lib/workflow-runtime-v5";
+import {
+  applyInventoryTaxRates,
+  computeTotals,
+  lineItemInputSchema,
+  normalizeLineItems,
+} from "@/lib/order-lines";
 import { z } from "zod";
 
+const log = createLogger({ service: "sales" });
+
 const createOrderSchema = z.object({
-  customerId: z.string().optional(), // required for staff; portal resolves from JWT
+  customerId: z.string().optional(),
   quoteId: z.string().optional(),
   warehouseId: z.string().optional(),
   date: z.string().optional(),
   notes: z.string().optional(),
   isOnlineOrder: z.boolean().default(false),
-  /** Portal checkout: create then auto-submit into OMS review queue */
-  submitForReview: z.boolean().default(false),
   deliveryAddressId: z.string().nullish(),
   deliveryAddressText: z.string().nullish(),
   deliveryFee: z.number().min(0).default(0),
   paymentMethod: z.enum(["COD", "UPI", "CARD", "WALLET", "SPLIT"]).default("COD"),
   couponId: z.string().optional(),
   couponDiscount: z.number().min(0).default(0),
-  items: z
-    .array(
-      z.object({
-        productId: z.string(),
-        productName: z.string().optional(),
-        name: z.string().optional(), // portal alias
-        variantId: z.string().nullish(),
-        quantity: z.number().int().positive().optional(),
-        qty: z.number().int().positive().optional(), // portal alias
-        unitPrice: z.number().nonnegative(),
-      })
-    )
-    .min(1),
+  items: lineItemInputSchema,
 });
 
 // GET /api/orders
@@ -52,7 +45,6 @@ export async function GET(request: Request) {
   const paymentStatus = url.searchParams.get("paymentStatus") ?? undefined;
   const isOnline = url.searchParams.get("isOnlineOrder");
 
-  // Portal customers only see their own orders
   if (role === "CUSTOMER" && userId) {
     const me = await prisma.customer.findFirst({
       where: { tenantId, portalUserId: userId, isActive: true },
@@ -72,7 +64,12 @@ export async function GET(request: Request) {
   const [orders, total] = await Promise.all([
     prisma.salesOrder.findMany({
       where,
-      include: { customer: true, items: true, workflowTasks: { where: { status: { in: ["PENDING", "IN_PROGRESS"] } } } },
+      include: {
+        customer: true,
+        items: true,
+        salesRequest: { select: { id: true, requestNumber: true, status: true } },
+        workflowTasks: { where: { status: { in: ["PENDING", "IN_PROGRESS"] } } },
+      },
       orderBy: { date: "desc" },
       skip,
       take: limit,
@@ -83,7 +80,7 @@ export async function GET(request: Request) {
   return NextResponse.json({ data: orders, meta: { page, limit, total, pages: Math.ceil(total / limit) } });
 }
 
-// POST /api/orders
+// POST /api/orders — staff / quote conversion only (portal uses POST /api/sales-requests)
 export async function POST(request: Request) {
   const tenantId = request.headers.get("x-tenant-id");
   const userId = request.headers.get("x-user-id");
@@ -92,25 +89,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Auth context required" }, { status: 400 });
   }
 
+  if (role === "CUSTOMER") {
+    return NextResponse.json(
+      {
+        error:
+          "Customer checkout creates a Sales Request (SREQ). Use POST /api/sales-requests — sales converts it to a Sales Order.",
+      },
+      { status: 400 }
+    );
+  }
+
   try {
     const body = await request.json();
-    const data = createOrderSchema.parse(body);
-
-    let customerId = data.customerId;
-    if (role === "CUSTOMER" || data.submitForReview) {
-      const me = await prisma.customer.findFirst({
-        where: { tenantId, portalUserId: userId, isActive: true },
-      });
-      if (role === "CUSTOMER") {
-        if (!me) {
-          return NextResponse.json({ error: "No customer profile linked to this login" }, { status: 404 });
-        }
-        customerId = me.id;
-      } else if (!customerId && me) {
-        customerId = me.id;
-      }
+    if (body.submitForReview) {
+      return NextResponse.json(
+        {
+          error:
+            "submitForReview is removed. Create a Sales Request (POST /api/sales-requests) or create a DRAFT SO and activate it.",
+        },
+        { status: 400 }
+      );
     }
 
+    const data = createOrderSchema.parse(body);
+
+    const customerId = data.customerId;
     if (!customerId) {
       return NextResponse.json({ error: "customerId is required" }, { status: 400 });
     }
@@ -124,64 +127,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // Portal users may only order for themselves
-    if (role === "CUSTOMER" && customer.portalUserId !== userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const items = data.items.map((item) => {
-      const quantity = item.quantity ?? item.qty;
-      const productName = item.productName ?? item.name;
-      if (!quantity || !productName) {
-        throw new z.ZodError([
-          {
-            code: "custom",
-            message: "Each item needs productName/name and quantity/qty",
-            path: ["items"],
-          },
-        ]);
-      }
-      return {
-        productId: item.productId,
-        productName,
-        variantId: item.variantId ?? undefined,
-        quantity,
-        unitPrice: item.unitPrice,
-        total: quantity * item.unitPrice,
-        taxRate: 0,
-      };
+    const normalized = normalizeLineItems(data.items);
+    const items = await applyInventoryTaxRates(normalized, { tenantId, userId });
+    const { subtotal, tax, total } = computeTotals(items, {
+      couponDiscount: data.couponDiscount,
+      deliveryFee: data.deliveryFee,
     });
-
-    // Resolve GST from inventory product.taxRate (e.g. GST_18 → 0.18), not a fake flat %.
-    const fallbackRate = parseFloat(process.env.TAX_RATE ?? "0");
-    await Promise.all(
-      items.map(async (line) => {
-        const res = await serviceClient.call<{ data?: { taxRate?: number | null } }>(
-          "inventory",
-          `/api/products/${line.productId}`,
-          { method: "GET", tenantId, userId }
-        );
-        const rate = res.data?.data?.taxRate;
-        line.taxRate =
-          typeof rate === "number" && Number.isFinite(rate) ? rate : fallbackRate;
-      })
-    );
-
-    const subtotal = items.reduce((sum, i) => sum + i.total, 0);
-    const discountedSubtotal = Math.max(0, subtotal - data.couponDiscount);
-    const tax = items.reduce((sum, i) => {
-      const lineShare =
-        subtotal > 0 ? (i.total / subtotal) * discountedSubtotal : i.total;
-      return sum + lineShare * i.taxRate;
-    }, 0);
-    const total = discountedSubtotal + tax + data.deliveryFee;
 
     const count = await prisma.salesOrder.count({ where: { tenantId } });
     const orderNumber = `SO-${String(count + 1).padStart(5, "0")}`;
     const defaultWf = await getDefaultWorkflow(tenantId);
-
-    const shouldSubmit = data.submitForReview || role === "CUSTOMER";
-    const initialStatus = shouldSubmit ? "PENDING_SALES_REVIEW" : "DRAFT";
 
     const order = await prisma.salesOrder.create({
       data: {
@@ -193,8 +148,8 @@ export async function POST(request: Request) {
         workflowId: defaultWf?.id,
         userId,
         date: new Date(data.date ?? new Date().toISOString()),
-        status: initialStatus,
-        isOnlineOrder: data.isOnlineOrder || role === "CUSTOMER",
+        status: "DRAFT",
+        isOnlineOrder: data.isOnlineOrder,
         deliveryAddressId: data.deliveryAddressId,
         deliveryAddressText: data.deliveryAddressText,
         deliveryFee: data.deliveryFee,
@@ -205,51 +160,49 @@ export async function POST(request: Request) {
         tax,
         total,
         notes: data.notes,
-        items: { create: items },
-        ...(shouldSubmit
-          ? {
-              modifications: {
-                create: {
-                  tenantId,
-                  userId,
-                  action: "STATUS_CHANGE",
-                  field: "status",
-                  oldValue: "DRAFT",
-                  newValue: "PENDING_SALES_REVIEW",
-                  remarks: "Placed by customer portal",
-                },
-              },
-            }
-          : {}),
+        items: {
+          create: items.map((i) => ({
+            productId: i.productId,
+            productName: i.productName,
+            variantId: i.variantId,
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+            taxRate: i.taxRate,
+            total: i.total,
+          })),
+        },
       },
-      include: { items: true, customer: { select: { id: true, name: true } }, workflow: true },
+      include: {
+        items: true,
+        customer: { select: { id: true, name: true } },
+        workflow: true,
+        salesRequest: true,
+      },
     });
 
-    await ensureWorkflowRuntimeForOrder({
-      id: order.id,
-      tenantId,
-      status: order.status,
-      workflowId: order.workflowId,
-      orderNumber: order.orderNumber,
-    });
-
-    if (shouldSubmit) {
-      await notifyPortalCustomer({
-        tenantId,
-        portalUserId: customer.portalUserId,
-        type: "ORDER_PLACED",
-        title: "Order submitted",
-        body: `${order.orderNumber} is with sales for review.`,
-        metadata: { orderId: order.id, orderNumber: order.orderNumber },
-      });
+    const published = await getPublishedDefinition(tenantId);
+    if (!published || !order.workflowId) {
+      return NextResponse.json(
+        {
+          error:
+            "No published SO_STANDARD workflow template. Publish in Configuration → Workflows before creating orders.",
+        },
+        { status: 409 }
+      );
     }
+    await startSalesOrderWorkflowV5({
+      tenantId,
+      salesOrderId: order.id,
+      workflowId: order.workflowId,
+      orderStatus: order.status,
+    });
 
     return NextResponse.json({ data: order }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
     }
-    console.error("[POST /api/orders]", error);
+    log.error("post_api_orders", { err: error });
     const message =
       error instanceof Error ? error.message.split("\n").slice(0, 6).join(" ").slice(0, 500) : "Internal server error";
     return NextResponse.json({ error: message }, { status: 500 });

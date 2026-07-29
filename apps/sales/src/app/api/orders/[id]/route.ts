@@ -3,16 +3,22 @@ import { prisma } from "@/lib/prisma";
 import { serviceClient } from "@erp/config";
 import {
   assertWorkflowAction,
-  nextActionsForStatus,
   resolveOrderWorkflow,
 } from "@/lib/order-workflow";
-import {
-  assertTaskPermission,
-  ensureWorkflowRuntimeForOrder,
-  recordWorkflowTransition,
-} from "@/lib/workflow-runtime";
+import { assertTaskPermission } from "@/lib/workflow-workbench";
+import { resolveStepUiFromSnapshot } from "@/lib/form-ui";
 import { notifyPortalCustomer } from "@/lib/notify-customer";
+import {
+  completeTaskByAction,
+  getInstanceSnapshotFlag,
+  taskTypeForAction,
+} from "@/lib/complete-task-command";
+import { startSalesOrderWorkflowV5, getPublishedDefinition, syncTaskReadiness } from "@/lib/workflow-runtime-v5";
+import { withSpan } from "@erp/telemetry";
+import { createLogger } from "@erp/logger";
 import { z } from "zod";
+
+const log = createLogger({ service: "sales" });
 
 const shipItemsSchema = z.object({
   items: z.array(z.object({
@@ -25,60 +31,6 @@ const shipItemsSchema = z.object({
 
 const confirmSchema = z.object({
   warehouseId: z.string(),
-});
-
-const reviewSchema = z.object({
-  remarks: z.string().optional(),
-  deliveryDate: z.string().datetime().optional(),
-  items: z
-    .array(
-      z.object({
-        id: z.string().optional(),
-        productId: z.string(),
-        productName: z.string(),
-        quantity: z.number().int().positive(),
-        unitPrice: z.number().nonnegative(),
-        remarks: z.string().optional(),
-      })
-    )
-    .optional(),
-});
-
-const stockVerifySchema = z.object({
-  items: z.array(
-    z.object({
-      orderItemId: z.string(),
-      availableQty: z.number().nonnegative(),
-    })
-  ).min(1),
-  remarks: z.string().optional(),
-});
-
-const pricingSchema = z.object({
-  items: z
-    .array(
-      z.object({
-        orderItemId: z.string(),
-        purchasePrice: z.number().nonnegative().optional(),
-        unitPrice: z.number().nonnegative().optional(),
-        discount: z.number().nonnegative().optional(),
-        taxRate: z.number().nonnegative().optional(),
-      })
-    )
-    .optional(),
-  discountAmount: z.number().nonnegative().optional(),
-  transportationCharge: z.number().nonnegative().optional(),
-  additionalCharges: z.number().nonnegative().optional(),
-  tax: z.number().nonnegative().optional(),
-  remarks: z.string().optional(),
-});
-
-const dispatchSchema = z.object({
-  assignedDriverId: z.string().optional(),
-  vehicleInfo: z.string().optional(),
-  trackingNumber: z.string().optional(),
-  dispatchRemarks: z.string().optional(),
-  dispatchedAt: z.string().datetime().optional(),
 });
 
 const documentSchema = z.object({
@@ -122,11 +74,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     include: {
       customer: true,
       quote: { select: { id: true, quoteNumber: true } },
+      salesRequest: {
+        select: { id: true, requestNumber: true, status: true, createdAt: true },
+      },
       items: true,
       returns: { select: { id: true, returnNumber: true, status: true, total: true } },
       modifications: { orderBy: { createdAt: "desc" }, take: 50 },
       documents: { orderBy: { createdAt: "desc" } },
-      workflowTasks: { orderBy: [{ createdAt: "desc" }] },
+      workflowTasks: { orderBy: [{ status: "asc" }, { createdAt: "asc" }] },
       workflowEvents: { orderBy: { createdAt: "desc" }, take: 50 },
     },
   });
@@ -140,13 +95,47 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
 
   const workflow = await resolveOrderWorkflow(tenantId, order.workflowId);
-  const runtime = await ensureWorkflowRuntimeForOrder({
-    id: order.id,
-    tenantId,
-    status: order.status,
-    workflowId: order.workflowId,
+  const existingInstance = await prisma.workflowInstance.findFirst({
+    where: { salesOrderId: order.id, tenantId },
+    select: { id: true, snapshot: true },
   });
-  const nextActions = workflow ? nextActionsForStatus(workflow, order.status) : [];
+
+  if (!existingInstance?.snapshot) {
+    return NextResponse.json(
+      {
+        error:
+          "Order has no workflow snapshot. Cancel and recreate, or run scripts/reset-workflow-v5.ts.",
+        runtimePath: "missing",
+      },
+      { status: 409 }
+    );
+  }
+
+  await syncTaskReadiness(existingInstance.id);
+  const runtime = await prisma.workflowInstance.findFirst({
+    where: { id: existingInstance.id },
+    include: {
+      tasks: { orderBy: [{ status: "asc" }, { createdAt: "asc" }] },
+      events: { orderBy: { createdAt: "desc" }, take: 50 },
+      workflow: { include: { steps: { orderBy: { sortOrder: "asc" } } } },
+    },
+  });
+
+  const nextActions = (runtime?.tasks ?? [])
+    .filter((t) => ["READY", "CLAIMED", "IN_PROGRESS"].includes(t.status) && t.kind !== "SYSTEM")
+    .map((t) => {
+      const fromSnapshot = resolveStepUiFromSnapshot(runtime?.snapshot ?? null, t.stepKey);
+      return {
+        action: t.action,
+        label: t.title,
+        roleHint: t.assignedRole,
+        stepKey: t.stepKey,
+        sortOrder: 0,
+        uiPanel: "none" as const,
+        taskId: t.id,
+        ...(fromSnapshot ? { ui: fromSnapshot } : {}),
+      };
+    });
 
   return NextResponse.json({
     data: {
@@ -159,9 +148,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             templateId: workflow.templateId,
           }
         : null,
-      // Customers don't get internal action buttons
       nextActions: role === "CUSTOMER" ? [] : nextActions,
       workflowRuntime: runtime,
+      prepTasks: (order.workflowTasks ?? []).filter(
+        (t) => !["COMPLETED", "CANCELLED", "SKIPPED"].includes(t.status)
+      ),
+      runtimePath: "v5",
     },
   });
 }
@@ -188,22 +180,75 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   if (role === "CUSTOMER") {
-    if (action !== "cancel") {
-      return NextResponse.json({ error: "Customers cannot advance internal OMS steps" }, { status: 403 });
-    }
-    if (order.customer.portalUserId !== userId) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
-    }
-    // Portal can only cancel before sales locks the order
-    if (!["DRAFT", "PENDING_SALES_REVIEW"].includes(order.status)) {
-      return NextResponse.json(
-        { error: "You can only cancel while the order is awaiting sales review" },
-        { status: 409 }
-      );
-    }
+    return NextResponse.json(
+      {
+        error:
+          "Customers manage Sales Requests (cancel via /api/sales-requests/:id?action=cancel). Sales Orders are staff-managed after convert.",
+      },
+      { status: 403 }
+    );
   }
 
   const workflow = await resolveOrderWorkflow(tenantId, order.workflowId);
+  const { hasSnapshot } = await getInstanceSnapshotFlag(tenantId, id);
+
+  // Platform task completion — Adapter handlers own domain mutations
+  if (taskTypeForAction(action)) {
+    if (!hasSnapshot) {
+      return NextResponse.json(
+        { error: "Order missing workflow snapshot — recreate the sales order" },
+        { status: 409 }
+      );
+    }
+
+    if (role !== "CUSTOMER") {
+      const permission = await assertTaskPermission({
+        tenantId,
+        orderId: id,
+        action,
+        role,
+        userId,
+      });
+      if (!permission.ok) {
+        return NextResponse.json({ error: permission.error }, { status: 403 });
+      }
+    }
+    try {
+      const body = await request.json().catch(() => ({}));
+      await completeTaskByAction({
+        tenantId,
+        salesOrderId: id,
+        action,
+        actorUserId: userId,
+        actorRole: role,
+        payload: body,
+      });
+      const updated = await prisma.salesOrder.findFirst({
+        where: { id, tenantId },
+        include: {
+          items: true,
+          customer: { select: { id: true, name: true } },
+          salesRequest: true,
+          workflowTasks: true,
+        },
+      });
+      await logModification(tenantId, id, userId, `TASK_${action.toUpperCase()}`, {
+        remarks: typeof body === "object" && body && "remarks" in body
+          ? String((body as { remarks?: string }).remarks ?? "")
+          : undefined,
+        oldValue: order.status,
+        newValue: updated?.status,
+      });
+      return NextResponse.json({ data: updated });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
+      }
+      const message = error instanceof Error ? error.message : "Task complete failed";
+      return NextResponse.json({ error: message }, { status: 409 });
+    }
+  }
+
   const gate = assertWorkflowAction(workflow, action, order.status);
   if (!gate.ok) {
     return NextResponse.json({ error: gate.error }, { status: gate.status });
@@ -266,12 +311,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         reference: order.id,
       };
 
-      const reserveResult = await serviceClient.call("inventory", "/api/stock/reserve", {
-        method: "POST",
-        body: reservePayload,
-        tenantId,
-        userId,
-      });
+      const reserveResult = await withSpan("SalesOrder.Confirm", () =>
+        serviceClient.call("inventory", "/api/stock/reserve", {
+          method: "POST",
+          body: reservePayload,
+          tenantId,
+          userId,
+        })
+      );
 
       if (reserveResult.status !== 201) {
         const errBody = reserveResult.data as { error?: string } | undefined;
@@ -286,17 +333,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         data: { status: "CONFIRMED", warehouseId },
         include: { items: true, customer: { select: { id: true, name: true } } },
       });
-      await recordWorkflowTransition(
-        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
-        {
-          action,
-          previousStatus: order.status,
-          currentStatus: updated.status,
-          actorUserId: userId,
-          actorRole: role,
-          payload: { warehouseId },
-        }
-      );
+      const published = await getPublishedDefinition(tenantId);
+      if (published && updated.workflowId) {
+        await startSalesOrderWorkflowV5({
+          tenantId,
+          salesOrderId: id,
+          workflowId: updated.workflowId,
+          orderStatus: updated.status,
+        });
+      }
       return NextResponse.json({ data: updated });
     }
 
@@ -368,17 +413,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         });
       });
 
-      await recordWorkflowTransition(
-        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
-        {
-          action,
-          previousStatus: order.status,
-          currentStatus: updated.status,
-          actorUserId: userId,
-          actorRole: role,
-          remarks: notes,
-        }
-      );
 
       return NextResponse.json({ data: updated });
     }
@@ -386,23 +420,25 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (action === "cancel") {
       const cancellable = [
         "DRAFT",
-        "SUBMITTED",
+        "CONFIRMED",
+        "FULFILLING",
+        "READY_FOR_DISPATCH",
+        "PARTIALLY_SHIPPED",
+        // Legacy trading mid-statuses (pre SREQ→SO) — allow cleanup
         "PENDING_SALES_REVIEW",
+        "SUBMITTED",
         "REVIEWED",
         "STOCK_VERIFIED",
         "VENDOR_REQUESTED",
         "PRICING_PENDING",
         "PRICING_COMPLETED",
-        "READY_FOR_DISPATCH",
-        "CONFIRMED",
-        "PARTIALLY_SHIPPED",
       ];
       if (!cancellable.includes(order.status)) {
         return NextResponse.json({ error: `Cannot cancel order in ${order.status} status` }, { status: 409 });
       }
 
-      // Release stock reservations if order was confirmed
-      if (["CONFIRMED", "PARTIALLY_SHIPPED"].includes(order.status)) {
+      // Release stock reservations if order was activated/confirmed (grocery)
+      if (["CONFIRMED", "FULFILLING", "READY_FOR_DISPATCH", "PARTIALLY_SHIPPED"].includes(order.status)) {
         await serviceClient.call("inventory", "/api/stock/release", {
           method: "POST",
           body: { reference: order.id },
@@ -414,23 +450,44 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       const updated = await prisma.salesOrder.update({
         where: { id },
         data: { status: "CANCELLED" },
-        include: { items: true, customer: { select: { id: true, name: true } } },
+        include: {
+          items: true,
+          customer: { select: { id: true, name: true } },
+          salesRequest: true,
+        },
       });
+
+      // Cancelling the SO also cancels the linked Sales Request
+      await prisma.salesRequest.updateMany({
+        where: {
+          tenantId,
+          salesOrderId: id,
+          status: { in: ["OPEN", "CONVERTED"] },
+        },
+        data: {
+          status: "CANCELLED",
+          rejectReason: `Sales Order ${order.orderNumber} cancelled`,
+        },
+      });
+
       await logModification(tenantId, id, userId, "STATUS_CHANGE", {
         field: "status",
         oldValue: order.status,
         newValue: "CANCELLED",
       });
-      await recordWorkflowTransition(
-        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
-        {
-          action,
-          previousStatus: order.status,
-          currentStatus: updated.status,
-          actorUserId: userId,
-          actorRole: role,
-        }
-      );
+
+      await prisma.workflowTask.updateMany({
+        where: {
+          salesOrderId: id,
+          status: { notIn: ["COMPLETED", "CANCELLED", "SKIPPED"] },
+        },
+        data: { status: "CANCELLED" },
+      });
+      await prisma.workflowInstance.updateMany({
+        where: { salesOrderId: id, tenantId },
+        data: { instanceStatus: "CANCELLED", currentStatus: "CANCELLED" },
+      });
+
       await notifyPortalCustomer({
         tenantId,
         portalUserId: order.customer.portalUserId,
@@ -442,438 +499,29 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ data: updated });
     }
 
-    // ── OMS lifecycle actions ──────────────────────────────────────────
-    if (action === "submit") {
+    // ── Trading OMS: activate + parallel prep + fulfill + close ────────
+    if (action === "activate") {
       if (order.status !== "DRAFT") {
-        return NextResponse.json({ error: "Only DRAFT orders can be submitted" }, { status: 409 });
+        return NextResponse.json({ error: "Only DRAFT orders can be activated" }, { status: 409 });
       }
       const updated = await prisma.salesOrder.update({
         where: { id },
-        data: { status: "PENDING_SALES_REVIEW" },
-        include: { items: true, customer: { select: { id: true, name: true } } },
+        data: { status: "CONFIRMED" },
+        include: { items: true, customer: { select: { id: true, name: true } }, salesRequest: true },
       });
       await logModification(tenantId, id, userId, "STATUS_CHANGE", {
         field: "status",
         oldValue: "DRAFT",
-        newValue: "PENDING_SALES_REVIEW",
+        newValue: "CONFIRMED",
       });
-      await recordWorkflowTransition(
-        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
-        {
-          action,
-          previousStatus: "DRAFT",
-          currentStatus: updated.status,
-          actorUserId: userId,
-          actorRole: role,
-        }
-      );
-      return NextResponse.json({ data: updated });
-    }
-
-    if (action === "review") {
-      if (!["PENDING_SALES_REVIEW", "SUBMITTED", "DRAFT"].includes(order.status)) {
-        return NextResponse.json({ error: "Order is not awaiting sales review" }, { status: 409 });
-      }
-      const body = await request.json().catch(() => ({}));
-      const parsed = reviewSchema.parse(body);
-
-      const updated = await prisma.$transaction(async (tx) => {
-        if (parsed.items) {
-          await tx.salesOrderItem.deleteMany({ where: { salesOrderId: id } });
-          await tx.salesOrderItem.createMany({
-            data: parsed.items.map((i) => ({
-              salesOrderId: id,
-              productId: i.productId,
-              productName: i.productName,
-              quantity: i.quantity,
-              unitPrice: i.unitPrice,
-              total: i.quantity * i.unitPrice,
-              remarks: i.remarks,
-            })),
-          });
-          const subtotal = parsed.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
-          return tx.salesOrder.update({
-            where: { id },
-            data: {
-              status: "REVIEWED",
-              salesRemarks: parsed.remarks ?? order.salesRemarks,
-              deliveryDate: parsed.deliveryDate ? new Date(parsed.deliveryDate) : order.deliveryDate,
-              subtotal,
-              total: subtotal + order.tax + order.deliveryFee - order.couponDiscount,
-            },
-            include: { items: true, customer: { select: { id: true, name: true } } },
-          });
-        }
-        return tx.salesOrder.update({
-          where: { id },
-          data: {
-            status: "REVIEWED",
-            salesRemarks: parsed.remarks ?? order.salesRemarks,
-            deliveryDate: parsed.deliveryDate ? new Date(parsed.deliveryDate) : order.deliveryDate,
-          },
-          include: { items: true, customer: { select: { id: true, name: true } } },
-        });
-      });
-
-      await logModification(tenantId, id, userId, "REVIEW_EDIT", {
-        remarks: parsed.remarks,
-        oldValue: order.status,
-        newValue: "REVIEWED",
-      });
-      await recordWorkflowTransition(
-        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
-        {
-          action,
-          previousStatus: order.status,
-          currentStatus: updated.status,
-          actorUserId: userId,
-          actorRole: role,
-          remarks: parsed.remarks,
-        }
-      );
-      return NextResponse.json({ data: updated });
-    }
-
-    if (action === "verify-stock") {
-      if (!["REVIEWED", "STOCK_VERIFIED"].includes(order.status)) {
-        return NextResponse.json({ error: "Order must be REVIEWED before stock verification" }, { status: 409 });
-      }
-      const body = await request.json();
-      const parsed = stockVerifySchema.parse(body);
-
-      let hasShortage = false;
-      await prisma.$transaction(async (tx) => {
-        for (const line of parsed.items) {
-          const item = order.items.find((i) => i.id === line.orderItemId);
-          if (!item) throw new Error(`Item ${line.orderItemId} not found`);
-          const shortage = Math.max(0, item.quantity - line.availableQty);
-          if (shortage > 0) hasShortage = true;
-          await tx.salesOrderItem.update({
-            where: { id: line.orderItemId },
-            data: { availableQty: line.availableQty, shortageQty: shortage },
-          });
-        }
-        await tx.salesOrder.update({
-          where: { id },
-          data: { status: hasShortage ? "VENDOR_REQUESTED" : "STOCK_VERIFIED" },
-        });
-      });
-
-      const updated = await prisma.salesOrder.findFirst({
-        where: { id },
-        include: { items: true, customer: { select: { id: true, name: true } } },
-      });
-
-      // Auto-create vendor RFQs for shortage lines
-      const shortageItems = (updated?.items ?? []).filter((i) => (i.shortageQty ?? 0) > 0);
-      let vendorRequests: unknown[] = [];
-      if (shortageItems.length) {
-        const rfq = await serviceClient.call("procurement", "/api/vendor-requests", {
-          method: "POST",
-          body: {
-            salesOrderId: id,
-            items: shortageItems.map((i) => ({
-              productId: i.productId,
-              productName: i.productName,
-              quantity: i.shortageQty,
-            })),
-            sendNow: true,
-            channel: "WHATSAPP",
-          },
+      if (updated.workflowId) {
+        await startSalesOrderWorkflowV5({
           tenantId,
-          userId,
-        });
-        vendorRequests = [rfq.data];
-      } else {
-        await prisma.salesOrder.update({
-          where: { id },
-          data: { status: "PRICING_PENDING" },
-        });
-      }
-
-      await logModification(tenantId, id, userId, "STOCK_VERIFY", {
-        remarks: parsed.remarks,
-        newValue: hasShortage ? "VENDOR_REQUESTED" : "PRICING_PENDING",
-      });
-
-      const finalOrder = await prisma.salesOrder.findFirst({
-        where: { id },
-        include: { items: true, customer: { select: { id: true, name: true } } },
-      });
-      if (finalOrder) {
-        await recordWorkflowTransition(
-          {
-            id,
-            tenantId,
-            status: finalOrder.status,
-            workflowId: finalOrder.workflowId,
-          },
-          {
-            action,
-            previousStatus: order.status,
-            currentStatus: finalOrder.status,
-            actorUserId: userId,
-            actorRole: role,
-            remarks: parsed.remarks,
-            payload: { hasShortage, vendorRequestsCount: vendorRequests.length },
-          }
-        );
-      }
-      return NextResponse.json({ data: finalOrder, meta: { hasShortage, vendorRequests } });
-    }
-
-    if (action === "request-vendors") {
-      if (!["STOCK_VERIFIED", "VENDOR_REQUESTED", "REVIEWED"].includes(order.status)) {
-        return NextResponse.json({ error: "Invalid status for vendor request" }, { status: 409 });
-      }
-      const body = await request.json().catch(() => ({}));
-      const shortageItems = order.items.filter((i) => (i.shortageQty ?? 0) > 0);
-      const items =
-        (body as { items?: { productId: string; productName: string; quantity: number }[] }).items ??
-        shortageItems.map((i) => ({
-          productId: i.productId,
-          productName: i.productName,
-          quantity: i.shortageQty ?? i.quantity,
-        }));
-      if (!items.length) {
-        return NextResponse.json({ error: "No shortage items to request" }, { status: 400 });
-      }
-      const rfq = await serviceClient.call("procurement", "/api/vendor-requests", {
-        method: "POST",
-        body: {
           salesOrderId: id,
-          vendorId: (body as { vendorId?: string }).vendorId,
-          items,
-          sendNow: true,
-        },
-        tenantId,
-        userId,
-      });
-      const updated = await prisma.salesOrder.update({
-        where: { id },
-        data: { status: "VENDOR_REQUESTED" },
-        include: { items: true, customer: { select: { id: true, name: true } } },
-      });
-      await logModification(tenantId, id, userId, "STATUS_CHANGE", {
-        field: "status",
-        newValue: "VENDOR_REQUESTED",
-      });
-      await recordWorkflowTransition(
-        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
-        {
-          action,
-          previousStatus: order.status,
-          currentStatus: updated.status,
-          actorUserId: userId,
-          actorRole: role,
-          payload: { vendorRequest: rfq.data },
-        }
-      );
-      return NextResponse.json({ data: updated, meta: { vendorRequest: rfq.data } });
-    }
-
-    if (action === "start-pricing") {
-      if (!["STOCK_VERIFIED", "VENDOR_REQUESTED", "REVIEWED"].includes(order.status)) {
-        return NextResponse.json({ error: "Order not ready for pricing" }, { status: 409 });
+          workflowId: updated.workflowId,
+          orderStatus: updated.status,
+        });
       }
-      const updated = await prisma.salesOrder.update({
-        where: { id },
-        data: { status: "PRICING_PENDING" },
-        include: { items: true, customer: { select: { id: true, name: true } } },
-      });
-      await logModification(tenantId, id, userId, "STATUS_CHANGE", {
-        oldValue: order.status,
-        newValue: "PRICING_PENDING",
-      });
-      await recordWorkflowTransition(
-        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
-        {
-          action,
-          previousStatus: order.status,
-          currentStatus: updated.status,
-          actorUserId: userId,
-          actorRole: role,
-        }
-      );
-      return NextResponse.json({ data: updated });
-    }
-
-    if (action === "complete-pricing") {
-      if (!["PRICING_PENDING", "PRICING_COMPLETED"].includes(order.status)) {
-        return NextResponse.json({ error: "Order is not in pricing stage" }, { status: 409 });
-      }
-      const body = await request.json();
-      const parsed = pricingSchema.parse(body);
-
-      if (parsed.items) {
-        for (const line of parsed.items) {
-          const item = order.items.find((i) => i.id === line.orderItemId);
-          if (!item) continue;
-          const unitPrice = line.unitPrice ?? item.unitPrice;
-          const discount = line.discount ?? item.discount;
-          await prisma.salesOrderItem.update({
-            where: { id: line.orderItemId },
-            data: {
-              purchasePrice: line.purchasePrice,
-              unitPrice,
-              discount,
-              taxRate: line.taxRate ?? item.taxRate,
-              total: item.quantity * unitPrice - discount,
-            },
-          });
-        }
-      }
-
-      const fresh = await prisma.salesOrder.findFirst({ where: { id }, include: { items: true } });
-      const purchaseSubtotal = fresh!.items.reduce((s, i) => s + (i.purchasePrice ?? 0) * i.quantity, 0);
-      const subtotal = fresh!.items.reduce((s, i) => s + i.total, 0);
-      const discountAmount = parsed.discountAmount ?? order.discountAmount;
-      const transportationCharge = parsed.transportationCharge ?? order.transportationCharge;
-      const additionalCharges = parsed.additionalCharges ?? order.additionalCharges;
-      const tax = parsed.tax ?? order.tax;
-      const total = subtotal - discountAmount + tax + transportationCharge + additionalCharges + order.deliveryFee;
-      const marginAmount = subtotal - purchaseSubtotal - discountAmount;
-      const marginPercent = purchaseSubtotal > 0 ? (marginAmount / purchaseSubtotal) * 100 : 0;
-
-      const updated = await prisma.salesOrder.update({
-        where: { id },
-        data: {
-          status: "PRICING_COMPLETED",
-          purchaseSubtotal,
-          subtotal,
-          discountAmount,
-          transportationCharge,
-          additionalCharges,
-          tax,
-          total,
-          marginAmount,
-          marginPercent,
-        },
-        include: { items: true, customer: { select: { id: true, name: true } } },
-      });
-      await logModification(tenantId, id, userId, "PRICING", { remarks: parsed.remarks });
-      await recordWorkflowTransition(
-        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
-        {
-          action,
-          previousStatus: order.status,
-          currentStatus: updated.status,
-          actorUserId: userId,
-          actorRole: role,
-          remarks: parsed.remarks,
-          payload: {
-            marginAmount,
-            marginPercent,
-            total,
-          },
-        }
-      );
-      return NextResponse.json({ data: updated });
-    }
-
-    if (action === "ready-dispatch") {
-      if (order.status !== "PRICING_COMPLETED") {
-        return NextResponse.json({ error: "Pricing must be completed first" }, { status: 409 });
-      }
-      const updated = await prisma.salesOrder.update({
-        where: { id },
-        data: { status: "READY_FOR_DISPATCH" },
-        include: { items: true, customer: { select: { id: true, name: true } } },
-      });
-      await logModification(tenantId, id, userId, "STATUS_CHANGE", { newValue: "READY_FOR_DISPATCH" });
-      await recordWorkflowTransition(
-        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
-        {
-          action,
-          previousStatus: order.status,
-          currentStatus: updated.status,
-          actorUserId: userId,
-          actorRole: role,
-        }
-      );
-      return NextResponse.json({ data: updated });
-    }
-
-    if (action === "dispatch") {
-      if (!["READY_FOR_DISPATCH", "PRICING_COMPLETED"].includes(order.status)) {
-        return NextResponse.json({ error: "Order not ready for dispatch" }, { status: 409 });
-      }
-      const body = await request.json().catch(() => ({}));
-      const parsed = dispatchSchema.parse(body);
-      if (!parsed.assignedDriverId) {
-        return NextResponse.json(
-          { error: "assignedDriverId is required to create a delivery assignment" },
-          { status: 400 }
-        );
-      }
-      const updated = await prisma.salesOrder.update({
-        where: { id },
-        data: {
-          status: "DISPATCHED",
-          assignedDriverId: parsed.assignedDriverId,
-          vehicleInfo: parsed.vehicleInfo,
-          trackingNumber: parsed.trackingNumber,
-          dispatchRemarks: parsed.dispatchRemarks,
-          dispatchedAt: parsed.dispatchedAt ? new Date(parsed.dispatchedAt) : new Date(),
-        },
-        include: { items: true, customer: { select: { id: true, name: true } } },
-      });
-      const deliveryAssignment = await serviceClient.call("delivery", "/api/assignments", {
-        method: "POST",
-        body: {
-          orderId: id,
-          orderNumber: updated.orderNumber,
-          executiveId: parsed.assignedDriverId,
-          notes: parsed.dispatchRemarks,
-        },
-        tenantId,
-        userId,
-      });
-      await logModification(tenantId, id, userId, "DISPATCH", { remarks: parsed.dispatchRemarks });
-      await recordWorkflowTransition(
-        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
-        {
-          action,
-          previousStatus: order.status,
-          currentStatus: updated.status,
-          actorUserId: userId,
-          actorRole: role,
-          remarks: parsed.dispatchRemarks,
-          payload: {
-            assignedDriverId: parsed.assignedDriverId,
-            vehicleInfo: parsed.vehicleInfo,
-            trackingNumber: parsed.trackingNumber,
-            deliveryAssignmentStatus: deliveryAssignment.status,
-          },
-        }
-      );
-      return NextResponse.json({ data: updated });
-    }
-
-    if (action === "deliver-oms") {
-      if (order.status !== "DISPATCHED" && order.status !== "OUT_FOR_DELIVERY") {
-        return NextResponse.json({ error: "Order must be DISPATCHED" }, { status: 409 });
-      }
-      const updated = await prisma.salesOrder.update({
-        where: { id },
-        data: {
-          status: "DELIVERED",
-          deliveredAt: new Date(),
-          paymentStatus: order.paymentMethod === "COD" ? "PAID" : order.paymentStatus,
-        },
-        include: { items: true, customer: { select: { id: true, name: true } } },
-      });
-      await logModification(tenantId, id, userId, "STATUS_CHANGE", { newValue: "DELIVERED" });
-      await recordWorkflowTransition(
-        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
-        {
-          action,
-          previousStatus: order.status,
-          currentStatus: updated.status,
-          actorUserId: userId,
-          actorRole: role,
-        }
-      );
       return NextResponse.json({ data: updated });
     }
 
@@ -894,149 +542,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ data: doc }, { status: 201 });
     }
 
-    if (action === "close") {
-      if (order.status !== "DELIVERED" && order.status !== "INVOICED") {
-        return NextResponse.json({ error: "Order must be DELIVERED before close" }, { status: 409 });
-      }
-      const updated = await prisma.salesOrder.update({
-        where: { id },
-        data: { status: "CLOSED", closedAt: new Date() },
-        include: { items: true, customer: { select: { id: true, name: true } }, documents: true },
-      });
-      await logModification(tenantId, id, userId, "STATUS_CHANGE", { newValue: "CLOSED" });
-      await recordWorkflowTransition(
-        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
-        {
-          action,
-          previousStatus: order.status,
-          currentStatus: updated.status,
-          actorUserId: userId,
-          actorRole: role,
-        }
-      );
-      return NextResponse.json({ data: updated });
-    }
 
-    // Grocery-specific transitions
-    if (action === "awaiting_pickup") {
-      if (order.status !== "CONFIRMED") {
-        return NextResponse.json({ error: "Order must be CONFIRMED" }, { status: 409 });
-      }
-      const updated = await prisma.salesOrder.update({
-        where: { id },
-        data: { status: "AWAITING_PICKUP" },
-        include: { items: true, customer: { select: { id: true, name: true } } },
-      });
-      await recordWorkflowTransition(
-        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
-        {
-          action,
-          previousStatus: order.status,
-          currentStatus: updated.status,
-          actorUserId: userId,
-          actorRole: role,
-        }
-      );
-      return NextResponse.json({ data: updated });
-    }
-
-    if (action === "out_for_delivery") {
-      if (order.status !== "AWAITING_PICKUP") {
-        return NextResponse.json({ error: "Order must be AWAITING_PICKUP" }, { status: 409 });
-      }
-      const updated = await prisma.salesOrder.update({
-        where: { id },
-        data: { status: "OUT_FOR_DELIVERY" },
-        include: { items: true, customer: { select: { id: true, name: true } } },
-      });
-      await recordWorkflowTransition(
-        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
-        {
-          action,
-          previousStatus: order.status,
-          currentStatus: updated.status,
-          actorUserId: userId,
-          actorRole: role,
-        }
-      );
-      return NextResponse.json({ data: updated });
-    }
-
-    if (action === "delivered") {
-      if (order.status !== "OUT_FOR_DELIVERY") {
-        return NextResponse.json({ error: "Order must be OUT_FOR_DELIVERY" }, { status: 409 });
-      }
-      // Mark COD orders as paid on delivery; pre-paid orders already paid
-      const paymentStatus = order.paymentMethod === "COD" ? "PAID" : order.paymentStatus;
-      const updated = await prisma.salesOrder.update({
-        where: { id },
-        data: { status: "DELIVERED", paymentStatus },
-        include: { items: true, customer: { select: { id: true, name: true } } },
-      });
-      await recordWorkflowTransition(
-        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
-        {
-          action,
-          previousStatus: order.status,
-          currentStatus: updated.status,
-          actorUserId: userId,
-          actorRole: role,
-        }
-      );
-      return NextResponse.json({ data: updated });
-    }
-
-    if (action === "invoice") {
-      if (order.status !== "DELIVERED" && order.status !== "SHIPPED") {
-        return NextResponse.json({ error: "Order must be DELIVERED or SHIPPED to invoice" }, { status: 409 });
-      }
-      // Create AR invoice in accounting service
-      const invoiceResult = await serviceClient.call("accounting", "/api/invoices", {
-        method: "POST",
-        body: {
-          type: "RECEIVABLE",
-          entityId: order.customerId,
-          entityName: order.customer.name,
-          sourceRef: order.id,
-          date: new Date().toISOString(),
-          dueDate: new Date().toISOString(),
-          subtotal: order.subtotal,
-          tax: order.tax,
-          total: order.total,
-          notes: `Invoice for order ${order.orderNumber}`,
-        },
-        tenantId,
-        userId,
-      });
-
-      if (invoiceResult.status !== 201) {
-        const errBody = invoiceResult.data as { error?: string } | undefined;
-        return NextResponse.json({ error: errBody?.error ?? "Invoice creation failed" }, { status: 502 });
-      }
-
-      const updated = await prisma.salesOrder.update({
-        where: { id },
-        data: { status: "INVOICED" },
-        include: { items: true, customer: { select: { id: true, name: true } } },
-      });
-      await recordWorkflowTransition(
-        { id, tenantId, status: updated.status, workflowId: updated.workflowId },
-        {
-          action,
-          previousStatus: order.status,
-          currentStatus: updated.status,
-          actorUserId: userId,
-          actorRole: role,
-          payload: { invoice: invoiceResult.data },
-        }
-      );
-      return NextResponse.json({ data: updated });
-    }
-
-    return NextResponse.json({
-      error:
-        "Invalid action. Use ?action=confirm|ship|cancel|submit|review|verify-stock|request-vendors|start-pricing|complete-pricing|ready-dispatch|dispatch|deliver-oms|upload-document|close|awaiting_pickup|out_for_delivery|delivered|invoice",
-    }, { status: 400 });
+    return NextResponse.json(
+      { error: `Unknown or migrated action: ${action}. Use POST /api/workflow-tasks/:id?action=complete for desk tasks.` },
+      { status: 400 }
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
@@ -1044,7 +554,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (error instanceof Error && error.message.includes("not found")) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    console.error(`[orders/${id}?action=${action}] Internal error:`, error);
+    log.error("orders_id_action_action_internal_error", { err: error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

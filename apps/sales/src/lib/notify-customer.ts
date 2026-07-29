@@ -1,3 +1,6 @@
+import { createLogger } from "@erp/logger";
+
+const log = createLogger({ service: "sales" });
 /** Best-effort in-app notification to the portal user linked on the customer. */
 export async function notifyPortalCustomer(opts: {
   tenantId: string;
@@ -29,6 +32,6 @@ export async function notifyPortalCustomer(opts: {
       }),
     });
   } catch (err) {
-    console.error("[notifyPortalCustomer]", err);
+    log.error("notifyportalcustomer", { err: err });
   }
 }

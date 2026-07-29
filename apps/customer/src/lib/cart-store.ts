@@ -5,6 +5,14 @@ export type { CartItem } from "@erp/types";
 
 const KEY = "customer_cart";
 
+/** Dispatched on same-tab cart mutations so nav badge / cart page can refresh live */
+export const CART_CHANGED_EVENT = "erp:cart-changed";
+
+function notifyCartChanged(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(CART_CHANGED_EVENT));
+}
+
 export function getCart(): CartItem[] {
   if (typeof window === "undefined") return [];
   try {
@@ -16,6 +24,7 @@ export function getCart(): CartItem[] {
 
 export function saveCart(items: CartItem[]): void {
   localStorage.setItem(KEY, JSON.stringify(items));
+  notifyCartChanged();
 }
 
 export function addToCart(item: CartItem): CartItem[] {
@@ -39,12 +48,14 @@ export function addToCart(item: CartItem): CartItem[] {
 }
 
 export function updateQty(productId: string, variantId: string | undefined, qty: number): CartItem[] {
-  const cart = getCart().map((c) => {
-    if (c.productId === productId && c.variantId === variantId) {
-      return { ...c, qty };
-    }
-    return c;
-  }).filter((c) => c.qty > 0);
+  const cart = getCart()
+    .map((c) => {
+      if (c.productId === productId && c.variantId === variantId) {
+        return { ...c, qty };
+      }
+      return c;
+    })
+    .filter((c) => c.qty > 0);
   saveCart(cart);
   return cart;
 }
@@ -67,4 +78,19 @@ export function cartCount(): number {
 
 export function cartTotal(): number {
   return getCart().reduce((sum, c) => sum + c.price * c.qty, 0);
+}
+
+/** Subscribe to live cart updates (same tab + other tabs). Returns unsubscribe. */
+export function subscribeCart(onChange: () => void): () => void {
+  if (typeof window === "undefined") return () => undefined;
+  const onCustom = () => onChange();
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === KEY || e.key === null) onChange();
+  };
+  window.addEventListener(CART_CHANGED_EVENT, onCustom);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener(CART_CHANGED_EVENT, onCustom);
+    window.removeEventListener("storage", onStorage);
+  };
 }

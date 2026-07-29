@@ -1,49 +1,77 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyToken, extractToken } from "./index";
+import {
+  resolveRequestIds,
+  REQUEST_ID_HEADER,
+  CORRELATION_ID_HEADER,
+} from "@erp/logger/ids";
 
 /**
  * Middleware for individual microservices.
- * Validates JWT token and checks module access.
+ * Validates JWT (or service key), injects auth + request correlation headers.
+ * Edge-safe: uses @erp/logger/ids (no Node ALS / createLogger).
  */
 export function createServiceMiddleware(moduleId: string) {
   return async function middleware(request: NextRequest) {
-    // Skip health checks
-    if (request.nextUrl.pathname === "/api/health") {
-      return NextResponse.next();
+    const { requestId, correlationId } = resolveRequestIds(request.headers);
+
+    function withIds(res: NextResponse) {
+      res.headers.set(REQUEST_ID_HEADER, requestId);
+      res.headers.set(CORRELATION_ID_HEADER, correlationId);
+      return res;
     }
 
-    // Check service-to-service calls — fail-closed: reject if env var is unset
+    function injectIds(headers: Headers) {
+      headers.set(REQUEST_ID_HEADER, requestId);
+      headers.set(CORRELATION_ID_HEADER, correlationId);
+    }
+
+    const path = request.nextUrl.pathname;
+    if (
+      path === "/api/health" ||
+      path === "/health/live" ||
+      path === "/health/ready" ||
+      path.endsWith("/health/live") ||
+      path.endsWith("/health/ready")
+    ) {
+      return withIds(NextResponse.next());
+    }
+
     const serviceKey = request.headers.get("x-service-key");
     const serviceSecret = process.env.SERVICE_SECRET;
     if (serviceSecret && serviceKey === serviceSecret) {
-      return NextResponse.next();
+      const headers = new Headers(request.headers);
+      injectIds(headers);
+      return withIds(NextResponse.next({ request: { headers } }));
     }
 
-    // Validate user token
     const token = extractToken(request.headers.get("authorization"));
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return withIds(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
     }
 
     const auth = await verifyToken(token);
     if (!auth) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+      return withIds(NextResponse.json({ error: "Invalid token" }, { status: 401 }));
     }
 
-    // Check module access
-    if (!auth.modules.includes(moduleId)) {
-      return NextResponse.json(
-        { error: `No access to ${moduleId} module. Please purchase a license.` },
-        { status: 403 }
+    const modules = Array.isArray(auth.modules) ? auth.modules : [];
+    if (modules.length > 0 && !modules.includes(moduleId)) {
+      return withIds(
+        NextResponse.json(
+          { error: `No access to ${moduleId} module. Please purchase a license.` },
+          { status: 403 }
+        )
       );
     }
 
-    // Inject auth context into request headers so route handlers can read them
     const headers = new Headers(request.headers);
     headers.set("x-user-id", auth.userId);
     headers.set("x-tenant-id", auth.tenantId);
     headers.set("x-user-role", auth.role);
-    return NextResponse.next({ request: { headers } });
+    injectIds(headers);
+
+    return withIds(NextResponse.next({ request: { headers } }));
   };
 }

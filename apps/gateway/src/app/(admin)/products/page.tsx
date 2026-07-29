@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { api } from "@/lib/admin-api";
+import { api, getAdminUser } from "@/lib/admin-api";
 import dynamic from "next/dynamic";
 
 const BarcodeScannerModal = dynamic(() => import("@/components/BarcodeScannerModal"), { ssr: false });
@@ -124,6 +124,8 @@ function errText(err: unknown): string {
 }
 
 export default function ProductsPage() {
+  const role = getAdminUser()?.role ?? "";
+  const isCatalogAdmin = ["ADMIN", "MANAGER", "ORG_ADMIN", "SUPER_ADMIN", "BRANCH_ADMIN"].includes(role);
   const [tab, setTab] = useState<Tab>("catalog");
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -218,6 +220,10 @@ export default function ProductsPage() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  useEffect(() => {
+    if (!isCatalogAdmin && tab !== "catalog") setTab("catalog");
+  }, [isCatalogAdmin, tab]);
 
   async function ensureDefaultWarehouse(): Promise<string> {
     if (defaultWarehouseId) return defaultWarehouseId;
@@ -1015,12 +1021,16 @@ export default function ProductsPage() {
     <div className="p-8 max-w-[1400px] mx-auto">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Products</h1>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+            {isCatalogAdmin ? "Products" : "Product lookup"}
+          </h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Catalog, categories, brands and attributes — all configured in one place.
+            {isCatalogAdmin
+              ? "Catalog, categories, brands and attributes — all configured in one place."
+              : "Search SKU, size, thickness and stock while reviewing sales requests."}
           </p>
         </div>
-        {tab === "catalog" && (
+        {tab === "catalog" && isCatalogAdmin && (
           <div className="flex gap-2 flex-wrap items-center">
             <div className="flex gap-1">
               <input
@@ -1065,11 +1075,15 @@ export default function ProductsPage() {
 
       <div className="mb-6 inline-flex gap-1 rounded-lg bg-gray-100 p-1">
         {(
-          [
-            ["catalog", "Catalog"],
-            ["fields", "Custom Fields"],
-            ["setup", "Categories & Brands"],
-          ] as const
+          (
+            isCatalogAdmin
+              ? ([
+                  ["catalog", "Catalog"],
+                  ["fields", "Custom Fields"],
+                  ["setup", "Categories & Brands"],
+                ] as const)
+              : ([["catalog", "Catalog lookup"]] as const)
+          )
         ).map(([key, label]) => (
           <button
             key={key}
@@ -1138,25 +1152,29 @@ export default function ProductsPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => openEditProductForm(p)}
-                              className="text-xs bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-100 font-medium transition-colors"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => {
-                                setStockModal(p);
-                                setStockQty("100");
-                                setStockCost(String(p.costPrice));
-                                setMsg("");
-                              }}
-                              className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 font-medium transition-colors"
-                            >
-                              + Add Stock
-                            </button>
-                          </div>
+                          {isCatalogAdmin ? (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => openEditProductForm(p)}
+                                className="text-xs bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-100 font-medium transition-colors"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setStockModal(p);
+                                  setStockQty("100");
+                                  setStockCost(String(p.costPrice));
+                                  setMsg("");
+                                }}
+                                className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 font-medium transition-colors"
+                              >
+                                + Add Stock
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">View only</span>
+                          )}
                         </td>
                       </tr>
                     );
@@ -1164,10 +1182,19 @@ export default function ProductsPage() {
                   {products.length === 0 && (
                     <tr>
                       <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
-                        No products yet.{" "}
-                        <button type="button" onClick={openNewProductForm} className="text-indigo-600 hover:underline font-medium">
-                          Create your first product
-                        </button>
+                        No products yet.
+                        {isCatalogAdmin && (
+                          <>
+                            {" "}
+                            <button
+                              type="button"
+                              onClick={openNewProductForm}
+                              className="text-indigo-600 hover:underline font-medium"
+                            >
+                              Create your first product
+                            </button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   )}

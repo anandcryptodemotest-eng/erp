@@ -8,18 +8,25 @@ const PROCUREMENT_URL = process.env.PROCUREMENT_SERVICE_URL ?? "http://localhost
 const DELIVERY_URL    = process.env.DELIVERY_SERVICE_URL    ?? "http://localhost:3006";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   // Served publicly only via nginx at https://host/admin (apps bind to 127.0.0.1).
   basePath: "/admin",
   allowedDevOrigins: ["150.242.201.102", "localhost", "127.0.0.1"],
-  transpilePackages: ["@erp/ui", "@erp/types", "@erp/auth", "@erp/config"],
+  transpilePackages: ["@erp/logger", "@erp/telemetry", "@erp/ui", "@erp/types", "@erp/auth", "@erp/config", "@erp/workflow", "@erp/ui-runtime", "@erp/extensions"],
   async rewrites() {
     return [
       // ── Sales ──────────────────────────────────────────────────────────
       { source: "/api/customers/:path*",     destination: `${SALES_URL}/api/customers/:path*` },
       { source: "/api/orders/:path*",        destination: `${SALES_URL}/api/orders/:path*` },
       { source: "/api/orders",               destination: `${SALES_URL}/api/orders` },
+      { source: "/api/sales-requests/:path*", destination: `${SALES_URL}/api/sales-requests/:path*` },
+      { source: "/api/sales-requests",        destination: `${SALES_URL}/api/sales-requests` },
       { source: "/api/order-workflows/:path*", destination: `${SALES_URL}/api/order-workflows/:path*` },
       { source: "/api/order-workflows",        destination: `${SALES_URL}/api/order-workflows` },
+      { source: "/api/workflow-templates/:path*", destination: `${SALES_URL}/api/workflow-templates/:path*` },
+      { source: "/api/workflow-templates",        destination: `${SALES_URL}/api/workflow-templates` },
+      { source: "/api/workflow-forms/:path*", destination: `${SALES_URL}/api/workflow-forms/:path*` },
+      { source: "/api/workflow-forms",        destination: `${SALES_URL}/api/workflow-forms` },
       { source: "/api/workflow-tasks/:path*", destination: `${SALES_URL}/api/workflow-tasks/:path*` },
       { source: "/api/workflow-tasks",        destination: `${SALES_URL}/api/workflow-tasks` },
       { source: "/api/quotes/:path*",        destination: `${SALES_URL}/api/quotes/:path*` },

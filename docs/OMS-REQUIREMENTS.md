@@ -1,27 +1,38 @@
 # Order Management System (OMS) — Requirements & Enterprise Product Attribute Design
 
-> **Status:** Implementation in progress (Phase 1–4 core landed in codebase)  
+> **Status:** SREQ → SO + parallel prep (v3) is the trading path  
 > **Last updated:** July 2026  
 > **Decision:** Extend existing ERP monorepo (do not create a separate OMS project)  
-> **Related:** `docs/ARCHITECTURE.md`
+> **Related:** `docs/ARCHITECTURE.md`, `docs/TRADING-JOURNEY.md`
+
+### Canonical trading flow (no sequential mid-status debt)
+
+```
+Customer → Sales Request (SREQ) → Convert → Sales Order (SO)
+  → Parallel prep tasks (sales, inventory, pricing, warehouse, optional procurement)
+  → READY_FOR_DISPATCH → DISPATCHED → DELIVERED → INVOICED → PAID → CLOSED
+```
+
+SO status stays **coarse**. Mid-funnel work is **tasks**, not statuses like `PENDING_SALES_REVIEW` / `REVIEWED` / `PRICING_PENDING` (removed from trading template).
 
 ### Implementation checklist (code)
 
 | Area | Status | Location |
 |------|--------|----------|
-| Hybrid attributes schema + validation | Done | `apps/inventory` — `ProductAttributeDefinition`, `customAttributes`, index |
+| Sales Request (SREQ) entity + convert | Done | `apps/sales` — `/api/sales-requests`, `/convert` |
+| Checkout → SREQ (not SO) | Done | `apps/customer` checkout |
+| Parallel prep task sync | Done | `workflow-runtime` + `oms_trading` v3 |
+| OMS desk: SREQ queue + convert | Done | Gateway `/oms` |
+| Hybrid attributes schema + validation | Done | `apps/inventory` |
 | Industry templates (plywood/steel/apparel) | Done | `GET/POST /api/attribute-templates` |
-| Attribute admin UI | Done | Gateway `/attributes` |
-| ProductVendor + WhatsApp RFQ | Done | `apps/procurement` — `/api/product-vendors`, `/api/vendor-requests` |
-| OMS order lifecycle actions | Done | `PATCH /api/orders/:id?action=submit\|review\|verify-stock\|…` |
-| OMS workflow UI | Done | Gateway `/oms` |
-| Branch model | Schema + API | `apps/gateway` — `Branch`, `/api/branches` |
+| ProductVendor + WhatsApp RFQ | Done | `apps/procurement` |
+| Branch model | Schema + API | `apps/gateway` — `Branch` |
 | Fine-grained permission matrix UI | Pending | Roles still string-based |
 | Real WhatsApp Business API | Pending | Deep-link + message queue stub |
 | Blob file storage (S3/R2) | Pending | Document URL upload only |
 | Native mobile apps | Pending | Web/PWA first |
 
-**Apply DB schemas locally:** from each app run `pnpm run db:push` (inventory, sales, procurement, gateway).
+**Apply DB schemas locally:** from each app run `pnpm run db:push` (inventory, sales, procurement, gateway). After sales push: re-apply `workflow.oms_trading` and run `scripts/migrate-sreq-so-cleanup.ts` once to remap any legacy mid-statuses.
 
 ### UI placement (July 2026)
 

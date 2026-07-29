@@ -1,9 +1,8 @@
 # ERP Microservices - Docker Compose
-# Run: docker compose up -d
-# Each service runs independently with its own database
+# Apps: docker compose up -d
+# Observability: docker compose --profile obs up -d
 
 services:
-  # PostgreSQL (shared in dev, separate in production)
   postgres:
     image: postgres:16-alpine
     environment:
@@ -11,7 +10,6 @@ services:
       POSTGRES_PASSWORD: erp_dev_password
       POSTGRES_DB: erp_gateway
     ports:
-      # Loopback only — never expose Postgres on the public interface
       - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -22,27 +20,36 @@ services:
       timeout: 5s
       retries: 5
 
-  # API Gateway (port 3000)
   gateway:
     build:
       context: .
       dockerfile: apps/gateway/Dockerfile
     ports:
-      - "3000:3000"
+      - "3010:3010"
     environment:
       DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_gateway
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
+      SERVICE_NAME: gateway
+      SERVICE_VERSION: "1.0.0"
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       SALES_SERVICE_URL: http://sales:3001
       INVENTORY_SERVICE_URL: http://inventory:3002
       ACCOUNTING_SERVICE_URL: http://accounting:3003
       HR_SERVICE_URL: http://hr:3004
       PROCUREMENT_SERVICE_URL: http://procurement:3005
+      DELIVERY_SERVICE_URL: http://delivery:3006
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3010/admin/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
-  # Sales Service (port 3001)
   sales:
     build:
       context: .
@@ -53,15 +60,26 @@ services:
       DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_sales
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
-      GATEWAY_URL: http://gateway:3000
+      SERVICE_NAME: sales
+      SERVICE_VERSION: "1.0.0"
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      GATEWAY_URL: http://gateway:3010
       INVENTORY_SERVICE_URL: http://inventory:3002
       ACCOUNTING_SERVICE_URL: http://accounting:3003
+      PROCUREMENT_SERVICE_URL: http://procurement:3005
+      DELIVERY_SERVICE_URL: http://delivery:3006
       TAX_RATE: ${TAX_RATE:-0.10}
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
-  # Inventory Service (port 3002)
   inventory:
     build:
       context: .
@@ -72,12 +90,21 @@ services:
       DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_inventory
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
-      GATEWAY_URL: http://gateway:3000
+      SERVICE_NAME: inventory
+      SERVICE_VERSION: "1.0.0"
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      GATEWAY_URL: http://gateway:3010
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3002/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
-  # Accounting Service (port 3003)
   accounting:
     build:
       context: .
@@ -88,15 +115,24 @@ services:
       DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_accounting
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
-      GATEWAY_URL: http://gateway:3000
+      SERVICE_NAME: accounting
+      SERVICE_VERSION: "1.0.0"
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      GATEWAY_URL: http://gateway:3010
       SALES_SERVICE_URL: http://sales:3001
       HR_SERVICE_URL: http://hr:3004
       PROCUREMENT_SERVICE_URL: http://procurement:3005
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3003/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
-  # HR Service (port 3004)
   hr:
     build:
       context: .
@@ -107,13 +143,22 @@ services:
       DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_hr
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
-      GATEWAY_URL: http://gateway:3000
+      SERVICE_NAME: hr
+      SERVICE_VERSION: "1.0.0"
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      GATEWAY_URL: http://gateway:3010
       ACCOUNTING_SERVICE_URL: http://accounting:3003
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3004/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
-  # Procurement Service (port 3005)
   procurement:
     build:
       context: .
@@ -124,13 +169,130 @@ services:
       DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_procurement
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
-      GATEWAY_URL: http://gateway:3000
+      SERVICE_NAME: procurement
+      SERVICE_VERSION: "1.0.0"
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      GATEWAY_URL: http://gateway:3010
       INVENTORY_SERVICE_URL: http://inventory:3002
       ACCOUNTING_SERVICE_URL: http://accounting:3003
       TAX_RATE: ${TAX_RATE:-0.10}
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3005/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  delivery:
+    build:
+      context: .
+      dockerfile: apps/delivery/Dockerfile
+    ports:
+      - "3006:3006"
+    environment:
+      DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_delivery
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
+      SERVICE_NAME: delivery
+      SERVICE_VERSION: "1.0.0"
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      GATEWAY_URL: http://gateway:3010
+      SALES_SERVICE_URL: http://sales:3001
+      HR_SERVICE_URL: http://hr:3004
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3006/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  # Observability only — does not build/start app images
+  otel-collector:
+    profiles: ["obs"]
+    image: otel/opentelemetry-collector-contrib:0.115.1
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./ops/otel/collector.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8889:8889"
+    depends_on:
+      - tempo
+      - loki
+      - prometheus
+
+  tempo:
+    profiles: ["obs"]
+    image: grafana/tempo:2.6.1
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./ops/otel/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "3200:3200"
+
+  loki:
+    profiles: ["obs"]
+    image: grafana/loki:3.2.1
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    ports:
+      - "3100:3100"
+
+  prometheus:
+    profiles: ["obs"]
+    image: prom/prometheus:v2.55.1
+    volumes:
+      - ./ops/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-remote-write-receiver
+
+  grafana:
+    profiles: ["obs"]
+    image: grafana/grafana:11.3.1
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_DEFAULT_THEME: light
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./ops/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./ops/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+
+  promtail:
+    profiles: ["obs"]
+    image: grafana/promtail:3.2.1
+    volumes:
+      - ./ops/otel/promtail.yaml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: ["-config.file=/etc/promtail/config.yml"]
+    depends_on:
+      - loki
 
 volumes:
   pgdata:
+  tempo-data:
+  prometheus-data:
+  grafana-data:

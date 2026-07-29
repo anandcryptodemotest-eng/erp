@@ -23,6 +23,9 @@ export type NavModuleKey =
   | "orders"
   | "products"
   | "oms"
+  | "workflows"
+  | "configuration"
+  | "users"
   | "vendors"
   | "purchase_orders"
   | "employees"
@@ -40,6 +43,9 @@ export const ALL_NAV_MODULES: NavModuleKey[] = [
   "orders",
   "products",
   "oms",
+  "workflows",
+  "configuration",
+  "users",
   "vendors",
   "purchase_orders",
   "employees",
@@ -57,6 +63,8 @@ export const TRADING_JOURNEY_NAV: NavModuleKey[] = [
   "customers",
   "products",
   "oms",
+  "workflows",
+  "configuration",
   "orders",
   "vendors",
   "purchase_orders",
@@ -76,26 +84,26 @@ export const DEFAULT_ROLE_NAV: Record<string, NavModuleKey[] | "*"> = {
   // Platform / break-glass — full ERP including CRM
   SUPER_ADMIN: "*",
 
-  // Org roles — trading journey (CRM off until needed)
-  ADMIN: TRADING_JOURNEY_NAV,
-  ORG_ADMIN: TRADING_JOURNEY_NAV,
+  // Org roles — trading journey (CRM off until needed); Users = admin-only team setup
+  ADMIN: [...TRADING_JOURNEY_NAV, "users"],
+  ORG_ADMIN: [...TRADING_JOURNEY_NAV, "users"],
   MANAGER: TRADING_JOURNEY_NAV,
   BRANCH_ADMIN: TRADING_JOURNEY_NAV,
 
-  // Sales desk — mobile orders + OMS
-  SALES_EXECUTIVE: ["dashboard", "customers", "products", "oms", "orders"],
-  SALES_REP: ["dashboard", "customers", "products", "oms", "orders"],
+  // Sales desk — SREQ→SO trading workbench + lookup masters (no grocery /orders counter)
+  SALES_EXECUTIVE: ["dashboard", "customers", "products", "oms"],
+  SALES_REP: ["dashboard", "customers", "products", "oms"],
 
-  // OMS stage owners
-  PRICING_EXECUTIVE: ["dashboard", "products", "oms", "orders"],
-  DISPATCH_EXECUTIVE: ["dashboard", "oms", "orders"],
+  // OMS stage owners — Sales desk is their primary work surface
+  PRICING_EXECUTIVE: ["dashboard", "products", "oms"],
+  DISPATCH_EXECUTIVE: ["dashboard", "oms"],
   DELIVERY_EXECUTIVE: ["dashboard", "oms"],
 
   // Procurement + vendor communication
   PROCUREMENT_OFFICER: ["dashboard", "products", "vendors", "purchase_orders", "oms", "orders"],
 
   // Finance (no CRM)
-  ACCOUNTANT: ["dashboard", "customers", "invoices", "orders", "oms"],
+  ACCOUNTANT: ["dashboard", "customers", "invoices", "oms"],
   HR_MANAGER: ["dashboard", "employees", "payroll"],
 
   VIEWER: ["dashboard", "customers", "products", "oms", "orders"],
@@ -106,7 +114,7 @@ export const DEFAULT_ROLE_NAV: Record<string, NavModuleKey[] | "*"> = {
 
 export function modulesForRole(role: string | null | undefined): Set<NavModuleKey> {
   if (!role) return new Set(["dashboard"]);
-  const cfg = DEFAULT_ROLE_NAV[role] ?? DEFAULT_ROLE_NAV.USER ?? ["dashboard"];
+  const cfg = DEFAULT_ROLE_NAV[role] ?? (["dashboard", "oms"] as NavModuleKey[]);
   if (cfg === "*") return new Set(ALL_NAV_MODULES);
   return new Set(cfg);
 }
@@ -167,6 +175,9 @@ export function defaultHomePath(allowed: Set<NavModuleKey>): string {
     orders: "/orders",
     products: "/products",
     oms: "/oms",
+    workflows: "/workflows",
+    configuration: "/configuration",
+    users: "/users",
     vendors: "/vendors",
     purchase_orders: "/purchase-orders",
     employees: "/employees",
@@ -186,6 +197,9 @@ export function pathToModuleKey(pathname: string): NavModuleKey | null {
   if (pathname.startsWith("/orders")) return "orders";
   if (pathname.startsWith("/products") || pathname.startsWith("/attributes")) return "products";
   if (pathname.startsWith("/oms")) return "oms";
+  if (pathname.startsWith("/workflows")) return "workflows";
+  if (pathname.startsWith("/configuration") || pathname.startsWith("/forms")) return "configuration";
+  if (pathname.startsWith("/users")) return "users";
   if (pathname.startsWith("/vendors")) return "vendors";
   if (pathname.startsWith("/purchase-orders")) return "purchase_orders";
   if (pathname.startsWith("/employees")) return "employees";

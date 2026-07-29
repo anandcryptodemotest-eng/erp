@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "jose": "^6.0.0",
-    "@erp/types": "workspace:*"
+    "@erp/types": "workspace:*",
+    "@erp/logger": "workspace:*"
   },
   "peerDependencies": {
     "next": ">=15.0.0"

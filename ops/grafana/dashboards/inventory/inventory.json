@@ -1,0 +1,23 @@
+{
+  "title": "Inventory",
+  "uid": "erp-inventory",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": ["erp", "inventory"],
+  "panels": [
+    {
+      "type": "traces",
+      "title": "Inventory.Reserve traces",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "queryType": "traceql",
+          "query": "{ name = \"Inventory.Reserve\" }",
+          "datasource": { "type": "tempo", "uid": "tempo" }
+        }
+      ],
+      "datasource": { "type": "tempo", "uid": "tempo" }
+    }
+  ]
+}

@@ -1,8 +1,10 @@
-# Trading journey — screen-by-screen
+# Trading journey — SREQ → SO (screen-by-screen)
 
-Customer mobile order → Sales executive call & edit → stock / procurement → pricing → dispatch.
+Customer mobile **Sales Request (SREQ)** → Sales converts to **Sales Order (SO)** → parallel prep tasks → dispatch → deliver → invoice → payment → close.
 
-Admin nav defaults to this journey (CRM hidden). Workflow template: `workflow.oms_trading`.
+Admin nav defaults to this journey (CRM hidden). Workflow template: `workflow.oms_trading` **v3**.
+
+> **SREQ** = Sales Request. **SR** in returns UI = Sales Return (different document).
 
 ---
 
@@ -14,66 +16,54 @@ Admin nav defaults to this journey (CRM hidden). Workflow template: `workflow.om
 | 2 | Product list | Browses + category + attribute filters | `attr[key]` faceted search |
 | 3 | Product detail | Picks size / thickness / qty | Attribute pickers → cart |
 | 4 | Cart | Reviews lines | Local cart → checkout |
-| 5 | Checkout | Address, notes, payment | `POST /api/orders` → **PENDING_SALES_REVIEW** |
-| 6 | My orders | Tracks OMS status | Read-only list |
-| 7 | Order detail | Timeline, cancel (in review), reorder | Cancel only `DRAFT` / `PENDING_SALES_REVIEW` |
+| 5 | Checkout | Address, notes, payment | `POST /api/sales-requests` → **SREQ-#####** status `OPEN` |
+| 6 | My requests | Tracks SREQ + linked SO status | List SREQs; after convert shows SO status |
+| 7 | Request detail | Timeline, cancel (while OPEN), reorder | Cancel only `OPEN` SREQ |
 | 8 | Profile | Addresses CRUD + inbox | `/customers/me` + notifications |
 
-**Out of scope for v1 mobile:** editing after submit (SE does that on call).
+**Customers never create Sales Orders directly.**
 
 ---
 
-## B. Sales executive — Order desk (admin)
+## B. Sales desk — OMS (`/oms`)
 
-Landing: **OMS Workflow** (`/oms`).
+| # | Screen | User does | Result |
+|---|--------|-----------|--------|
+| 1 | Open SREQs | Opens customer requests | Queue of `OPEN` SREQs |
+| 2 | Convert | Confirms commercial intent | Creates **SO-#####** at `CONFIRMED`; SREQ → `CONVERTED`; SO status visible on SREQ |
+| 3 | Parallel prep | Role queues work independently | Tasks: sales review, inventory, pricing, warehouse (+ procurement if shortage) |
+| 4 | Prep gate | All required prep complete | SO → `READY_FOR_DISPATCH` |
+| 5 | Dispatch | Assign vehicle / driver | → `DISPATCHED` |
+| 6 | Deliver | Marks delivered | → `DELIVERED` |
+| 7 | Invoice | Finance creates AR invoice | → `INVOICED` |
+| 8 | Collect payment | Marks paid | → `PAID` |
+| 9 | Close | Closes order | → `CLOSED` |
 
-| # | Screen | User does | OMS action / status |
-|---|--------|-----------|---------------------|
-| 1 | OMS queue | Opens new mobile orders | Filter `PENDING_SALES_REVIEW` |
-| 2 | Order detail / Orders | Calls customer; changes lines, size, qty, notes | Edit via **Orders** (`/orders`) while in review |
-| 3 | Complete sales review | Locks commercial intent with customer | Action **review** → `REVIEWED` |
-| 4 | Verify stock | Checks warehouse availability | Action **verify-stock** → `STOCK_VERIFIED` (or shortage flagged) |
-| 5a | In stock | Skip vendor | Continue to pricing |
-| 5b | Shortage | Starts procurement | Action **request-vendors** → `VENDOR_REQUESTED` |
-| 6 | Vendors / PO | WhatsApp RFQ or create PO | **Vendors** + **Purchase Orders**; rates come back |
-| 7 | Pricing | Final rates / margins (acts as quote lock) | **start-pricing** → **complete-pricing** → `PRICING_COMPLETED` |
-| 8 | Ready for dispatch | Confirms pick list | → `READY_FOR_DISPATCH` |
-| 9 | Dispatch | Assigns vehicle / challan | → `DISPATCHED` |
-| 10 | Deliver | Marks delivered | → `DELIVERED` → close |
+SO coarse statuses only — **no** linear mid-status ladder (`PENDING_SALES_REVIEW`, `REVIEWED`, …).
 
-Invoice: created on ship/dispatch (existing sales → accounting hook).
+Staff-created DRAFT SO: action **activate** → `CONFIRMED` (same parallel prep).
 
 ---
 
-## C. Supporting admin screens
+## C. Happy-path checklist
+
+1. Apply **OMS Trading** template (v3).  
+2. Customer places mobile request → SREQ.  
+3. SE on **OMS → Open SREQs** → **Convert to Sales Order**.  
+4. Parallel: review / verify stock / pricing / warehouse ready.  
+5. Dispatch → Deliver → Invoice → Pay → Close.  
+6. Customer sees SO status on the SREQ detail.
+
+---
+
+## D. Supporting admin screens
 
 | Screen | When |
 |--------|------|
-| **Products** | Catalog, categories, brands, **Edit lists** for size per category |
+| **Products** | Catalog, categories, brands |
 | **Customers** | Master data for mobile buyers |
-| **Vendors** | Supplier contacts for RFQ / WhatsApp |
+| **Vendors** | Supplier contacts when inventory flags shortage |
 | **Purchase Orders** | Formal buy when stock must be procured |
-| **Invoices** | AR after dispatch |
+| **Invoices** | AR after deliver |
 
 Hidden by default: Leads, Deals, Quotes, Employees, Payroll (CRM / HR).
-
----
-
-## D. Re-enable CRM later
-
-In `apps/gateway/src/lib/nav-access.ts`:
-
-- Set role to `"*"` (full), **or**
-- Add `sales_flow` / `leads` / `opportunities` / `quotes` to that role’s list, **or**
-- Per-user `navModules` override at login.
-
----
-
-## E. Happy-path checklist
-
-1. Apply **Plywood / Timber** template; set size lists per category.  
-2. Customer places mobile order.  
-3. SE sees it on **OMS** → edits on call → **Review**.  
-4. **Verify stock** → if short, **Request vendors** + PO / WhatsApp.  
-5. **Pricing** → **Dispatch** → **Deliver**.  
-6. Customer sees status on **My orders**.

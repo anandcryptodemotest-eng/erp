@@ -10,6 +10,7 @@ export interface KpiCardProps {
   trendValue?: string;
   subtext?: string;
   href?: string;
+  onClick?: () => void;
   className?: string;
 }
 
@@ -23,9 +24,28 @@ const COLOR_CLASSES: Record<NonNullable<KpiCardProps["color"]>, string> = {
   slate: "bg-slate-100 text-slate-600",
 };
 
-export function KpiCard({ label, value, icon: Icon, color = "indigo", trend, trendValue, subtext, href, className }: KpiCardProps) {
+export function KpiCard({
+  label,
+  value,
+  icon: Icon,
+  color = "indigo",
+  trend,
+  trendValue,
+  subtext,
+  href,
+  onClick,
+  className,
+}: KpiCardProps) {
+  const clickable = Boolean(href || onClick);
   const content = (
-    <div className={cn("rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow", className)}>
+    <div
+      className={cn(
+        "rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow",
+        clickable && "cursor-pointer hover:border-slate-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600",
+        !clickable && "hover:shadow-md",
+        className
+      )}
+    >
       <div className="flex items-center justify-between">
         {Icon && (
           <span className={cn("inline-flex h-9 w-9 items-center justify-center rounded-full", COLOR_CLASSES[color])}>
@@ -47,6 +67,9 @@ export function KpiCard({ label, value, icon: Icon, color = "indigo", trend, tre
       <div className="mt-3 text-sm text-slate-500">{label}</div>
       <div className="text-2xl font-semibold text-slate-900 mt-0.5">{value}</div>
       {subtext && <div className="text-xs text-slate-400 mt-1">{subtext}</div>}
+      {clickable && !subtext && (
+        <div className="text-xs font-medium text-emerald-700 mt-2">View list →</div>
+      )}
     </div>
   );
 
@@ -57,5 +80,14 @@ export function KpiCard({ label, value, icon: Icon, color = "indigo", trend, tre
       </a>
     );
   }
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className="block w-full text-left">
+        {content}
+      </button>
+    );
+  }
+
   return content;
 }

@@ -34,15 +34,69 @@ model Customer {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  orders    SalesOrder[]
-  quotes    Quote[]
-  opportunities Opportunity[]
-  returns   SalesReturn[]
-  addresses CustomerAddress[]
+  orders         SalesOrder[]
+  salesRequests  SalesRequest[]
+  quotes         Quote[]
+  opportunities  Opportunity[]
+  returns        SalesReturn[]
+  addresses      CustomerAddress[]
 
   @@unique([tenantId, portalUserId])
   @@index([tenantId])
   @@index([tenantId, portalUserId])
+}
+
+/// Customer intent document (SREQ). Converted 1:1 to a SalesOrder — never a status ladder.
+model SalesRequest {
+  id                  String   @id @default(cuid())
+  tenantId            String
+  requestNumber       String
+  customerId          String
+  userId              String
+  status              String   @default("OPEN") // OPEN | CONVERTED | REJECTED | CANCELLED
+  salesOrderId        String?  @unique
+  isOnlineOrder       Boolean  @default(true)
+  deliveryAddressId   String?
+  deliveryAddressText String?
+  deliveryFee         Float    @default(0)
+  paymentMethod       String   @default("COD")
+  paymentStatus       String   @default("PENDING")
+  couponId            String?
+  couponDiscount      Float    @default(0)
+  subtotal            Float
+  tax                 Float    @default(0)
+  total               Float
+  notes               String?
+  rejectReason        String?
+  convertedAt         DateTime?
+  convertedBy         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  customer   Customer           @relation(fields: [customerId], references: [id])
+  salesOrder SalesOrder?        @relation(fields: [salesOrderId], references: [id])
+  items      SalesRequestItem[]
+
+  @@unique([tenantId, requestNumber])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([customerId])
+}
+
+model SalesRequestItem {
+  id              String  @id @default(cuid())
+  salesRequestId  String
+  productId       String
+  productName     String
+  variantId       String?
+  quantity        Int
+  unitPrice       Float
+  taxRate         Float   @default(0)
+  total           Float
+
+  salesRequest SalesRequest @relation(fields: [salesRequestId], references: [id], onDelete: Cascade)
+
+  @@index([salesRequestId])
 }
 
 model CustomerAddress {
@@ -187,8 +241,9 @@ model SalesOrder {
   date              DateTime
   deliveryDate      DateTime?
   status            String   @default("DRAFT")
-  // Status values come from the tenant's OrderWorkflow steps (template-driven).
-  // Do not add customer-specific statuses to code — add a workflow template instead.
+  // Trading OMS coarse statuses: DRAFT | CONFIRMED | FULFILLING | READY_FOR_DISPATCH |
+  // DISPATCHED | DELIVERED | INVOICED | PAID | CLOSED | CANCELLED
+  // Grocery template uses its own statuses. Do not add per-customer statuses in code.
   isOnlineOrder     Boolean  @default(false)
   deliveryAddressId String?  // ref: CustomerAddress.id
   deliveryAddressText String? // free-text when address master not used
@@ -219,16 +274,17 @@ model SalesOrder {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  customer      Customer             @relation(fields: [customerId], references: [id])
-  quote         Quote?               @relation(fields: [quoteId], references: [id])
-  workflow      OrderWorkflow?       @relation(fields: [workflowId], references: [id])
+  customer         Customer             @relation(fields: [customerId], references: [id])
+  quote            Quote?               @relation(fields: [quoteId], references: [id])
+  salesRequest     SalesRequest?
+  workflow         OrderWorkflow?       @relation(fields: [workflowId], references: [id])
   workflowInstance WorkflowInstance?
-  items         SalesOrderItem[]
-  returns       SalesReturn[]
-  modifications OrderModification[]
-  documents     OrderDocument[]
-  workflowTasks WorkflowTask[]
-  workflowEvents WorkflowEvent[]
+  items            SalesOrderItem[]
+  returns          SalesReturn[]
+  modifications    OrderModification[]
+  documents        OrderDocument[]
+  workflowTasks    WorkflowTask[]
+  workflowEvents   WorkflowEvent[]
 
   @@unique([tenantId, orderNumber])
   @@index([tenantId])
@@ -267,15 +323,18 @@ model OrderWorkflowStep {
   id           String  @id @default(cuid())
   tenantId     String
   workflowId   String
-  key          String  // sales_review, stock_verify, ...
+  key          String  // sales_review, inventory, ...
   label        String  // UI label
   action       String  // PATCH ?action= value
   fromStatuses  Json    // string[] — statuses where this action is allowed
-  toStatus     String? // static next status; null if resolverKey handles it
-  resolverKey  String? // stock_verify | null — dynamic next status in handler
+  toStatus     String? // static next status; null if resolverKey / prep-gate handles it
+  resolverKey  String? // stock_verify | prep_gate | ship | null
   sortOrder    Int     @default(0)
   roleHint     String? // SALES_EXECUTIVE | PRICING_EXECUTIVE | ...
   uiPanel      String  @default("none") // none | stock | pricing | dispatch | document
+  phase        String  @default("FULFILL") // PREP | FULFILL | CLOSE
+  dependsOn    Json    @default("[]") // string[] of step keys that must be COMPLETED
+  required     Boolean @default(true) // if false, omitted from READY_FOR_DISPATCH gate unless activated
   isTerminal   Boolean @default(false)
   allowCancel  Boolean @default(true)
 
@@ -294,6 +353,15 @@ model WorkflowInstance {
   workflowId      String
   currentStatus   String
   currentStepKey  String?
+  /// Platform v5+: entity binding (defaults to SALES_ORDER for legacy rows)
+  entityType      String   @default("SALES_ORDER")
+  entityId        String?
+  templateCode    String?
+  templateVersion Int?
+  /// Immutable published WorkflowDefinition JSON at start
+  snapshot        Json?
+  variables       Json     @default("{}")
+  instanceStatus  String   @default("RUNNING") // RUNNING | COMPLETED | CANCELLED
   startedAt       DateTime @default(now())
   completedAt     DateTime?
   createdAt       DateTime @default(now())
@@ -306,6 +374,7 @@ model WorkflowInstance {
 
   @@index([tenantId, workflowId])
   @@index([tenantId, currentStatus])
+  @@index([tenantId, entityType, entityId])
 }
 
 model WorkflowTask {
@@ -318,12 +387,24 @@ model WorkflowTask {
   title              String
   assignedRole       String
   assignedUserId     String?
-  status             String   @default("PENDING") // PENDING | IN_PROGRESS | COMPLETED | CANCELLED
+  status             String   @default("PENDING") // WAITING | READY | CLAIMED | PENDING | IN_PROGRESS | COMPLETED | CANCELLED | SKIPPED | DEAD_LETTER
+  phase              String   @default("FULFILL") // PREP | FULFILL | CLOSE
+  dependsOn          Json     @default("[]")
+  required           Boolean  @default(true)
   dueAt              DateTime?
   startedAt          DateTime?
   completedAt        DateTime?
   completedBy        String?
   payload            Json?
+  /// Platform v5 fields
+  taskType           String?
+  kind               String?  // HUMAN | SYSTEM
+  optional           Boolean  @default(false)
+  claimedAt          DateTime?
+  leaseExpiresAt     DateTime?
+  attempt            Int      @default(0)
+  rowVersion         Int      @default(1)
+  errorMessage       String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -334,6 +415,8 @@ model WorkflowTask {
   @@index([tenantId, assignedRole, status])
   @@index([tenantId, assignedUserId, status])
   @@index([tenantId, salesOrderId])
+  @@index([tenantId, phase, status])
+  @@index([tenantId, status, leaseExpiresAt])
 }
 
 model WorkflowEvent {
@@ -453,4 +536,62 @@ model SalesReturnItem {
 
   return    SalesReturn    @relation(fields: [returnId], references: [id], onDelete: Cascade)
   orderItem SalesOrderItem @relation(fields: [orderItemId], references: [id])
+}
+
+/// Versioned workflow definition JSON (designer authoring + publish). Runtime snapshots copy this.
+model WorkflowTemplateVersion {
+  id           String   @id @default(cuid())
+  tenantId     String
+  templateCode String   // e.g. SO_STANDARD
+  version      Int
+  lifecycle    String   // DRAFT | PUBLISHED | ARCHIVED
+  name         String?
+  definition   Json     // WorkflowDefinition JSON — source of truth
+  clonedFromId String?
+  publishedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([tenantId, templateCode, version])
+  @@index([tenantId, templateCode, lifecycle])
+  @@index([tenantId, lifecycle])
+}
+
+/// Independently versioned FORM metadata (Phase 1 typed catalog; not unified MetadataAsset yet).
+model WorkflowFormVersion {
+  id         String   @id @default(cuid())
+  tenantId   String
+  formId     String   // stable catalog id e.g. sales-review
+  version    Int
+  lifecycle  String   // DRAFT | PUBLISHED | ARCHIVED
+  name       String?
+  definition Json     // FormDefinition JSON
+  clonedFromId String?
+  publishedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([tenantId, formId, version])
+  @@index([tenantId, formId, lifecycle])
+  @@index([tenantId, lifecycle])
+}
+
+/// Dependency index: which workflow versions reference which assets (impact analysis).
+model WorkflowAssetDependency {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  /// Asset being referenced (e.g. FORM)
+  assetType          String
+  assetId            String
+  assetVersion       Int
+  /// Consumer (Phase 1: WORKFLOW template versions)
+  consumerType       String   // WORKFLOW
+  consumerId         String   // templateCode
+  consumerVersion    Int
+  consumerRecordId   String?  // WorkflowTemplateVersion.id
+  createdAt          DateTime @default(now())
+
+  @@unique([tenantId, assetType, assetId, assetVersion, consumerType, consumerId, consumerVersion])
+  @@index([tenantId, assetType, assetId])
+  @@index([tenantId, consumerType, consumerId, consumerVersion])
 }

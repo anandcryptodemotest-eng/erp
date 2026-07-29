@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getCart, updateQty, removeFromCart, cartTotal, type CartItem } from "@/lib/cart-store";
+import { getCart, updateQty, removeFromCart, cartTotal, subscribeCart, type CartItem } from "@/lib/cart-store";
 import { productImageUrl } from "@/lib/media";
 
 export default function CartPage() {
@@ -11,6 +11,7 @@ export default function CartPage() {
 
   useEffect(() => {
     setItems(getCart());
+    return subscribeCart(() => setItems(getCart()));
   }, []);
 
   function handleQty(productId: string, variantId: string | undefined, qty: number) {

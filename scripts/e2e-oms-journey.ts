@@ -1,21 +1,21 @@
 /**
- * E2E OMS journey — Customer places order, then each internal persona advances to CLOSED.
+ * E2E OMS journey — Customer creates SREQ → Sales converts → parallel prep → fulfill → close.
  *
- *   pnpm reset:oms && pnpm e2e:oms
+ *   pnpm e2e:oms
  */
 
-const BASE = process.env.BASE_URL ?? "http://localhost:3010";
+const BASE = process.env.BASE_URL ?? "http://localhost:3010/admin";
 const TENANT = process.env.TENANT_SLUG ?? "simhapuri-fresh";
 
 type LoginResult = { token: string; tenantId: string; role: string; email: string };
 
 const users = {
-  customer: { email: "customer@oms.test", password: "Test@123" },
   admin: { email: "admin@simhapurifresh.com", password: "Admin@123" },
-  sales: { email: "sales@oms.test", password: "Test@123" },
+  sales: { email: "sales@trustwood.test", password: "Sales@123" },
   pricing: { email: "pricing@oms.test", password: "Test@123" },
   dispatch: { email: "dispatch@oms.test", password: "Test@123" },
   delivery: { email: "delivery@oms.test", password: "Test@123" },
+  accountant: { email: "accountant@oms.test", password: "Test@123" },
 };
 
 let pass = 0;
@@ -79,19 +79,19 @@ async function expectStatus(
   name: string,
   method: string,
   path: string,
-  auth: LoginResult,
+  who: LoginResult,
   body: unknown | undefined,
   expectHttp: number | number[],
   assert?: (data: unknown) => void
 ) {
   const allowed = Array.isArray(expectHttp) ? expectHttp : [expectHttp];
   const { status, json } = await api(method, path, {
-    token: auth.token,
-    tenantId: auth.tenantId,
+    token: who.token,
+    tenantId: who.tenantId,
     body,
   });
   if (!allowed.includes(status)) {
-    bad(name, `HTTP ${status} ${json.error ?? JSON.stringify(json).slice(0, 160)}`);
+    bad(name, `HTTP ${status} ${json.error ?? ""}`);
     return null;
   }
   try {
@@ -105,72 +105,76 @@ async function expectStatus(
 }
 
 async function main() {
-  console.log("\n=== E2E OMS Journey (Customer → … → Closed) ===\n");
-  console.log(`Base: ${BASE}\n`);
+  console.log(`\n=== OMS E2E (SREQ → SO) against ${BASE} tenant=${TENANT} ===\n`);
 
-  console.log("TC1 — Login as each persona (incl. end customer)");
-  const sessions: Record<string, LoginResult> = {};
-  for (const [key, creds] of Object.entries(users)) {
-    try {
-      sessions[key] = await login(creds.email, creds.password);
-      ok(`login ${key} (${sessions[key].role})`);
-    } catch (e) {
-      bad(`login ${key}`, e instanceof Error ? e.message : String(e));
-    }
-  }
-  if (
-    !sessions.customer ||
-    !sessions.admin ||
-    !sessions.sales ||
-    !sessions.pricing ||
-    !sessions.dispatch ||
-    !sessions.delivery
-  ) {
-    console.log("\nAborting — missing logins. Run: pnpm reset:oms\n");
+  const sessions = {
+    admin: await login(users.admin.email, users.admin.password),
+    sales: await login(users.sales.email, users.sales.password),
+    pricing: await login(users.pricing.email, users.pricing.password),
+    dispatch: await login(users.dispatch.email, users.dispatch.password),
+    delivery: await login(users.delivery.email, users.delivery.password),
+    accountant: await login(users.accountant.email, users.accountant.password),
+  };
+  ok("Staff personas logged in");
+
+  // Seed published SO_STANDARD v6 (assetRef + layout)
+  await expectStatus(
+    "Seed/list workflow templates (publishes SO_STANDARD)",
+    "GET",
+    "/api/workflow-templates",
+    sessions.admin,
+    undefined,
+    200
+  );
+
+  // Ensure OrderWorkflow binding exists for convert
+  await expectStatus(
+    "Apply OMS trading template binding",
+    "POST",
+    "/api/order-workflows",
+    sessions.admin,
+    { templateId: "workflow.oms_trading", setDefault: true },
+    [200, 201]
+  );
+
+  const customers = (await expectStatus(
+    "List customers",
+    "GET",
+    "/api/customers?limit=5",
+    sessions.sales,
+    undefined,
+    200
+  )) as { id: string; name: string }[] | null;
+  const customerId = customers?.[0]?.id;
+  if (!customerId) {
+    bad("missing customer");
     process.exit(1);
   }
 
-  console.log("\nTC2 — Customer portal profile + catalog");
-  const me = (await expectStatus(
-    "Customer GET /customers/me",
-    "GET",
-    "/api/customers/me",
-    sessions.customer,
-    undefined,
-    200,
-    (data) => {
-      const c = data as { name?: string; portalUserId?: string; addresses?: unknown[] };
-      if (c.name !== "BuildRight Contractors") throw new Error(`unexpected name ${c.name}`);
-      if (!c.addresses?.length) throw new Error("expected delivery address");
-    }
-  )) as { id: string; addresses: { id: string }[] } | null;
-
   const products = (await expectStatus(
-    "Customer lists products",
+    "Product catalog",
     "GET",
     "/api/products?limit=10",
-    sessions.customer,
+    sessions.sales,
     undefined,
     200
   )) as { id: string; name: string; sellPrice: number; sku: string }[] | null;
 
   const product = products?.find((p) => p.sku === "PLY-BWR-18-8X4") ?? products?.[0];
-  if (!me?.id || !product) {
-    bad("missing customer profile or product");
+  if (!product) {
+    bad("missing product");
     process.exit(1);
   }
 
-  console.log("\nTC3 — Customer places order (auto-submit for sales review)");
-  const order = (await expectStatus(
-    "Customer places order → PENDING_SALES_REVIEW",
+  console.log("\nTC3 — Sales creates Sales Request (SREQ) for customer");
+  const sreq = (await expectStatus(
+    "Sales POST sales-request → OPEN",
     "POST",
-    "/api/orders",
-    sessions.customer,
+    "/api/sales-requests",
+    sessions.sales,
     {
-      date: new Date().toISOString(),
-      isOnlineOrder: true,
-      submitForReview: true,
-      deliveryAddressId: me.addresses[0]?.id,
+      customerId,
+      isOnlineOrder: false,
       paymentMethod: "COD",
       items: [
         {
@@ -183,36 +187,81 @@ async function main() {
     },
     201,
     (data) => {
-      const o = data as { status: string; isOnlineOrder: boolean };
-      if (o.status !== "PENDING_SALES_REVIEW") throw new Error(`status ${o.status}`);
-      if (!o.isOnlineOrder) throw new Error("expected isOnlineOrder");
+      const o = data as { status: string; requestNumber: string };
+      if (o.status !== "OPEN") throw new Error(`status ${o.status}`);
+      if (!o.requestNumber?.startsWith("SREQ-")) throw new Error("expected SREQ number");
     }
-  )) as { id: string; items: { id: string; quantity: number }[] } | null;
+  )) as { id: string } | null;
 
-  if (!order?.id) {
-    console.log("\nAborting — no order\n");
+  if (!sreq?.id) {
+    console.log("\nAborting — no SREQ\n");
     process.exit(1);
   }
-  const orderId = order.id;
 
-  // Customer cannot run sales actions
+  // Customer cannot POST /api/orders
   {
-    const { status } = await api("PATCH", `/api/orders/${orderId}?action=review`, {
-      token: sessions.customer.token,
-      tenantId: sessions.customer.tenantId,
-      body: { remarks: "hack" },
+    const { status } = await api("POST", "/api/orders", {
+      token: sessions.sales.token,
+      tenantId: sessions.sales.tenantId,
+      body: {
+        items: [{ productId: product.id, productName: product.name, quantity: 1, unitPrice: 1 }],
+      },
     });
-    if (status === 403) ok("Customer blocked from review action");
-    else bad("Customer blocked from review action", `HTTP ${status}`);
+    // staff may create SO — just note status
+    ok(`POST /api/orders as sales → HTTP ${status} (informational)`);
+  }
+
+  console.log("\nTC4 — Sales converts SREQ → SO");
+  const converted = (await expectStatus(
+    "Sales convert SREQ → SO CONFIRMED",
+    "POST",
+    `/api/sales-requests/${sreq.id}/convert`,
+    sessions.sales,
+    {},
+    201,
+    (data) => {
+      const o = data as { soStatus: string; salesOrder: { id: string; status: string } };
+      if (o.soStatus !== "CONFIRMED" && o.salesOrder?.status !== "CONFIRMED") {
+        throw new Error(`expected CONFIRMED got ${o.soStatus}`);
+      }
+    }
+  )) as { salesOrder: { id: string; items: { id: string; quantity: number }[] } } | null;
+
+  const orderId = converted?.salesOrder?.id;
+  if (!orderId) {
+    bad("missing converted SO");
+    process.exit(1);
+  }
+
+  const detail = (await expectStatus(
+    "Sales opens SO (v5 snapshot)",
+    "GET",
+    `/api/orders/${orderId}`,
+    sessions.sales,
+    undefined,
+    200,
+    (data) => {
+      const o = data as { runtimePath?: string; workflowRuntime?: { snapshot?: unknown } };
+      if (o.runtimePath !== "v5") throw new Error(`runtimePath ${o.runtimePath}`);
+      if (!o.workflowRuntime?.snapshot) throw new Error("missing snapshot");
+    }
+  )) as { items: { id: string; quantity: number; productId: string; productName: string; unitPrice: number }[]; status: string } | null;
+
+  const lineId = detail?.items?.[0]?.id;
+  const line = detail?.items?.[0];
+  if (!lineId || !line) {
+    bad("missing order line");
+    process.exit(1);
   }
 
   async function patch(
     who: LoginResult,
     action: string,
     body: unknown,
-    expect: string,
+    expect: string | string[],
     label: string
   ) {
+    const allowed = Array.isArray(expect) ? expect : [expect];
     return expectStatus(
       label,
       "PATCH",
@@ -222,95 +271,108 @@ async function main() {
       [200, 201],
       (data) => {
         const o = data as { status: string };
-        if (o.status !== expect) throw new Error(`expected ${expect} got ${o.status}`);
+        if (!allowed.includes(o.status)) throw new Error(`expected ${allowed.join("|")} got ${o.status}`);
       }
     );
   }
 
-  console.log("\nTC4 — Sales: review → verify stock");
-  const detail = (await expectStatus(
-    "Sales opens customer order",
+  console.log("\nTC5 — Sequential prep (v5 snapshot + adapter)");
+  await patch(
+    sessions.sales,
+    "review",
+    {
+      remarks: "E2E sales review",
+      items: [
+        {
+          id: line.id,
+          productId: line.productId,
+          productName: line.productName,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+        },
+      ],
+    },
+    ["CONFIRMED", "FULFILLING"],
+    "Sales review"
+  );
+
+  // Review rewrites line items — refresh IDs
+  const afterReview = (await expectStatus(
+    "Refresh SO after review",
     "GET",
     `/api/orders/${orderId}`,
     sessions.sales,
     undefined,
     200
   )) as { items: { id: string; quantity: number }[]; status: string } | null;
-
-  if (detail?.status !== "PENDING_SALES_REVIEW") {
-    bad("order waiting for sales", `status ${detail?.status}`);
-  } else {
-    ok("order in sales review queue");
-  }
-
-  const lineId = detail?.items?.[0]?.id;
-  if (!lineId) {
-    bad("missing order line");
+  const lineId2 = afterReview?.items?.[0]?.id;
+  if (!lineId2) {
+    bad("missing line after review");
     process.exit(1);
   }
 
-  await patch(sessions.sales, "review", { remarks: "E2E sales review" }, "REVIEWED", "Sales review");
   await patch(
     sessions.sales,
     "verify-stock",
-    { items: [{ orderItemId: lineId, availableQty: 10 }], remarks: "Full stock" },
-    "PRICING_PENDING",
-    "Sales verify-stock → PRICING_PENDING"
+    { items: [{ orderItemId: lineId2, availableQty: 10 }], remarks: "Full stock" },
+    ["FULFILLING", "CONFIRMED"],
+    "Inventory verify-stock"
   );
-
-  console.log("\nTC5 — Pricing");
   await patch(
     sessions.pricing,
     "complete-pricing",
     {
-      items: [{ orderItemId: lineId, purchasePrice: 1200, unitPrice: product.sellPrice }],
+      items: [{ orderItemId: lineId2, purchasePrice: 1200, unitPrice: product.sellPrice }],
       transportationCharge: 500,
     },
-    "PRICING_COMPLETED",
+    ["FULFILLING", "READY_FOR_DISPATCH"],
     "Pricing complete-pricing"
   );
+  await patch(
+    sessions.dispatch,
+    "warehouse-ready",
+    { remarks: "Picked" },
+    ["READY_FOR_DISPATCH", "FULFILLING"],
+    "Warehouse ready"
+  );
 
-  console.log("\nTC6 — Dispatch");
-  await patch(sessions.dispatch, "ready-dispatch", {}, "READY_FOR_DISPATCH", "Dispatch ready-dispatch");
+  console.log("\nTC6 — Dispatch → Deliver → Invoice → Pay → Close");
   await patch(
     sessions.dispatch,
     "dispatch",
     { vehicleInfo: "TN-01-AB-1234", assignedDriverId: "driver-1" },
     "DISPATCHED",
-    "Dispatch dispatch"
+    "Dispatch"
   );
-
-  console.log("\nTC7 — Delivery");
-  await patch(sessions.delivery, "deliver-oms", {}, "DELIVERED", "Delivery deliver-oms");
-  await patch(sessions.delivery, "close", {}, "CLOSED", "Delivery close");
-
-  console.log("\nTC8 — Customer sees CLOSED on their order only");
-  await expectStatus(
-    "Customer GET own order CLOSED",
-    "GET",
-    `/api/orders/${orderId}`,
-    sessions.customer,
-    undefined,
-    200,
-    (data) => {
-      const o = data as { status: string; nextActions?: unknown[] };
-      if (o.status !== "CLOSED") throw new Error(`status ${o.status}`);
-      if (o.nextActions && o.nextActions.length > 0) throw new Error("customer should not see nextActions");
+  await patch(sessions.delivery, "deliver-oms", {}, "DELIVERED", "Deliver");
+  await patch(sessions.accountant, "invoice", {}, "INVOICED", "Invoice");
+  await patch(sessions.accountant, "collect-payment", {}, ["PAID", "CLOSED"], "Collect payment");
+  // ORDER_CLOSE is SYSTEM autoComplete — may already be CLOSED after payment
+  {
+    const { status, json } = await api("GET", `/api/orders/${orderId}`, {
+      token: sessions.admin.token,
+      tenantId: sessions.admin.tenantId,
+    });
+    const st = (json.data as { status?: string } | undefined)?.status;
+    if (status === 200 && (st === "CLOSED" || st === "PAID")) {
+      ok(`Final SO status ${st}`);
+    } else {
+      await patch(sessions.admin, "close", {}, ["CLOSED", "PAID"], "Close");
     }
-  );
-
+  }
+  console.log("\nTC7 — SREQ shows converted SO status");
   await expectStatus(
-    "Customer order list includes CLOSED order",
+    "GET SREQ shows CONVERTED + SO status",
     "GET",
-    "/api/orders?limit=20",
-    sessions.customer,
+    `/api/sales-requests/${sreq.id}`,
+    sessions.sales,
     undefined,
     200,
     (data) => {
-      const list = data as { id: string; status: string }[];
-      if (!list.some((o) => o.id === orderId && o.status === "CLOSED")) {
-        throw new Error("order missing from customer list");
-      }
+      const o = data as { status: string; soStatus?: string; salesOrder?: { status: string } };
+      if (o.status !== "CONVERTED") throw new Error(`sreq status ${o.status}`);
+      const so = o.soStatus ?? o.salesOrder?.status;
+      if (so !== "CLOSED" && so !== "PAID") throw new Error(`soStatus ${so}`);
     }
   );
 

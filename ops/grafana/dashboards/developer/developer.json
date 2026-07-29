@@ -1,0 +1,35 @@
+{
+  "title": "Developer — Logs Traces Exceptions",
+  "uid": "erp-developer",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": ["erp", "developer"],
+  "panels": [
+    {
+      "type": "logs",
+      "title": "Error logs",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "{job=~\".+\"} |= \"error\"",
+          "datasource": { "type": "loki", "uid": "loki" }
+        }
+      ],
+      "datasource": { "type": "loki", "uid": "loki" }
+    },
+    {
+      "type": "traces",
+      "title": "Explore traces",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "queryType": "traceql",
+          "query": "{ resource.service.namespace = \"erp\" }",
+          "datasource": { "type": "tempo", "uid": "tempo" }
+        }
+      ],
+      "datasource": { "type": "tempo", "uid": "tempo" }
+    }
+  ]
+}

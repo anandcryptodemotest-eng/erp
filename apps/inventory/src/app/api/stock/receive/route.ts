@@ -1,6 +1,9 @@
+import { createLogger } from "@erp/logger";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+
+const log = createLogger({ service: "inventory" });
 
 const receiveSchema = z.object({
   items: z.array(z.object({
@@ -61,7 +64,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    console.error("[stock/receive]", error);
+    log.error("stock_receive", { err: error });
     return NextResponse.json({ error: msg || "Internal server error" }, { status: 500 });
   }
 }

@@ -19,7 +19,9 @@
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "zod": "^3.24.0"
+    "zod": "^3.24.0",
+    "@erp/telemetry": "workspace:*",
+    "@erp/logger": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

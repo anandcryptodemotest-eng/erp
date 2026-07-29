@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { isAuthenticated } from "@/lib/api-client";
-import { cartCount } from "@/lib/cart-store";
+import { cartCount, subscribeCart } from "@/lib/cart-store";
 import { IconCart, IconHome, IconOrders, IconProfile, IconShop } from "@/components/nav-icons";
 
 const NAV = [
@@ -32,6 +32,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setCount(cartCount());
   }, [pathname]);
+
+  useEffect(() => {
+    return subscribeCart(() => setCount(cartCount()));
+  }, []);
 
   if (!ready) {
     return (

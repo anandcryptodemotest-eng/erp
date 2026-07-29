@@ -1,5 +1,13 @@
 # OMS E2E — Multi-user journey (Customer → Closed)
 
+## Platform note (v5)
+
+New sales orders use **published** `SO_STANDARD` workflow JSON (sequential).  
+Author/change flows in Admin → **Workflows** (Canvas → JSON → Validate → Publish).  
+Runtime executes **snapshots** only — never the diagram.
+
+See [WORKFLOW-PLATFORM.md](./WORKFLOW-PLATFORM.md).
+
 ## Reset + seed
 
 ```bash
@@ -12,35 +20,36 @@ pnpm reset:oms
 pnpm e2e:oms
 ```
 
-Covers: **Customer places order** → Sales → Pricing → Dispatch → Delivery → Closed.
-
-## Users
-
-| Persona | Email | Password | App | Sees in admin |
-|---------|-------|----------|-----|---------------|
-| **End customer** | `customer@oms.test` | `Test@123` | http://localhost:3007/login | Portal only |
-| Org Admin | `admin@simhapurifresh.com` | `Admin@123` | Admin | Trading journey (OMS + catalog + procurement); CRM hidden |
-| Sales | `sales@oms.test` | `Test@123` | Admin | OMS + Orders + Products + Customers |
-| Pricing | `pricing@oms.test` | `Test@123` | Admin | OMS + Products (+ Dashboard) |
-| Dispatch | `dispatch@oms.test` | `Test@123` | Admin | OMS (+ Dashboard) |
-| Delivery | `delivery@oms.test` | `Test@123` | Admin | OMS (+ Dashboard) |
-
-Nav visibility is **role-configured** in `apps/gateway/src/lib/nav-access.ts` (`TRADING_JOURNEY_NAV` / `DEFAULT_ROLE_NAV`). Optional per-user override via `navModules`. See `docs/TRADING-JOURNEY.md`.
-
 Tenant: `simhapuri-fresh`
+
+## Users (live)
+
+| Persona | Email | Password | App |
+|---------|-------|----------|-----|
+| Org Admin | `admin@simhapurifresh.com` | `Admin@123` | Admin (+ Workflows designer) |
+| Sales Executive | `sales@trustwood.test` | `Sales@123` | Admin OMS |
+| Pricing Executive | `pricing@oms.test` | `Test@123` | Admin OMS |
+| Dispatch Executive | `dispatch@oms.test` | `Test@123` | Admin OMS |
+| Delivery Executive | `delivery@oms.test` | `Test@123` | Admin OMS |
+| Accountant | `accountant@oms.test` | `Test@123` | Admin OMS |
+
+## Sequential SO_STANDARD v5
+
+```
+Sales Review → Inventory → Procurement? → Pricing → Warehouse
+  → Dispatch → Delivery → Invoice → Payment → Close (SYSTEM)
+```
+
+Procurement runs only when `shortage` is true. Parallel Pricing∥Warehouse = publish a different template (edges only; no engine change).
 
 ## Manual UI journey
 
-### 0. Customer (portal :3007)
-1. Login as `customer@oms.test`
-2. Products → add Marine Plywood to cart → Checkout → **Submit for review**
-3. Orders → see status **With Sales** (`PENDING_SALES_REVIEW`)
+### Designer (Admin)
+1. Workflows → open SO_STANDARD → Clone draft  
+2. Edit canvas / properties → Save draft  
+3. Fix validation → Publish  
 
-### 1–5. Internal team (admin :3010)
-1. **Sales** — OMS → review → verify stock  
-2. **Pricing** — complete pricing  
-3. **Dispatch** — ready + dispatch  
-4. **Delivery** — deliver + close  
-5. **Customer** — refresh Orders → **Closed**
-
-Seeded: BuildRight Contractors (portal-linked), Site Office address, PLY-BWR-18-8X4, OMS Trading workflow.
+### Trading desk
+1. Customer places SREQ  
+2. Sales converts → SO; first READY task = Sales review  
+3. Complete inventory → (procurement if shortage) → pricing → warehouse → dispatch → deliver → invoice → pay → close  

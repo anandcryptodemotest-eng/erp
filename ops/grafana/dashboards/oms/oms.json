@@ -1,0 +1,23 @@
+{
+  "title": "OMS Vertical Slice",
+  "uid": "erp-oms",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": ["erp", "oms"],
+  "panels": [
+    {
+      "type": "traces",
+      "title": "SalesOrder / Inventory spans",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "queryType": "traceql",
+          "query": "{ name =~ \"SalesOrder\\\\..*|Inventory\\\\..*\" }",
+          "datasource": { "type": "tempo", "uid": "tempo" }
+        }
+      ],
+      "datasource": { "type": "tempo", "uid": "tempo" }
+    }
+  ]
+}

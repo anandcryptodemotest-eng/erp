@@ -8,7 +8,9 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@erp/types": "workspace:*"
+    "@erp/types": "workspace:*",
+    "@erp/logger": "workspace:*",
+    "@erp/telemetry": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0"

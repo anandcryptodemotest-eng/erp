@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
+import { getWorkbenchForRole, syncOpenInstanceReadiness } from "@/lib/workflow-workbench";
 import { prisma } from "@/lib/prisma";
-import { bootstrapWorkflowRuntimes, getWorkbenchForRole } from "@/lib/workflow-runtime";
 
 const ROLE_MAP: Record<string, string> = {
   SALES_REP: "SALES_EXECUTIVE",
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   const status = url.searchParams.get("status");
   const salesOrderId = url.searchParams.get("salesOrderId");
 
-  await bootstrapWorkflowRuntimes(tenantId);
+  await syncOpenInstanceReadiness(tenantId);
 
   if (salesOrderId) {
     const data = await prisma.workflowTask.findMany({
@@ -46,4 +46,3 @@ export async function GET(request: Request) {
     meta: workbench.summary,
   });
 }
-

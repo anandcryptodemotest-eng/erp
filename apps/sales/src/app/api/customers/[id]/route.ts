@@ -32,14 +32,40 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         orderBy: { date: "desc" },
         take: 10,
       },
+      salesRequests: {
+        select: {
+          id: true,
+          requestNumber: true,
+          status: true,
+          total: true,
+          createdAt: true,
+          salesOrderId: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      },
     },
   });
 
   if (!customer) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
 
-  // Compute outstanding balance (confirmed/partially_shipped orders)
+  // Compute outstanding balance across active fulfillment statuses
   const outstanding = await prisma.salesOrder.aggregate({
-    where: { tenantId, customerId: id, status: { in: ["CONFIRMED", "PARTIALLY_SHIPPED"] } },
+    where: {
+      tenantId,
+      customerId: id,
+      status: {
+        in: [
+          "CONFIRMED",
+          "FULFILLING",
+          "READY_FOR_DISPATCH",
+          "DISPATCHED",
+          "PARTIALLY_SHIPPED",
+          "DELIVERED",
+          "INVOICED",
+        ],
+      },
+    },
     _sum: { total: true },
   });
 

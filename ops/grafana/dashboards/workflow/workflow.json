@@ -1,0 +1,25 @@
+{
+  "title": "Workflow Runtime",
+  "uid": "erp-workflow",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": ["erp", "workflow"],
+  "panels": [
+    {
+      "type": "traces",
+      "title": "Workflow spans",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "queryType": "traceqlSearch",
+          "datasource": { "type": "tempo", "uid": "tempo" },
+          "filters": [
+            { "id": "span-name", "tag": "name", "operator": "=~", "value": "Workflow\\..*" }
+          ]
+        }
+      ],
+      "datasource": { "type": "tempo", "uid": "tempo" }
+    }
+  ]
+}

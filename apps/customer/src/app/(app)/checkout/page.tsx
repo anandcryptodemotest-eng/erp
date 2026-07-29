@@ -179,9 +179,7 @@ export default function CheckoutPage() {
 
     const body = {
       customerId: profile.id,
-      date: new Date().toISOString(),
       isOnlineOrder: true,
-      submitForReview: true,
       deliveryAddressId: addressId,
       deliveryFee,
       paymentMethod,
@@ -195,9 +193,9 @@ export default function CheckoutPage() {
       })),
     };
 
-    const res = await api<{ data: { id: string; orderNumber: string; status: string } }>(
+    const res = await api<{ data: { id: string; requestNumber: string; status: string } }>(
       "sales",
-      "/api/orders",
+      "/api/sales-requests",
       { method: "POST", body: JSON.stringify(body) }
     );
     setPlacing(false);
@@ -205,13 +203,13 @@ export default function CheckoutPage() {
       setError(res.error);
       return;
     }
-    const order = res.data?.data;
-    if (!order?.id) {
-      setError("Order created but response was incomplete");
+    const sreq = res.data?.data;
+    if (!sreq?.id) {
+      setError("Request created but response was incomplete");
       return;
     }
     clearCart();
-    router.push(`/orders/${order.id}?placed=1`);
+    router.push(`/orders/${sreq.id}?placed=1&type=sreq`);
   }
 
   if (!ready) {

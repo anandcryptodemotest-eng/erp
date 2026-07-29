@@ -1,9 +1,12 @@
+import { createLogger } from "@erp/logger";
 import { NextResponse } from "next/server";
 import { createHash, randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { createToken, verifyToken, extractToken } from "@erp/auth";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+
+const log = createLogger({ service: "gateway" });
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -173,7 +176,7 @@ async function handleLogin(request: Request) {
     }
 
     if (process.env.NODE_ENV !== "production") {
-      console.error("[auth:login] unexpected error", error);
+      log.error("auth_login_unexpected_error", { err: error });
     }
 
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -270,7 +273,7 @@ async function handleRegisterCustomer(request: Request) {
         }),
       });
     } catch (err) {
-      console.error("[auth:register-customer] sales profile create failed", err);
+      log.error("auth_register_customer_sales_profile_create_failed", { err: err });
     }
 
     const modules = tenant.licenses.map((l) => l.moduleId);
@@ -306,7 +309,7 @@ async function handleRegisterCustomer(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
     }
-    console.error("[auth:register-customer]", error);
+    log.error("auth_register_customer", { err: error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

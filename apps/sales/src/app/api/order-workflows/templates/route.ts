@@ -19,6 +19,9 @@ export async function GET() {
         fromStatuses: s.fromStatuses,
         toStatus: s.toStatus,
         uiPanel: s.uiPanel ?? "none",
+        phase: s.phase ?? "FULFILL",
+        dependsOn: s.dependsOn ?? [],
+        required: s.required ?? true,
       })),
     })),
   });

@@ -13,9 +13,14 @@
   "dependencies": {
     "@erp/auth": "workspace:*",
     "@erp/config": "workspace:*",
+    "@erp/extensions": "workspace:*",
+    "@erp/logger": "workspace:*",
     "@erp/types": "workspace:*",
     "@erp/ui": "workspace:*",
+    "@erp/ui-runtime": "workspace:*",
+    "@erp/workflow": "workspace:*",
     "@prisma/client": "^6.0.0",
+    "@xyflow/react": "^12.6.0",
     "@zxing/browser": "^0.2.0",
     "@zxing/library": "^0.22.0",
     "bcryptjs": "^3.0.3",
@@ -23,7 +28,8 @@
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "zod": "^3.24.0"
+    "zod": "^3.24.0",
+    "@erp/telemetry": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

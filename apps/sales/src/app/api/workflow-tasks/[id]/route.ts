@@ -1,55 +1,89 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { z } from "zod";
+import { createLogger, contextFromHeaders, runWithRequestContextAsync } from "@erp/logger";
+import {
+  claimPlatformTask,
+  completePlatformTask,
+  releasePlatformTask,
+  renewPlatformTaskLease,
+  expireStaleLeases,
+} from "@/lib/workflow-runtime-v5";
+import { recordEvent, withSpan } from "@erp/telemetry";
 
-const updateSchema = z.object({
-  status: z.enum(["IN_PROGRESS", "PENDING", "CANCELLED"]).optional(),
-  assignedUserId: z.string().nullable().optional(),
-});
+type Ctx = { params: Promise<{ id: string }> };
+const log = createLogger({ service: "sales" });
 
-const ADMIN_OVERRIDE_ROLES = new Set(["ADMIN", "MANAGER", "ORG_ADMIN", "SUPER_ADMIN", "BRANCH_ADMIN"]);
-
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const tenantId = request.headers.get("x-tenant-id");
-  const userId = request.headers.get("x-user-id");
-  const role = request.headers.get("x-user-role");
-  if (!tenantId || !userId || !role) {
-    return NextResponse.json({ error: "Auth context required" }, { status: 400 });
-  }
-
-  const { id } = await params;
-  const existing = await prisma.workflowTask.findFirst({ where: { id, tenantId } });
-  if (!existing) return NextResponse.json({ error: "Task not found" }, { status: 404 });
-
-  if (!ADMIN_OVERRIDE_ROLES.has(role) && existing.assignedRole !== role) {
-    return NextResponse.json({ error: `Task belongs to ${existing.assignedRole}` }, { status: 403 });
-  }
-
-  const body = await request.json().catch(() => ({}));
-  const parsed = updateSchema.parse(body);
-  const nextStatus = parsed.status ?? existing.status;
-
-  if (
-    existing.status === "COMPLETED" &&
-    nextStatus !== "COMPLETED"
-  ) {
-    return NextResponse.json({ error: "Completed tasks cannot be reopened" }, { status: 409 });
-  }
-
-  const updated = await prisma.workflowTask.update({
-    where: { id },
-    data: {
-      status: nextStatus,
-      assignedUserId:
-        parsed.assignedUserId === undefined
-          ? nextStatus === "IN_PROGRESS"
-            ? existing.assignedUserId ?? userId
-            : existing.assignedUserId
-          : parsed.assignedUserId,
-      startedAt: nextStatus === "IN_PROGRESS" ? existing.startedAt ?? new Date() : existing.startedAt,
-    },
+/** POST /api/workflow-tasks/:id/claim | renew | release | complete */
+export async function POST(request: Request, { params }: Ctx) {
+  const reqCtx = contextFromHeaders(request.headers, {
+    service: "sales",
+    method: "POST",
+    path: "/api/workflow-tasks/[id]",
   });
 
-  return NextResponse.json({ data: updated });
-}
+  return runWithRequestContextAsync(reqCtx, async () => {
+    const tenantId = request.headers.get("x-tenant-id");
+    const userId = request.headers.get("x-user-id");
+    const role = request.headers.get("x-user-role");
+    if (!tenantId || !userId) {
+      return NextResponse.json({ error: "Auth context required" }, { status: 400 });
+    }
 
+    const { id } = await params;
+    const url = new URL(request.url);
+    const action = url.searchParams.get("action") ?? "complete";
+    const body = await request.json().catch(() => ({}));
+
+    try {
+      await expireStaleLeases(tenantId);
+
+      if (action === "claim") {
+        const data = await withSpan("Workflow.ClaimTask", () =>
+          claimPlatformTask({ taskId: id, actorUserId: userId, actorRole: role })
+        );
+        recordEvent("TaskClaimed", { taskId: id, tenantId });
+        log.info("task_claimed", { taskId: id, tenantId, userId });
+        return NextResponse.json({ data });
+      }
+      if (action === "renew") {
+        const data = await renewPlatformTaskLease({ taskId: id, actorUserId: userId });
+        return NextResponse.json({ data });
+      }
+      if (action === "release") {
+        const data = await releasePlatformTask({ taskId: id, actorUserId: userId });
+        log.info("task_released", { taskId: id, tenantId, userId });
+        return NextResponse.json({ data });
+      }
+      if (action === "complete") {
+        const data = await completePlatformTask({
+          taskId: id,
+          actorUserId: userId,
+          actorRole: role,
+          payload: body,
+        });
+        let orderStatus: string | undefined;
+        if (data?.salesOrderId) {
+          const { prisma } = await import("@/lib/prisma");
+          const order = await prisma.salesOrder.findFirst({
+            where: { id: data.salesOrderId },
+            select: { status: true },
+          });
+          orderStatus = order?.status;
+        }
+        log.info("task_completed", {
+          taskId: id,
+          tenantId,
+          userId,
+          role,
+          orderId: data?.salesOrderId,
+          status: orderStatus,
+        });
+        return NextResponse.json({ data: { ...data, status: orderStatus } });
+      }
+      return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Task action failed";
+      log.error("task_action_failed", { taskId: id, action, tenantId, userId, err: e });
+      return NextResponse.json({ error: msg }, { status: 409 });
+    }
+  });
+}

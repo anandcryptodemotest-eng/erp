@@ -1,6 +1,9 @@
+import { createLogger } from "@erp/logger";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+
+const log = createLogger({ service: "sales" });
 
 const createCustomerSchema = z.object({
   name: z.string().min(1),
@@ -84,7 +87,7 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
     }
-    console.error("[customers POST]", error);
+    log.error("customers_post", { err: error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
