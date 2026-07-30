@@ -38,7 +38,26 @@ export interface AssetRef {
   version: number;
 }
 
-export type FormFieldType = "number" | "text" | "readonly" | "textarea" | "select";
+/**
+ * Field types extend FormFields (ADR 0009) — not the widget registry.
+ * Target ~15–20 types; prefer new field types over new Input widgets.
+ */
+export type FormFieldType =
+  | "number"
+  | "text"
+  | "readonly"
+  | "textarea"
+  | "select"
+  | "date"
+  | "datetime"
+  | "checkbox"
+  | "radio"
+  | "email"
+  | "phone"
+  | "currency"
+  | "percentage"
+  | "url"
+  | "rating";
 
 export interface FormFieldDefinition {
   key: string;
@@ -77,6 +96,11 @@ export interface FormDefinition {
    * Each entry: { widget, props }
    */
   layout?: { widget: string; props?: Record<string, unknown> }[];
+  /**
+   * Hosts that may load this form (ADR 0012).
+   * Empty / missing ⇒ ["ADMIN"] at resolution time.
+   */
+  audiences?: string[];
 }
 
 

@@ -18,6 +18,113 @@ const FormFieldsWidget: Widget = {
     const items = runtime.context.items ?? [];
     const perItem = fields.filter((f) => f.scope === "per-item");
     const orderFields = fields.filter((f) => f.scope !== "per-item");
+    const canEdit = runtime.context.permissions.canEdit;
+
+    function renderControl(
+      f: (typeof fields)[number],
+      value: string,
+      onChange: (v: string) => void,
+      opts?: { className?: string }
+    ) {
+      const cls =
+        opts?.className ??
+        "mt-0.5 w-full rounded border border-slate-200 px-2 py-1.5 text-sm disabled:bg-slate-50";
+      if (f.type === "readonly") {
+        return <span className="mt-0.5 block text-sm text-slate-700">{value || "—"}</span>;
+      }
+      if (f.type === "textarea") {
+        return (
+          <textarea
+            className={cls}
+            disabled={!canEdit}
+            rows={3}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        );
+      }
+      if (f.type === "checkbox") {
+        return (
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4 rounded border-slate-300"
+            disabled={!canEdit}
+            checked={value === "true" || value === "1"}
+            onChange={(e) => onChange(e.target.checked ? "true" : "false")}
+          />
+        );
+      }
+      if (f.type === "select" || f.type === "radio") {
+        const options = f.options ?? [];
+        if (f.type === "radio") {
+          return (
+            <div className="mt-1 flex flex-wrap gap-3">
+              {options.map((o) => (
+                <label key={o.value} className="flex items-center gap-1.5 text-sm text-slate-700">
+                  <input
+                    type="radio"
+                    name={f.key}
+                    disabled={!canEdit}
+                    checked={value === o.value}
+                    onChange={() => onChange(o.value)}
+                  />
+                  {o.label}
+                </label>
+              ))}
+            </div>
+          );
+        }
+        return (
+          <select
+            className={cls}
+            disabled={!canEdit}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+          >
+            <option value="">Select…</option>
+            {options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        );
+      }
+      const inputType =
+        f.type === "number" || f.type === "currency" || f.type === "percentage" || f.type === "rating"
+          ? "number"
+          : f.type === "date"
+            ? "date"
+            : f.type === "datetime"
+              ? "datetime-local"
+              : f.type === "email"
+                ? "email"
+                : f.type === "phone"
+                  ? "tel"
+                  : f.type === "url"
+                    ? "url"
+                    : "text";
+      const step =
+        f.type === "currency" || f.type === "percentage"
+          ? "0.01"
+          : f.type === "rating"
+            ? "1"
+            : undefined;
+      const min = f.type === "rating" ? 1 : f.type === "percentage" || f.type === "currency" ? 0 : undefined;
+      const max = f.type === "rating" ? 5 : f.type === "percentage" ? 100 : undefined;
+      return (
+        <input
+          className={cls}
+          type={inputType}
+          disabled={!canEdit}
+          step={step}
+          min={min}
+          max={max}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      );
+    }
 
     return (
       <div className="space-y-3" key="FormFields">
@@ -26,12 +133,10 @@ const FormFieldsWidget: Widget = {
             {orderFields.map((f) => (
               <label key={f.key} className="block text-xs text-slate-500">
                 {f.label}
-                <input
-                  className="mt-0.5 w-full rounded border border-slate-200 px-2 py-1.5 text-sm"
-                  type={f.key.toLowerCase().includes("date") ? "date" : f.type === "number" ? "number" : "text"}
-                  value={runtime.context.fieldValues[f.key] ?? ""}
-                  onChange={(e) => runtime.context.setFieldValue(f.key, e.target.value)}
-                />
+                {f.required ? " *" : ""}
+                {renderControl(f, runtime.context.fieldValues[f.key] ?? "", (v) =>
+                  runtime.context.setFieldValue(f.key, v)
+                )}
               </label>
             ))}
           </div>
@@ -61,14 +166,16 @@ const FormFieldsWidget: Widget = {
                   ) : (
                     <label key={f.key} className="block text-xs text-slate-500">
                       {f.label}
-                      <input
-                        className="mt-0.5 block w-32 rounded border border-slate-200 px-2 py-1.5 text-sm"
-                        type={f.type === "number" ? "number" : "text"}
-                        value={runtime.context.fieldValues[fieldKey(f.key, item.id)] ?? ""}
-                        onChange={(e) =>
-                          runtime.context.setFieldValue(f.key, e.target.value, item.id)
+                      {f.required ? " *" : ""}
+                      {renderControl(
+                        f,
+                        runtime.context.fieldValues[fieldKey(f.key, item.id)] ?? "",
+                        (v) => runtime.context.setFieldValue(f.key, v, item.id),
+                        {
+                          className:
+                            "mt-0.5 block w-32 rounded border border-slate-200 px-2 py-1.5 text-sm disabled:bg-slate-50",
                         }
-                      />
+                      )}
                     </label>
                   )
                 )}
@@ -85,11 +192,15 @@ const FormFieldsWidget: Widget = {
       if (f.scope === "per-item") {
         for (const item of runtime.context.items ?? []) {
           const v = runtime.context.fieldValues[fieldKey(f.key, item.id)];
-          if (v == null || v === "") errors.push(`${f.label} required for ${item.productName}`);
+          if (v == null || v === "" || (f.type === "checkbox" && v === "false")) {
+            errors.push(`${f.label} required for ${item.productName}`);
+          }
         }
       } else {
         const v = runtime.context.fieldValues[f.key];
-        if (v == null || v === "") errors.push(`${f.label} is required`);
+        if (v == null || v === "" || (f.type === "checkbox" && v === "false")) {
+          errors.push(`${f.label} is required`);
+        }
       }
     }
     return { ok: errors.length === 0, errors };
@@ -99,7 +210,16 @@ const FormFieldsWidget: Widget = {
     for (const f of runtime.context.screen.fields ?? []) {
       if (f.scope === "per-item") continue;
       const v = runtime.context.fieldValues[f.key];
-      if (v != null && v !== "") out[f.key] = v;
+      if (v == null || v === "") continue;
+      if (f.type === "checkbox") out[f.key] = v === "true" || v === "1";
+      else if (
+        f.type === "number" ||
+        f.type === "currency" ||
+        f.type === "percentage" ||
+        f.type === "rating"
+      ) {
+        out[f.key] = Number(v);
+      } else out[f.key] = v;
     }
     return out;
   },
@@ -109,7 +229,12 @@ const ProductListWidget: Widget = {
   render(runtime, props) {
     const showPrice = Boolean(props.showPrice);
     const editable = Boolean(props.editable);
-    const allowRemove = Boolean(props.allowRemove) && Boolean(runtime.context.lineEditor?.canRemove);
+    // Editable product lists can remove lines unless explicitly disabled
+    const allowRemove =
+      (props.allowRemove === false
+        ? false
+        : Boolean(props.allowRemove) || editable) &&
+      Boolean(runtime.context.lineEditor?.canRemove);
     const canEditPrice =
       Boolean(props.showPrice) && Boolean(runtime.context.lineEditor?.canEditPrice);
     const items = runtime.context.items ?? [];
@@ -324,6 +449,8 @@ const ActionButtonsWidget: Widget = {
   collectPayload: () => ({}),
 };
 
+import { ensurePhase2WidgetsRegistered } from "./phase2-widgets";
+
 let registered = false;
 
 export function ensureOmsWidgetsRegistered(): void {
@@ -348,7 +475,7 @@ export function ensureOmsWidgetsRegistered(): void {
       icon: "shopping-cart",
       supportsValidation: true,
       supportsPayload: true,
-      defaultProps: { editable: false, showPrice: false, allowAdd: false, allowRemove: false },
+      defaultProps: { editable: true, showPrice: true, allowAdd: false, allowRemove: true },
     },
     factory: () => ProductListWidget,
   });
@@ -374,6 +501,7 @@ export function ensureOmsWidgetsRegistered(): void {
     },
     factory: () => ActionButtonsWidget,
   });
+  ensurePhase2WidgetsRegistered();
 }
 
 export type { ReactNode, ValidationResult };

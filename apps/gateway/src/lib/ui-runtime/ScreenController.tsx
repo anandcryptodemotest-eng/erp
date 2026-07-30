@@ -1,13 +1,23 @@
 "use client";
 
 /**
- * OMS Screen Controller (ADR 0005).
+ * OMS Screen Controller (ADR 0005 / ADR 0009 / ADR 0010 Admin Host).
  * Resolves ScreenDefinition → UIContext → UI Runtime.
  * Widgets must not load entity data or call business APIs.
  */
 
 import type { ReactNode } from "react";
-import type { ScreenDefinition, LineItemLike, LineEditorApi } from "@erp/ui-runtime";
+import type {
+  ScreenDefinition,
+  LineItemLike,
+  LineEditorApi,
+  PickerOption,
+  InventoryLineView,
+  WorkflowTimelineEvent,
+  CommentItem,
+  AttachmentItem,
+  HostApis,
+} from "@erp/ui-runtime";
 import { TaskScreenRuntime, normalizeScreenDefinition } from "./TaskScreenRuntime";
 
 export type StepUiLike = {
@@ -52,6 +62,13 @@ export function ScreenController(props: {
   busy?: boolean;
   lineEditor?: LineEditorApi;
   toast?: { success: (m: string) => void; error: (m: string) => void };
+  /** ADR 0009 host-supplied context */
+  lookups?: { warehouses?: PickerOption[]; drivers?: PickerOption[] };
+  inventory?: InventoryLineView[];
+  timeline?: WorkflowTimelineEvent[];
+  comments?: CommentItem[];
+  attachments?: AttachmentItem[];
+  hostApis?: HostApis;
 }): ReactNode {
   if (!props.ui?.layout?.length) {
     return (
@@ -87,6 +104,12 @@ export function ScreenController(props: {
       busy={props.busy}
       lineEditor={props.lineEditor}
       toast={props.toast}
+      lookups={props.lookups}
+      inventory={props.inventory}
+      timeline={props.timeline}
+      comments={props.comments}
+      attachments={props.attachments}
+      hostApis={props.hostApis}
     />
   );
 }

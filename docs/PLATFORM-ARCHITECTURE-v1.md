@@ -75,6 +75,6 @@ Customer/SO path → snapshot → UI Runtime task → Task Command → Sales Ada
 - [Telemetry](./guides/telemetry.md)
 - [Dashboards](./guides/dashboards.md)
 - [Vertical slice observability](./guides/vertical-slice-observability.md)
-- [ADRs](./adr/)
+- [ADRs](./adr/) — including [ADR 0009 UI Composition (v1.1)](./adr/0009-ui-composition.md)
 - [METADATA-PLATFORM.md](./METADATA-PLATFORM.md)
 - [WORKFLOW-PLATFORM.md](./WORKFLOW-PLATFORM.md)

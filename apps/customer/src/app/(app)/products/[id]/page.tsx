@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api-client";
 import { addToCart } from "@/lib/cart-store";
+import { productImageUrl } from "@/lib/media";
 
 interface AttrDef {
   id: string;
@@ -125,7 +126,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         sku: matchedVariant?.sku ?? product.sku,
         price: Number(unitPrice),
         qty,
-        imageUrl: product.imageUrls?.[0],
+        imageUrl: productImageUrl(product),
         selectedAttributes: { ...selected },
       });
       setAdded(true);
@@ -138,7 +139,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   if (loading) return <div className="flex items-center justify-center py-16 text-gray-400">Loading…</div>;
   if (!product) return <div className="flex items-center justify-center py-16 text-gray-400">Product not found</div>;
 
-  const img = product.imageUrls?.[0];
+  const img = productImageUrl(product);
 
   return (
     <div className="pb-28">
@@ -146,13 +147,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         ← Back
       </button>
 
-      <div className="mx-3 flex h-52 items-center justify-center rounded-2xl bg-gray-50 text-6xl overflow-hidden">
-        {img ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={img} alt={product.name} className="h-full w-full object-contain" />
-        ) : (
-          "📦"
-        )}
+      <div className="mx-3 flex h-52 items-center justify-center overflow-hidden rounded-2xl bg-[var(--mist)]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={img} alt={product.name} className="h-full w-full object-contain" />
       </div>
 
       <div className="px-4 mt-4">

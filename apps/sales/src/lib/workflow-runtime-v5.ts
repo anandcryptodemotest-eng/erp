@@ -18,7 +18,7 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma";
 import { bootstrapSalesWorkflowPlatform } from "@/workflow-adapter";
 import { defaultAdapterRegistry } from "@erp/workflow";
-import { ensureFormCatalogSeed, resolveAndValidateWorkflowForms } from "@/lib/form-catalog";
+import { resolveAndValidateWorkflowForms } from "@/lib/form-catalog";
 import { withSpan, recordEvent } from "@erp/telemetry";
 
 const LEASE_MS = 15 * 60 * 1000;
@@ -40,14 +40,18 @@ function actionForType(taskType: string): string {
     PAYMENT_COLLECTION: "collect-payment",
     ORDER_CLOSE: "close",
   };
-  return map[taskType] ?? taskType.toLowerCase();
+  if (map[taskType]) return map[taskType];
+  // Custom types like SALESREVIEW still map to built-in actions when letters match
+  const compact = taskType.replace(/_/g, "").toUpperCase();
+  const alias = Object.keys(map).find((k) => k.replace(/_/g, "") === compact);
+  if (alias) return map[alias];
+  return taskType.toLowerCase();
 }
 
 export async function getPublishedDefinition(
   tenantId: string,
   templateCode = "SO_STANDARD"
 ): Promise<{ id: string; definition: WorkflowDefinition } | null> {
-  await ensureFormCatalogSeed(tenantId);
   const row = await prisma.workflowTemplateVersion.findFirst({
     where: { tenantId, templateCode, lifecycle: "PUBLISHED" },
     orderBy: { version: "desc" },
@@ -81,7 +85,6 @@ async function startSalesOrderWorkflowV5Inner(input: {
   orderStatus: string;
 }) {
   bootstrapSalesWorkflowPlatform();
-  await ensureFormCatalogSeed(input.tenantId);
   const published = await getPublishedDefinition(input.tenantId);
   if (!published) return null;
 

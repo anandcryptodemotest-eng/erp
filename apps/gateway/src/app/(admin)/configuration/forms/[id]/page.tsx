@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/admin-api";
 import type { FormDefinition, FormFieldDefinition, FormFieldType } from "@erp/workflow";
 import { ensurePlatformExtensionsBootstrapped, listWidgetManifests } from "@/lib/ui-runtime/TaskScreenRuntime";
+import { FormTaskSimulator } from "@/lib/ui-runtime/FormTaskSimulator";
 
 type FormRow = {
   id: string;
@@ -23,7 +24,39 @@ type Dep = {
   assetVersion: number;
 };
 
-const FIELD_TYPES: FormFieldType[] = ["text", "number", "readonly", "textarea", "select"];
+const FIELD_TYPES: FormFieldType[] = [
+  "text",
+  "number",
+  "readonly",
+  "textarea",
+  "select",
+  "date",
+  "datetime",
+  "checkbox",
+  "radio",
+  "email",
+  "phone",
+  "currency",
+  "percentage",
+  "url",
+  "rating",
+];
+
+/** ADR 0009 — Form Designer lists registered widgets only (never host chrome / layout). */
+const DESIGNER_WIDGET_ALLOWLIST = new Set([
+  "FormFields",
+  "ProductList",
+  "CatalogSearch",
+  "ActionButtons",
+  "FileUpload",
+  "Timeline",
+  "Comments",
+  "InventoryView",
+  "PriceSummary",
+  "StatusBanner",
+  "WarehousePicker",
+  "DriverPicker",
+]);
 
 export default function FormDesignerPage() {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +67,11 @@ export default function FormDesignerPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [widgetManifests, setWidgetManifests] = useState(() => {
+    if (typeof window === "undefined") return [];
+    ensurePlatformExtensionsBootstrapped();
+    return listWidgetManifests();
+  });
 
   const load = useCallback(async () => {
     setError(null);
@@ -53,9 +91,8 @@ export default function FormDesignerPage() {
 
   useEffect(() => {
     ensurePlatformExtensionsBootstrapped();
+    setWidgetManifests(listWidgetManifests());
   }, []);
-
-  const widgetManifests = typeof window !== "undefined" ? listWidgetManifests() : [];
 
   async function save() {
     if (!def || readOnly) return;
@@ -278,6 +315,37 @@ export default function FormDesignerPage() {
               <option value="oms-attention">OMS Attention</option>
             </select>
           </label>
+          <div className="block text-xs text-slate-500 space-y-1.5">
+            <span>Audiences (ADR 0012)</span>
+            <div className="flex flex-wrap gap-3">
+              {(["ADMIN", "CUSTOMER", "WAREHOUSE", "DRIVER", "VENDOR"] as const).map((aud) => {
+                const selected = (def.audiences?.length ? def.audiences : ["ADMIN"]).includes(aud);
+                return (
+                  <label key={aud} className="flex items-center gap-1.5 text-[11px] text-slate-600">
+                    <input
+                      type="checkbox"
+                      disabled={readOnly}
+                      checked={selected}
+                      onChange={(e) => {
+                        const base = def.audiences?.length ? [...def.audiences] : ["ADMIN"];
+                        const next = e.target.checked
+                          ? [...new Set([...base, aud])]
+                          : base.filter((a) => a !== aud);
+                        setDef({
+                          ...def,
+                          audiences: next.length ? next : undefined,
+                        });
+                      }}
+                    />
+                    {aud}
+                  </label>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-slate-400">
+              Empty selection saves as Admin-only (legacy). Hosts load forms whose audiences include their id.
+            </p>
+          </div>
           <div className="space-y-2 border-t border-slate-100 pt-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -303,7 +371,7 @@ export default function FormDesignerPage() {
                 >
                   <option value="">+ Add widget</option>
                   {widgetManifests
-                    .filter((m) => ["FormFields", "ProductList", "CatalogSearch", "ActionButtons"].includes(m.id) || m.category !== "legacy")
+                    .filter((m) => DESIGNER_WIDGET_ALLOWLIST.has(m.id))
                     .map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.displayName} ({m.category})
@@ -321,22 +389,51 @@ export default function FormDesignerPage() {
                 {(def.layout ?? []).map((w, i) => (
                   <li
                     key={`${w.widget}-${i}`}
-                    className="flex items-center justify-between gap-2 rounded border border-slate-100 bg-slate-50 px-2 py-1.5 text-xs"
+                    className="rounded border border-slate-100 bg-slate-50 px-2 py-1.5 text-xs space-y-1.5"
                   >
-                    <span className="font-medium text-slate-800">{w.widget}</span>
-                    {!readOnly && (
-                      <button
-                        type="button"
-                        className="text-red-600 hover:underline"
-                        onClick={() =>
-                          setDef({
-                            ...def,
-                            layout: (def.layout ?? []).filter((_, j) => j !== i),
-                          })
-                        }
-                      >
-                        Remove
-                      </button>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-slate-800">{w.widget}</span>
+                      {!readOnly && (
+                        <button
+                          type="button"
+                          className="text-red-600 hover:underline"
+                          onClick={() =>
+                            setDef({
+                              ...def,
+                              layout: (def.layout ?? []).filter((_, j) => j !== i),
+                            })
+                          }
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    {w.widget === "ProductList" && !readOnly && (
+                      <div className="flex flex-wrap gap-3 text-[11px] text-slate-600">
+                        {(
+                          [
+                            ["editable", "Edit qty/price"],
+                            ["allowRemove", "Allow remove"],
+                            ["showPrice", "Show price"],
+                          ] as const
+                        ).map(([key, label]) => (
+                          <label key={key} className="flex items-center gap-1">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(w.props?.[key])}
+                              onChange={(e) => {
+                                const layout = [...(def.layout ?? [])];
+                                layout[i] = {
+                                  ...w,
+                                  props: { ...(w.props ?? {}), [key]: e.target.checked },
+                                };
+                                setDef({ ...def, layout });
+                              }}
+                            />
+                            {label}
+                          </label>
+                        ))}
+                      </div>
                     )}
                   </li>
                 ))}
@@ -366,8 +463,31 @@ export default function FormDesignerPage() {
                     renderer: "generic",
                     component: undefined,
                     layout: [
-                      { widget: "ProductList", props: { editable: true } },
+                      { widget: "ProductList", props: { editable: true, allowRemove: true, showPrice: true } },
                       { widget: "CatalogSearch", props: {} },
+                      { widget: "FormFields", props: {} },
+                      { widget: "ActionButtons", props: {} },
+                    ],
+                  });
+                } else if (e.target.value === "dispatch") {
+                  setDef({
+                    ...def,
+                    renderer: "generic",
+                    component: undefined,
+                    layout: [
+                      { widget: "StatusBanner", props: {} },
+                      { widget: "DriverPicker", props: { required: true } },
+                      { widget: "FormFields", props: {} },
+                      { widget: "ActionButtons", props: {} },
+                    ],
+                  });
+                } else if (e.target.value === "inventory") {
+                  setDef({
+                    ...def,
+                    renderer: "generic",
+                    component: undefined,
+                    layout: [
+                      { widget: "InventoryView", props: {} },
                       { widget: "FormFields", props: {} },
                       { widget: "ActionButtons", props: {} },
                     ],
@@ -379,6 +499,8 @@ export default function FormDesignerPage() {
               <option value="layout">Apply preset…</option>
               <option value="fields">FormFields + ActionButtons</option>
               <option value="review">ProductList + CatalogSearch + FormFields</option>
+              <option value="dispatch">StatusBanner + DriverPicker + FormFields</option>
+              <option value="inventory">InventoryView + FormFields + ActionButtons</option>
             </select>
           </label>
           <div className="flex gap-4 text-xs text-slate-600">
@@ -395,73 +517,7 @@ export default function FormDesignerPage() {
         </div>
 
         <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Live preview
-            </h2>
-            <span className="text-[10px] text-slate-400">Desktop</span>
-          </div>
-          <div
-            className={`rounded-xl border-2 p-4 space-y-3 ${
-              def.theme === "amber" ? "border-amber-500 bg-amber-50" : "border-emerald-600 bg-white"
-            }`}
-          >
-            <div>
-              <p
-                className={`text-[11px] font-semibold uppercase tracking-wide ${
-                  def.theme === "amber" ? "text-amber-800" : "text-emerald-700"
-                }`}
-              >
-                Step preview
-              </p>
-              <h3 className="text-base font-semibold text-slate-900">{def.title ?? row.formId}</h3>
-              {def.description && <p className="text-xs text-slate-500 mt-0.5">{def.description}</p>}
-            </div>
-            {(def.layout ?? []).length > 0 ? (
-              <ul className="space-y-1 text-xs text-slate-600">
-                {(def.layout ?? []).map((w, i) => (
-                  <li key={`${w.widget}-${i}`}>{w.widget}</li>
-                ))}
-              </ul>
-            ) : (
-              <>
-                {(def.fields ?? [])
-                  .filter((f) => f.scope === "order")
-                  .map((f) => (
-                    <div key={f.key} className="text-sm">
-                      <label className="block text-xs text-slate-500">{f.label}</label>
-                      <input
-                        disabled
-                        className="mt-0.5 w-full rounded border border-slate-200 bg-slate-50 px-2 py-1.5"
-                        placeholder={f.type}
-                      />
-                    </div>
-                  ))}
-                {(def.fields ?? []).some((f) => f.scope === "per-item") && (
-                  <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3 text-sm space-y-2">
-                    <p className="font-medium text-slate-800">Sample line item</p>
-                    {(def.fields ?? [])
-                      .filter((f) => f.scope === "per-item")
-                      .map((f) => (
-                        <div key={f.key} className="text-xs text-slate-500">
-                          {f.label} ({f.type})
-                        </div>
-                      ))}
-                  </div>
-                )}
-                {def.showTotal && (
-                  <p className="text-xs text-slate-400">Order total will show at runtime</p>
-                )}
-              </>
-            )}
-            <button
-              type="button"
-              disabled
-              className="w-full rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white opacity-80"
-            >
-              {def.confirmLabel ?? "Complete this step →"}
-            </button>
-          </div>
+          <FormTaskSimulator screen={def} />
         </div>
       </div>
 

@@ -126,6 +126,9 @@ export async function POST(request: Request) {
   const tenantId = request.headers.get("x-tenant-id");
   const userId = request.headers.get("x-user-id") ?? undefined;
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
+  const { requireCatalogManager } = await import("@erp/auth");
+  const denied = requireCatalogManager(request);
+  if (denied) return denied;
 
   try {
     const body = await request.json();

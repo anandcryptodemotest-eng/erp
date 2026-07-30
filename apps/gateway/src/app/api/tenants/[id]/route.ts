@@ -64,7 +64,7 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
   }
 
-  if (tenantUser.role !== "ADMIN") {
+  if (tenantUser.role !== "ADMIN" && tenantUser.role !== "ORG_ADMIN" && tenantUser.role !== "SUPER_ADMIN") {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
 

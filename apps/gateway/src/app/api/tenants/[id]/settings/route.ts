@@ -51,7 +51,7 @@ export async function PUT(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
   }
 
-  if (caller.role !== "ADMIN") {
+  if (caller.role !== "ADMIN" && caller.role !== "ORG_ADMIN" && caller.role !== "SUPER_ADMIN") {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
 

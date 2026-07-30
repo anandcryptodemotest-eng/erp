@@ -12,6 +12,8 @@ const log = createLogger({ service: "gateway" });
 export const TENANT_ROLES = [
   "ADMIN",
   "MANAGER",
+  "PROCESS_OWNER",
+  "CATALOG_MANAGER",
   "SALES_EXECUTIVE",
   "PRICING_EXECUTIVE",
   "DISPATCH_EXECUTIVE",

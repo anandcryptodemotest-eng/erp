@@ -125,7 +125,14 @@ function errText(err: unknown): string {
 
 export default function ProductsPage() {
   const role = getAdminUser()?.role ?? "";
-  const isCatalogAdmin = ["ADMIN", "MANAGER", "ORG_ADMIN", "SUPER_ADMIN", "BRANCH_ADMIN"].includes(role);
+  const isCatalogAdmin = [
+    "ADMIN",
+    "MANAGER",
+    "ORG_ADMIN",
+    "SUPER_ADMIN",
+    "BRANCH_ADMIN",
+    "CATALOG_MANAGER",
+  ].includes(role);
   const [tab, setTab] = useState<Tab>("catalog");
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);

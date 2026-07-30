@@ -12,7 +12,7 @@ const STUDIO_ITEMS: {
   {
     href: "/workflows",
     title: "Workflows",
-    description: "Design and publish order lifecycle graphs.",
+    description: "Design and publish order lifecycle graphs (Process Owner).",
     status: "live",
   },
   {
@@ -21,24 +21,48 @@ const STUDIO_ITEMS: {
     description: "Versioned task screens referenced by workflows via AssetRef.",
     status: "live",
   },
-  { href: "#", title: "Rules", description: "Business rules and conditions.", status: "soon" },
-  { href: "#", title: "Menus", description: "Navigation and desk menus.", status: "soon" },
-  { href: "#", title: "Permissions", description: "Role and claim policies.", status: "soon" },
-  { href: "#", title: "Notifications", description: "Templates and channels.", status: "soon" },
-  { href: "#", title: "Reports", description: "Report definitions.", status: "soon" },
-  { href: "#", title: "Integrations", description: "External system connectors.", status: "soon" },
-  { href: "#", title: "AI", description: "Prompt definitions.", status: "soon" },
-  { href: "#", title: "Variables", description: "Shared variable schemas.", status: "soon" },
+  {
+    href: "#",
+    title: "Rules",
+    description: "Approval and business rules.",
+    status: "soon",
+  },
+  {
+    href: "#",
+    title: "Notifications",
+    description: "Templates and channels for process events.",
+    status: "soon",
+  },
+  {
+    href: "#",
+    title: "Numbering",
+    description: "Document number sequences (SO, invoice, …).",
+    status: "soon",
+  },
+  {
+    href: "#",
+    title: "Templates",
+    description: "Starter packs and industry templates.",
+    status: "soon",
+  },
 ];
 
-export default function ConfigurationStudioPage() {
+export default function ProcessStudioPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 md:p-8">
       <div>
-        <PageHeader title="Configuration Studio" />
+        <PageHeader title="Process Studio" />
         <p className="-mt-4 mb-2 text-sm text-slate-500">
-          Design-time authoring for metadata assets. Draft → Validate → Preview → Publish → Archive.
-          Runtime never sees drafts — only published immutable versions pinned in workflow snapshots.
+          Business configuration — workflows, forms, and related process assets. Owned by the{" "}
+          <strong className="font-semibold text-slate-700">Process Owner</strong>. Organisation
+          settings live under{" "}
+          <Link href="/administration" className="font-medium text-emerald-800 underline">
+            Administration
+          </Link>
+          .
+        </p>
+        <p className="text-xs text-slate-400">
+          Lifecycle: Draft → Validate → Publish → Snapshot → Execute. Runtime never sees drafts.
         </p>
       </div>
 

@@ -7,6 +7,8 @@ import { PageHeader, Button, Input } from "@erp/ui";
 const OMS_ROLES = [
   "ADMIN",
   "MANAGER",
+  "PROCESS_OWNER",
+  "CATALOG_MANAGER",
   "SALES_EXECUTIVE",
   "PRICING_EXECUTIVE",
   "DISPATCH_EXECUTIVE",
@@ -138,8 +140,10 @@ export default function AdminUsersPage() {
       <div>
         <PageHeader title="Users & roles" />
         <p className="-mt-4 mb-2 text-sm text-slate-500">
-          Create team members for this tenant and assign OMS roles. Workflow tasks use the same role names
-          (e.g. Pricing task → <code className="text-xs">PRICING_EXECUTIVE</code> user).
+          Create team members and assign permission sets. Prefer{" "}
+          <code className="text-xs">PROCESS_OWNER</code> (workflows / forms) and{" "}
+          <code className="text-xs">CATALOG_MANAGER</code> (products) over giving everyone{" "}
+          <code className="text-xs">ADMIN</code>. Operations roles execute tasks only.
         </p>
         <p className="text-xs text-slate-400 font-mono">Tenant: {tenantId || "—"}</p>
       </div>

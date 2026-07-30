@@ -1,9 +1,15 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { FormDefinition } from "@erp/workflow";
 import { api } from "@/lib/api-client";
 import { getCart, clearCart, saveCart, type CartItem } from "@/lib/cart-store";
 import { productImageUrl } from "@/lib/media";
+import {
+  CustomerScreenController,
+  createCustomerHost,
+} from "@/lib/ui-host/CustomerScreenController";
 
 interface Address {
   id: string;
@@ -25,33 +31,30 @@ function validPrice(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n) && n >= 0;
 }
 
-const emptyAddr = {
-  label: "Site",
-  line1: "",
-  city: "",
-  state: "",
-  pincode: "",
-  isDefault: true,
-};
-
 export default function CheckoutPage() {
   const router = useRouter();
   const [items, setItems] = useState<CartItem[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
+  const [screen, setScreen] = useState<FormDefinition | null>(null);
+  const [addressScreen, setAddressScreen] = useState<FormDefinition | null>(null);
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [selectedAddr, setSelectedAddr] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"COD" | "WALLET" | "UPI">("COD");
-  const [notes, setNotes] = useState("");
+  const [addressFields, setAddressFields] = useState<Record<string, string>>({
+    label: "Site",
+    line1: "",
+    city: "",
+    state: "",
+    pincode: "",
+    isDefault: "true",
+  });
   const [placing, setPlacing] = useState(false);
+  const [savingAddr, setSavingAddr] = useState(false);
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
   const [showNewAddr, setShowNewAddr] = useState(false);
-  const [addrForm, setAddrForm] = useState(emptyAddr);
-  const [savingAddr, setSavingAddr] = useState(false);
 
   const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
-  const deliveryFee = 0;
-  const total = subtotal + deliveryFee;
 
   useEffect(() => {
     let cancelled = false;
@@ -93,7 +96,18 @@ export default function CheckoutPage() {
       saveCart(fixed);
       setItems(fixed);
 
-      const profileRes = await api<{ data: CustomerProfile }>("sales", "/api/customers/me");
+      const [profileRes, formRes, addrFormRes] = await Promise.all([
+        api<{ data: CustomerProfile }>("sales", "/api/customers/me"),
+        api<{ data: { definition: FormDefinition } }>(
+          "sales",
+          "/api/workflow-forms/published?formId=customer-checkout&audience=CUSTOMER"
+        ),
+        api<{ data: { definition: FormDefinition } }>(
+          "sales",
+          "/api/workflow-forms/published?formId=customer-address&audience=CUSTOMER"
+        ),
+      ]);
+
       if (cancelled) return;
       if (profileRes.error || !profileRes.data?.data) {
         setError(profileRes.error ?? "Could not load customer profile");
@@ -105,8 +119,21 @@ export default function CheckoutPage() {
       const addrs = cust.addresses ?? [];
       setAddresses(addrs);
       const def = addrs.find((x) => x.isDefault) ?? addrs[0];
-      if (def) setSelectedAddr(def.id);
-      else setShowNewAddr(true);
+      if (!def) setShowNewAddr(true);
+      else setSelectedAddr(def.id);
+
+      const formDef = formRes.data?.data?.definition;
+      if (!formDef?.layout?.length) {
+        setError(formRes.error ?? "Checkout form not available");
+        setReady(true);
+        return;
+      }
+      setScreen(formDef);
+      setAddressScreen(addrFormRes.data?.data?.definition ?? null);
+      setFieldValues({
+        paymentMethod: "COD",
+        notes: "",
+      });
       setReady(true);
     }
 
@@ -116,72 +143,40 @@ export default function CheckoutPage() {
     };
   }, [router]);
 
-  async function saveNewAddress(): Promise<string | null> {
-    if (!profile) return null;
-    if (!addrForm.line1.trim() || !addrForm.city.trim() || !addrForm.pincode.trim()) {
-      setError("Enter street, city and pincode for the delivery address");
-      return null;
-    }
-    setSavingAddr(true);
-    setError("");
-    const res = await api<{ data: Address }>("sales", `/api/customers/${profile.id}/addresses`, {
-      method: "POST",
-      body: JSON.stringify({
-        ...addrForm,
-        isDefault: addresses.length === 0 ? true : addrForm.isDefault,
-      }),
-    });
-    setSavingAddr(false);
-    if (res.error || !res.data?.data?.id) {
-      setError(res.error ?? "Could not save address");
-      return null;
-    }
-    const created = res.data.data;
-    setAddresses((prev) => [created, ...prev]);
-    setSelectedAddr(created.id);
-    setShowNewAddr(false);
-    setAddrForm(emptyAddr);
-    return created.id;
-  }
-
-  async function placeOrder() {
-    if (items.length === 0) return;
-    if (!profile) {
+  async function submitCheckout(payload: Record<string, unknown>) {
+    if (items.length === 0 || !profile) {
       setError("Customer profile not loaded");
+      setPlacing(false);
       return;
     }
 
-    let addressId = selectedAddr;
-    if (showNewAddr || (!addressId && addresses.length === 0)) {
-      const createdId = await saveNewAddress();
-      if (!createdId) return;
-      addressId = createdId;
-    }
+    const addressId = selectedAddr;
     if (!addressId) {
       setError("Please select or add a delivery address");
+      setPlacing(false);
+      setShowNewAddr(true);
       return;
     }
 
-    const bad = items.find((i) => !validPrice(i.price) || !i.productId || !i.name || !i.qty);
-    if (bad) {
-      setError("Cart has invalid items — clear cart and add products again");
-      return;
-    }
-
-    setPlacing(true);
-    setError("");
+    const paymentMethod = String(payload.paymentMethod ?? fieldValues.paymentMethod ?? "COD") as
+      | "COD"
+      | "UPI"
+      | "WALLET";
+    const notes = String(payload.notes ?? fieldValues.notes ?? "").trim();
 
     const attrNotes = items
       .filter((i) => i.selectedAttributes && Object.keys(i.selectedAttributes).length)
       .map((i) => `${i.name}: ${JSON.stringify(i.selectedAttributes)}`)
       .join("; ");
-    const combinedNotes = [notes.trim(), attrNotes].filter(Boolean).join("\n");
+    const combinedNotes = [notes, attrNotes].filter(Boolean).join("\n");
+
+    setError("");
 
     const body = {
       customerId: profile.id,
       isOnlineOrder: true,
       deliveryAddressId: addressId,
-      deliveryFee,
+      deliveryFee: 0,
       paymentMethod,
       ...(combinedNotes ? { notes: combinedNotes } : {}),
       items: items.map((i) => ({
@@ -212,6 +207,19 @@ export default function CheckoutPage() {
     router.push(`/orders/${sreq.id}?placed=1&type=sreq`);
   }
 
+  const host = useMemo(
+    () =>
+      createCustomerHost({
+        permissions: {
+          canEdit: true,
+          canComplete: !placing && !savingAddr && !showNewAddr && Boolean(selectedAddr),
+          roles: ["CUSTOMER"],
+        },
+        navigation: { push: (path) => router.push(path), replace: (path) => router.replace(path) },
+      }),
+    [placing, savingAddr, showNewAddr, selectedAddr, router]
+  );
+
   if (!ready) {
     return <div className="flex justify-center py-16 text-sm text-[var(--ink-soft)]">Preparing checkout…</div>;
   }
@@ -219,14 +227,14 @@ export default function CheckoutPage() {
   if (items.length === 0) return null;
 
   return (
-    <div className="pb-32">
+    <div className="pb-16">
       <div className="px-4 py-4 md:px-8">
         <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--amber)]">Checkout</p>
         <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">Place order</h1>
         {profile && <p className="mt-1 text-sm text-[var(--ink-soft)]">Ordering as {profile.name}</p>}
       </div>
 
-      <section className="px-4 mb-4 md:px-8">
+      <section className="mb-4 px-4 md:px-8">
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-[var(--ink-soft)]">Items</h2>
         <div className="space-y-2 rounded-2xl border border-[var(--line)] bg-white p-3">
           {items.map((i, idx) => (
@@ -241,7 +249,9 @@ export default function CheckoutPage() {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="font-medium text-[var(--ink)] line-clamp-2">{i.name}</div>
-                <div className="text-xs text-[var(--ink-soft)]">Qty {i.qty}</div>
+                <div className="text-xs text-[var(--ink-soft)]">
+                  Qty {i.qty} · ₹{Number(i.price).toLocaleString("en-IN")}
+                </div>
               </div>
               <span className="font-semibold text-[var(--ink)]">
                 ₹{(i.price * i.qty).toLocaleString("en-IN")}
@@ -251,7 +261,17 @@ export default function CheckoutPage() {
         </div>
       </section>
 
-      <section className="px-4 mb-4 md:px-8">
+      <div className="mx-4 mb-4 rounded-2xl bg-[#f3efe6] p-4 text-sm md:mx-8">
+        <div className="flex justify-between text-[var(--ink-soft)]">
+          <span>Items ({items.length}) excl. GST</span>
+          <span>₹{subtotal.toLocaleString("en-IN")}</span>
+        </div>
+        <p className="mt-2 text-xs text-[var(--ink-soft)]">
+          GST is applied from each product’s tax rate when the order is created. Sales may adjust pricing later.
+        </p>
+      </div>
+
+      <section className="mb-4 px-4 md:px-8">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
             Delivery address
@@ -259,7 +279,17 @@ export default function CheckoutPage() {
           {!showNewAddr && (
             <button
               type="button"
-              onClick={() => setShowNewAddr(true)}
+              onClick={() => {
+                setAddressFields({
+                  label: "Site",
+                  line1: "",
+                  city: "",
+                  state: "",
+                  pincode: "",
+                  isDefault: addresses.length === 0 ? "true" : "false",
+                });
+                setShowNewAddr(true);
+              }}
               className="text-xs font-bold text-[var(--forest-mid)]"
             >
               + Add new
@@ -281,130 +311,92 @@ export default function CheckoutPage() {
                 }`}
               >
                 <span className="text-sm font-semibold text-[var(--ink)]">{a.label}</span>
+                {a.isDefault && (
+                  <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
+                    Default
+                  </span>
+                )}
                 <div className="mt-0.5 text-xs text-[var(--ink-soft)]">
-                  {a.line1}, {a.city} – {a.pincode}
+                  {a.line1}, {a.city}
+                  {a.state ? `, ${a.state}` : ""} – {a.pincode}
                 </div>
               </button>
             ))}
           </div>
         )}
 
-        {(showNewAddr || addresses.length === 0) && (
-          <div className="space-y-2 rounded-2xl border border-[var(--line)] bg-white p-4">
-            <p className="text-sm font-semibold text-[var(--ink)]">
-              {addresses.length === 0 ? "Add delivery address" : "New address"}
-            </p>
-            {(
-              [
-                { key: "label", ph: "Label (Site / Office)" },
-                { key: "line1", ph: "Street / building / landmark" },
-                { key: "city", ph: "City" },
-                { key: "state", ph: "State" },
-                { key: "pincode", ph: "Pincode" },
-              ] as const
-            ).map(({ key, ph }) => (
-              <input
-                key={key}
-                placeholder={ph}
-                value={addrForm[key]}
-                onChange={(e) => setAddrForm((f) => ({ ...f, [key]: e.target.value }))}
-                className="w-full rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#c8922a]/40"
-              />
-            ))}
-            <label className="flex items-center gap-2 text-sm text-[var(--ink-soft)]">
-              <input
-                type="checkbox"
-                checked={addrForm.isDefault}
-                onChange={(e) => setAddrForm((f) => ({ ...f, isDefault: e.target.checked }))}
-              />
-              Set as default
-            </label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={savingAddr}
-                onClick={() => void saveNewAddress()}
-                className="btn-dark flex-1 py-2.5 text-sm disabled:opacity-60"
-              >
-                {savingAddr ? "Saving…" : "Save address"}
-              </button>
+        {(showNewAddr || addresses.length === 0) && addressScreen && profile && (
+          <div className="mb-2 space-y-2 rounded-2xl border border-[var(--line)] bg-white p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-[var(--ink)]">
+                {addresses.length === 0 ? "Add delivery address" : "New address"}
+              </p>
               {addresses.length > 0 && (
                 <button
                   type="button"
                   onClick={() => setShowNewAddr(false)}
-                  className="flex-1 rounded-full border border-[var(--line)] py-2.5 text-sm font-semibold"
+                  className="text-xs font-medium text-[var(--ink-soft)]"
                 >
                   Cancel
                 </button>
               )}
             </div>
+            <CustomerScreenController
+              host={host}
+              screen={addressScreen}
+              customer={{ id: profile.id, name: profile.name }}
+              fieldValues={addressFields}
+              setFieldValue={(key, value) =>
+                setAddressFields((prev) => ({ ...prev, [key]: value }))
+              }
+              busy={savingAddr}
+              submitContext={{
+                customerId: profile.id,
+                addressMode: "create",
+                onBusy: setSavingAddr,
+                onSuccess: async (result) => {
+                  const created = (result as { data?: Address } | undefined)?.data;
+                  if (created?.id) {
+                    setAddresses((prev) => [created, ...prev]);
+                    setSelectedAddr(created.id);
+                  }
+                  setShowNewAddr(false);
+                  setError("");
+                },
+                onError: (m) => setError(m),
+              }}
+            />
           </div>
         )}
       </section>
 
-      <section className="px-4 mb-4 md:px-8">
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
-          Notes for sales
-        </h2>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={3}
-          placeholder="Delivery instructions, preferred size confirmation, site contact…"
-          className="w-full rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#c8922a]/40"
-        />
-      </section>
-
-      <section className="px-4 mb-4 md:px-8">
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-[var(--ink-soft)]">Payment</h2>
-        <div className="space-y-2">
-          {(["COD", "UPI"] as const).map((method) => (
-            <button
-              key={method}
-              type="button"
-              onClick={() => setPaymentMethod(method)}
-              className={`w-full rounded-xl border p-3 text-left ${
-                paymentMethod === method
-                  ? "border-[#121a16] bg-[#f3efe6]"
-                  : "border-[var(--line)] bg-white"
-              }`}
-            >
-              <div className="text-sm font-medium text-[var(--ink)]">
-                {method === "COD" ? "Cash on Delivery" : "UPI"}
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <div className="mx-4 rounded-2xl bg-[#f3efe6] p-4 text-sm md:mx-8">
-        <div className="flex justify-between text-[var(--ink-soft)]">
-          <span>Items ({items.length}) excl. GST</span>
-          <span>₹{subtotal.toLocaleString("en-IN")}</span>
-        </div>
-        <div className="mt-2 flex justify-between border-t border-[var(--line)] pt-2 font-display text-lg font-semibold text-[var(--ink)]">
-          <span>Submit total</span>
-          <span>₹{total.toFixed(2)}</span>
-        </div>
-        <p className="mt-2 text-xs text-[var(--ink-soft)]">
-          GST is applied from each product’s tax rate when the order is created. Sales may adjust pricing later.
-        </p>
-      </div>
-
       {error && (
-        <div className="mx-4 mt-3 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600 md:mx-8">{error}</div>
+        <div className="mx-4 mb-3 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600 md:mx-8">{error}</div>
       )}
 
-      <div className="sticky bottom-0 mt-4 border-t border-[var(--line)] bg-[var(--paper)]/95 px-4 py-3 backdrop-blur md:px-8">
-        <button
-          type="button"
-          onClick={placeOrder}
-          disabled={placing || !profile}
-          className="btn-primary btn-primary-block disabled:opacity-60"
-        >
-          {placing ? "Submitting…" : `Submit for review  ₹${total.toFixed(2)}`}
-        </button>
-      </div>
+      {!showNewAddr && selectedAddr && (
+        <div className="px-4 md:px-8">
+          {screen && (
+            <CustomerScreenController
+              host={host}
+              screen={screen}
+              order={{
+                id: "checkout",
+                status: "DRAFT",
+                totalAmount: subtotal,
+              }}
+              customer={profile ? { id: profile.id, name: profile.name } : null}
+              fieldValues={fieldValues}
+              setFieldValue={(key, value) => setFieldValues((prev) => ({ ...prev, [key]: value }))}
+              busy={placing}
+              submitContext={{
+                onBusy: setPlacing,
+                onCheckoutSubmit: submitCheckout,
+              }}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

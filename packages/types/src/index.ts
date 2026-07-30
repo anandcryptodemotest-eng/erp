@@ -37,7 +37,10 @@ export type UserRole =
   | "DISPATCH_EXECUTIVE"
   | "DELIVERY_EXECUTIVE"
   | "VIEWER"
-  | "CUSTOMER"; // end-customer portal
+  | "CUSTOMER" // end-customer portal
+  /** Named permission sets (Tenant Operating Model) — prefer these over enum sprawl */
+  | "PROCESS_OWNER"
+  | "CATALOG_MANAGER";
 
 export interface User {
   id: string;

@@ -6,6 +6,7 @@ export * from "./screen";
 export * from "./payload";
 export * from "./layout";
 export * from "./runtime";
+export * from "./host";
 
 export {
   registerActivity,

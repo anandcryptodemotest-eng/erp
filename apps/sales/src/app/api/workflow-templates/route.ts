@@ -12,8 +12,9 @@ import type { Prisma } from "@/generated/prisma";
 
 const log = createLogger({ service: "sales" });
 
-async function ensureSeed(tenantId: string) {
-  await ensureFormCatalogSeed(tenantId);
+async function ensureSeed(tenantId: string, opts: { force?: boolean } = {}) {
+  if (!opts.force) return;
+  await ensureFormCatalogSeed(tenantId, { force: true });
   const count = await prisma.workflowTemplateVersion.count({ where: { tenantId } });
   if (count > 0) return;
 
@@ -30,13 +31,11 @@ async function ensureSeed(tenantId: string) {
   });
 }
 
-/** GET /api/workflow-templates — list versions; seeds SO_STANDARD v5 if empty */
+/** GET /api/workflow-templates — list versions (no auto-seed) */
 export async function GET(request: Request) {
   try {
     const tenantId = request.headers.get("x-tenant-id");
     if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
-
-    await ensureSeed(tenantId);
 
     const url = new URL(request.url);
     const code = url.searchParams.get("template");
@@ -64,20 +63,30 @@ export async function GET(request: Request) {
   }
 }
 
-/** POST /api/workflow-templates — create Draft (new version or clone) */
+/** POST /api/workflow-templates — create Draft, clone, or seed starter template */
 export async function POST(request: Request) {
   const tenantId = request.headers.get("x-tenant-id");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
+  const { requireProcessOwner } = await import("@erp/auth");
+  const denied = requireProcessOwner(request);
+  if (denied) return denied;
 
   const body = (await request.json()) as {
-    action?: "create" | "clone";
+    action?: "create" | "clone" | "seed";
     templateCode?: string;
     name?: string;
     definition?: WorkflowDefinition;
     sourceId?: string;
   };
 
-  await ensureSeed(tenantId);
+  if (body.action === "seed") {
+    await ensureSeed(tenantId, { force: true });
+    const rows = await prisma.workflowTemplateVersion.findMany({
+      where: { tenantId },
+      orderBy: [{ templateCode: "asc" }, { version: "desc" }],
+    });
+    return NextResponse.json({ data: rows, meta: { seeded: true } }, { status: 201 });
+  }
 
   if (body.action === "clone") {
     if (!body.sourceId) {

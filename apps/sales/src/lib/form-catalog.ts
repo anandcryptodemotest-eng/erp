@@ -1,6 +1,9 @@
 /**
  * Design-time Form Catalog — Draft → Validate → Publish → Archive.
  * Runtime never queries drafts; startWorkflow pins published bodies into snapshot.
+ *
+ * Auto-seed is OFF by default (ADR 0009 / authoring UX). Call
+ * `ensureFormCatalogSeed(tenantId, { force: true })` or POST action=seed to restore starters.
  */
 
 import {
@@ -11,11 +14,18 @@ import {
   type WorkflowDefinition,
 } from "@erp/workflow";
 import { SO_STANDARD_FORMS } from "@/workflow-templates";
+import { CUSTOMER_BUILTIN_FORMS } from "@/lib/customer-forms";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma";
 
-export async function ensureFormCatalogSeed(tenantId: string) {
-  for (const form of SO_STANDARD_FORMS) {
+/** Seed published SO_STANDARD + customer forms only when force: true (never auto on list/get). */
+export async function ensureFormCatalogSeed(
+  tenantId: string,
+  opts: { force?: boolean } = {}
+) {
+  if (!opts.force) return;
+  const forms = [...SO_STANDARD_FORMS, ...CUSTOMER_BUILTIN_FORMS];
+  for (const form of forms) {
     const formId = form.id ?? form.key;
     const existing = await prisma.workflowFormVersion.findFirst({
       where: { tenantId, formId },
@@ -37,10 +47,9 @@ export async function ensureFormCatalogSeed(tenantId: string) {
 
 export async function listFormVersions(
   tenantId: string,
-  opts: { formId?: string; lifecycle?: string } = {}
+  opts: { formId?: string; lifecycle?: string; audience?: string } = {}
 ) {
-  await ensureFormCatalogSeed(tenantId);
-  return prisma.workflowFormVersion.findMany({
+  const rows = await prisma.workflowFormVersion.findMany({
     where: {
       tenantId,
       ...(opts.formId ? { formId: opts.formId } : {}),
@@ -48,6 +57,27 @@ export async function listFormVersions(
     },
     orderBy: [{ formId: "asc" }, { version: "desc" }],
   });
+  if (!opts.audience) return rows;
+  return rows.filter((row) => {
+    const def = row.definition as unknown as FormDefinition;
+    const audiences = def.audiences?.length ? def.audiences : ["ADMIN"];
+    return audiences.includes(opts.audience!);
+  });
+}
+
+/** Published form for a Host audience (ADR 0012). */
+export async function getPublishedFormForAudience(
+  tenantId: string,
+  formId: string,
+  audience: string
+): Promise<{ ref: AssetRef; definition: FormDefinition; recordId: string } | null> {
+  const published = await getPublishedForm(tenantId, formId);
+  if (!published) return null;
+  const audiences = published.definition.audiences?.length
+    ? published.definition.audiences
+    : ["ADMIN"];
+  if (!audiences.includes(audience)) return null;
+  return published;
 }
 
 export async function getPublishedForm(
@@ -55,7 +85,6 @@ export async function getPublishedForm(
   formId: string,
   version?: number
 ): Promise<{ ref: AssetRef; definition: FormDefinition; recordId: string } | null> {
-  await ensureFormCatalogSeed(tenantId);
   const row = version
     ? await prisma.workflowFormVersion.findFirst({
         where: { tenantId, formId, version, lifecycle: "PUBLISHED" },
@@ -73,7 +102,6 @@ export async function getPublishedForm(
 }
 
 export async function publishedFormAssetKeys(tenantId: string): Promise<Set<string>> {
-  await ensureFormCatalogSeed(tenantId);
   const rows = await prisma.workflowFormVersion.findMany({
     where: { tenantId, lifecycle: "PUBLISHED" },
     select: { formId: true, version: true },

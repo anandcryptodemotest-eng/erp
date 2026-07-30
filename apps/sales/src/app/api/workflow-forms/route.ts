@@ -11,7 +11,7 @@ import type { Prisma } from "@/generated/prisma";
 
 const log = createLogger({ service: "sales" });
 
-/** GET /api/workflow-forms — list form versions; seeds SO_STANDARD forms if missing */
+/** GET /api/workflow-forms — list form versions (no auto-seed) */
 export async function GET(request: Request) {
   try {
     const tenantId = request.headers.get("x-tenant-id");
@@ -20,8 +20,9 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const formId = url.searchParams.get("formId") ?? undefined;
     const lifecycle = url.searchParams.get("lifecycle") ?? undefined;
+    const audience = url.searchParams.get("audience") ?? undefined;
 
-    const rows = await listFormVersions(tenantId, { formId, lifecycle });
+    const rows = await listFormVersions(tenantId, { formId, lifecycle, audience });
     return NextResponse.json({ data: rows });
   } catch (e: unknown) {
     log.error("workflow_forms_get", { err: e });
@@ -32,20 +33,27 @@ export async function GET(request: Request) {
   }
 }
 
-/** POST /api/workflow-forms — create draft (new form or new version / clone) */
+/** POST /api/workflow-forms — create draft, clone, or seed starter forms */
 export async function POST(request: Request) {
   const tenantId = request.headers.get("x-tenant-id");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
-
-  await ensureFormCatalogSeed(tenantId);
+  const { requireProcessOwner } = await import("@erp/auth");
+  const denied = requireProcessOwner(request);
+  if (denied) return denied;
 
   const body = (await request.json()) as {
-    action?: "create" | "clone";
+    action?: "create" | "clone" | "seed";
     formId?: string;
     name?: string;
     definition?: FormDefinition;
     sourceId?: string;
   };
+
+  if (body.action === "seed") {
+    await ensureFormCatalogSeed(tenantId, { force: true });
+    const rows = await listFormVersions(tenantId);
+    return NextResponse.json({ data: rows, meta: { seeded: true } }, { status: 201 });
+  }
 
   if (body.action === "clone") {
     if (!body.sourceId) {
@@ -95,11 +103,17 @@ export async function POST(request: Request) {
     renderer: body.definition?.renderer ?? "generic",
     component: body.definition?.component,
     fields: body.definition?.fields ?? [],
+    layout: body.definition?.layout ?? [
+      { widget: "FormFields", props: {} },
+      { widget: "ActionButtons", props: {} },
+    ],
     description: body.definition?.description,
     theme: body.definition?.theme,
+    themeId: body.definition?.themeId,
     confirmLabel: body.definition?.confirmLabel,
     showItems: body.definition?.showItems,
     showTotal: body.definition?.showTotal,
+    audiences: body.definition?.audiences,
   });
 
   const validation = validateFormDefinition(def);

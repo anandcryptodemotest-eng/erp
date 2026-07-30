@@ -57,3 +57,11 @@ export function verifyServiceCall(serviceKey: string | null): boolean {
 
 export type { AuthToken, UserRole };
 export { createServiceMiddleware } from "./middleware";
+export {
+  PROCESS_OWNER_ROLES,
+  CATALOG_MANAGER_ROLES,
+  TENANT_ADMIN_ROLES,
+  roleAllowed,
+  requireProcessOwner,
+  requireCatalogManager,
+} from "./role-gates";

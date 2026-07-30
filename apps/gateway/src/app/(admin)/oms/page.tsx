@@ -128,6 +128,7 @@ interface OrderDetails extends OrderSummary {
       createdAt: string;
       completedAt?: string | null;
       phase?: string;
+      kind?: string;
     }[];
     events?: {
       id: string;
@@ -848,11 +849,7 @@ export default function OmsOrdersPage() {
   const myNextActions = nextActions.filter((a) => isMyRoleAction(a.roleHint));
 
   const prepTasks = (selected?.workflowRuntime?.tasks ?? []).filter(
-    (t) =>
-      t.phase === "PREP" ||
-      ["review", "verify-stock", "complete-pricing", "warehouse-ready", "request-vendors"].includes(
-        t.action
-      )
+    (t) => t.kind !== "SYSTEM"
   );
 
   const myPrepTasks = prepTasks.filter(
@@ -892,14 +889,13 @@ export default function OmsOrdersPage() {
     // Source 1: nextActions from API (already have ui metadata from backend)
     for (const a of myNextActions) {
       if (seen.has(a.action)) continue;
-      if (isSalesLocked && !["review", "verify-stock", "request-vendors"].includes(a.action)) continue;
       if (openMyAction(a.action)) {
         seen.add(a.action);
         result.push({ ...a, ui: a.ui, blockedBy: a.blockedBy ?? getBlockedBy(a.action) });
       }
     }
 
-    // Source 2: tasks queue for this order (sequential FULFILL/CLOSE tasks not in nextActions)
+    // Source 2: tasks queue for this order (any human task assigned to my roles)
     for (const t of tasks) {
       if (t.order.id !== selected?.id) continue;
       if (seen.has(t.action)) continue;
@@ -917,12 +913,39 @@ export default function OmsOrdersPage() {
       });
     }
 
+    // Source 3: workflowRuntime tasks (covers custom actions not in left queue yet)
+    for (const t of selected?.workflowRuntime?.tasks ?? []) {
+      if (seen.has(t.action)) continue;
+      if (t.kind === "SYSTEM") continue;
+      if (!myTaskRoles.has(t.assignedRole) && !(isSalesLocked && t.assignedRole === "SALES_EXECUTIVE")) {
+        continue;
+      }
+      if (!["PENDING", "IN_PROGRESS", "READY", "CLAIMED"].includes(t.status)) continue;
+      seen.add(t.action);
+      result.push({
+        action: t.action,
+        label: t.title,
+        uiPanel: "none",
+        roleHint: t.assignedRole,
+        sortOrder: 999,
+        blockedBy: [],
+        ui: undefined,
+      });
+    }
+
     return result.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myNextActions, isSalesLocked, selected?.id, tasks, myTaskRoles]);
+  }, [myNextActions, isSalesLocked, selected?.id, selected?.workflowRuntime?.tasks, tasks, myTaskRoles]);
 
   const needsLineEditor = myVisibleActions.some(
-    (a) => a.action === "review" || (a.ui?.layout ?? []).some((w) => w.widget === "CatalogSearch" || (w.widget === "ProductList" && w.props?.editable))
+    (a) =>
+      a.action === "review" ||
+      (a.ui?.layout ?? []).some(
+        (w) =>
+          w.widget === "CatalogSearch" ||
+          (w.widget === "ProductList" &&
+            (Boolean(w.props?.editable) || Boolean(w.props?.allowRemove)))
+      )
   );
   const canEditLines =
     needsLineEditor && ["CONFIRMED", "FULFILLING"].includes(selected?.status ?? "");
@@ -971,7 +994,9 @@ export default function OmsOrdersPage() {
     return groups;
   }, [tasks, myWorkFilter]);
 
-  const nextMyStep = myPrepTasks.find((t) => ["PENDING", "IN_PROGRESS"].includes(t.status));
+  const nextMyStep = myPrepTasks.find((t) =>
+    ["PENDING", "IN_PROGRESS", "READY", "CLAIMED"].includes(t.status)
+  );
 
   const myWorkOrderCount = useMemo(
     () => summary.orders || new Set(tasks.map((t) => t.order.id)).size,
@@ -1787,20 +1812,7 @@ export default function OmsOrdersPage() {
                           status: t.status,
                           action: t.action,
                         }))
-                      : [
-                          {
-                            id: "r",
-                            title: "Sales review",
-                            status: "PENDING",
-                            action: "review",
-                          },
-                          {
-                            id: "i",
-                            title: "Verify inventory",
-                            status: "PENDING",
-                            action: "verify-stock",
-                          },
-                        ]
+                      : []
                     ).map((task, idx, arr) => {
                       const done = task.status === "COMPLETED";
                       const current = Boolean(
@@ -1829,6 +1841,11 @@ export default function OmsOrdersPage() {
                       );
                     })}
                   </ol>
+                  {myPrepTasks.length === 0 && (
+                    <p className="text-[11px] text-slate-400">
+                      No human steps assigned to your role on this workflow.
+                    </p>
+                  )}
                   {otherPrepTasks.length > 0 && (
                     <p className="text-[11px] text-slate-400">
                       Other teams (view only):{" "}
@@ -1901,7 +1918,8 @@ export default function OmsOrdersPage() {
                       (ui?.layout ?? []).some(
                         (w) =>
                           w.widget === "CatalogSearch" ||
-                          (w.widget === "ProductList" && Boolean(w.props?.editable))
+                          (w.widget === "ProductList" &&
+                            (Boolean(w.props?.editable) || Boolean(w.props?.allowRemove)))
                       );
 
                     const items = useDraftLines
@@ -1967,6 +1985,56 @@ export default function OmsOrdersPage() {
                         }}
                         busy={Boolean(actionBusy)}
                         toast={{ success: toast.success, error: (m) => toast.error(m) }}
+                        inventory={(selected.items ?? []).map((i) => ({
+                          productId: i.productId,
+                          productName: i.productName,
+                          orderedQty: i.quantity,
+                          availableQty: i.availableQty,
+                          shortageQty: i.shortageQty,
+                        }))}
+                        timeline={(selected.workflowRuntime?.events ?? []).map((ev) => ({
+                          id: ev.id,
+                          type: ev.type,
+                          title: [ev.type, ev.action, ev.toStatus].filter(Boolean).join(" · ") || ev.type,
+                          at: ev.createdAt,
+                          actor: ev.actorRole,
+                          remarks: ev.remarks,
+                        }))}
+                        comments={(selected.modifications ?? [])
+                          .filter((m) => m.remarks)
+                          .map((m, i) => ({
+                            id: `${m.action}-${m.createdAt}-${i}`,
+                            body: m.remarks ?? "",
+                            author: m.action,
+                            at: m.createdAt,
+                          }))}
+                        hostApis={{
+                          uploadFile: async (file) => {
+                            const fd = new FormData();
+                            fd.append("file", file);
+                            const r = await api("/api/uploads/attachment", {
+                              method: "POST",
+                              body: fd,
+                            });
+                            const data = (r.data ?? r) as {
+                              id?: string;
+                              url?: string;
+                              name?: string;
+                              mimeType?: string;
+                              size?: number;
+                            };
+                            return {
+                              id: data.id ?? `att-${Date.now()}`,
+                              name: data.name ?? file.name,
+                              url: data.url,
+                              mimeType: data.mimeType ?? file.type,
+                              size: data.size ?? file.size,
+                            };
+                          },
+                          addComment: async (body) => {
+                            setStepInput("commentsAppend", body);
+                          },
+                        }}
                         onComplete={(payload) => void runAction(act.action, act.uiPanel, ui, payload)}
                         lineEditor={
                           useDraftLines

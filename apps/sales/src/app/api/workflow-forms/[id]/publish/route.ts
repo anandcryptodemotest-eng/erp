@@ -12,6 +12,9 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function POST(request: Request, { params }: Ctx) {
   const tenantId = request.headers.get("x-tenant-id");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
+  const { requireProcessOwner } = await import("@erp/auth");
+  const denied = requireProcessOwner(request);
+  if (denied) return denied;
   const { id } = await params;
 
   const row = await prisma.workflowFormVersion.findFirst({ where: { id, tenantId } });

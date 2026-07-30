@@ -6,6 +6,8 @@ import { verifyToken, extractToken } from "@erp/auth";
 const BUILTIN_ROLES = [
   "ADMIN",
   "MANAGER",
+  "PROCESS_OWNER",
+  "CATALOG_MANAGER",
   "SALES_EXECUTIVE",
   "PRICING_EXECUTIVE",
   "DISPATCH_EXECUTIVE",

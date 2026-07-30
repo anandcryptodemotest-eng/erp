@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 
+const GATEWAY_URL     = process.env.GATEWAY_SERVICE_URL     ?? "http://localhost:3010";
 const SALES_URL       = process.env.SALES_SERVICE_URL       ?? "http://localhost:3001";
 const INVENTORY_URL   = process.env.INVENTORY_SERVICE_URL   ?? "http://localhost:3002";
 const ACCOUNTING_URL  = process.env.ACCOUNTING_SERVICE_URL  ?? "http://localhost:3003";
@@ -14,7 +15,16 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["150.242.201.102", "localhost", "127.0.0.1"],
   transpilePackages: ["@erp/logger", "@erp/telemetry", "@erp/ui", "@erp/types", "@erp/auth", "@erp/config", "@erp/workflow", "@erp/ui-runtime", "@erp/extensions"],
   async rewrites() {
-    return [
+    return {
+      // Local-dev parity for nginx's public `/api/*` → gateway `/admin/api/*` rewrite.
+      // Browser code (admin-api.ts, api-client.ts) intentionally calls bare `/api/*` and
+      // relies on same-origin nginx to remap it to the basePath in production. There is
+      // no nginx in front of `next dev`, so re-map it here instead (harmless in prod —
+      // nginx already strips this before the request reaches Next).
+      beforeFiles: [
+        { source: "/api/:path*", destination: `${GATEWAY_URL}/admin/api/:path*`, basePath: false },
+      ],
+      afterFiles: [
       // ── Sales ──────────────────────────────────────────────────────────
       { source: "/api/customers/:path*",     destination: `${SALES_URL}/api/customers/:path*` },
       { source: "/api/orders/:path*",        destination: `${SALES_URL}/api/orders/:path*` },
@@ -103,7 +113,8 @@ const nextConfig: NextConfig = {
       { source: "/api/assignments",                destination: `${DELIVERY_URL}/api/assignments` },
       { source: "/api/delivery-executives/:path*", destination: `${DELIVERY_URL}/api/delivery-executives/:path*` },
       { source: "/api/delivery-executives",        destination: `${DELIVERY_URL}/api/delivery-executives` },
-    ];
+      ],
+    };
   },
 };
 

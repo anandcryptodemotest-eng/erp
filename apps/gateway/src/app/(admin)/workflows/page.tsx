@@ -56,13 +56,29 @@ export default function WorkflowTemplatesPage() {
     }
   }
 
+  async function restoreStarter() {
+    setBusy("seed");
+    setError(null);
+    try {
+      await api("/api/workflow-templates", {
+        method: "POST",
+        body: JSON.stringify({ action: "seed" }),
+      });
+      await load();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Restore failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <PageHeader title="Workflow templates" />
         <p className="-mt-4 mb-6 text-sm text-slate-500">
           Published templates are read-only. Use <strong>Clone draft</strong> to edit, add, or delete tasks — then
-          Publish. Each template belongs to your current login tenant.
+          Publish. Catalog starts empty — build your own workflow, or restore the SO_STANDARD starter.
         </p>
       </div>
 
@@ -70,6 +86,25 @@ export default function WorkflowTemplatesPage() {
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>
       )}
 
+      {!loading && rows.length === 0 && (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/80 px-6 py-10 text-center space-y-3">
+          <p className="text-sm font-medium text-slate-800">No workflow templates yet</p>
+          <p className="text-sm text-slate-500 max-w-lg mx-auto">
+            After you publish forms, create a workflow that references them on each activity. You can restore the
+            starter SO_STANDARD template (and its forms) as a reference.
+          </p>
+          <button
+            type="button"
+            disabled={busy === "seed"}
+            onClick={() => void restoreStarter()}
+            className="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-50"
+          >
+            Restore starter workflow
+          </button>
+        </div>
+      )}
+
+      {(loading || rows.length > 0) && (
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
@@ -86,13 +121,6 @@ export default function WorkflowTemplatesPage() {
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
                   Loading…
-                </td>
-              </tr>
-            )}
-            {!loading && rows.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
-                  No templates yet
                 </td>
               </tr>
             )}
@@ -130,6 +158,7 @@ export default function WorkflowTemplatesPage() {
           </tbody>
         </table>
       </div>
+      )}
 
       <p className="text-xs text-slate-400">
         Canvas → JSON → Validator → Publish. The engine never reads the diagram — only published definition JSON.

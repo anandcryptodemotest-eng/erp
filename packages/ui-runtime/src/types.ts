@@ -66,6 +66,55 @@ export interface LineEditorApi {
   cancelOrder?: () => void;
 }
 
+/** Lookup option for picker widgets (host-supplied). */
+export interface PickerOption {
+  id: string;
+  label: string;
+  meta?: string | null;
+}
+
+export interface InventoryLineView {
+  productId?: string;
+  productName: string;
+  orderedQty: number;
+  availableQty?: number | null;
+  shortageQty?: number | null;
+  warehouseName?: string | null;
+}
+
+export interface WorkflowTimelineEvent {
+  id: string;
+  type: string;
+  title: string;
+  at: string;
+  actor?: string | null;
+  remarks?: string | null;
+}
+
+export interface CommentItem {
+  id: string;
+  body: string;
+  author?: string | null;
+  at: string;
+}
+
+export interface AttachmentItem {
+  id: string;
+  name: string;
+  url?: string;
+  mimeType?: string;
+  size?: number;
+}
+
+/**
+ * Optional host APIs — Screen Controller wires these; widgets never call REST.
+ * ADR 0009: Host Services / Screen Controller layer.
+ */
+export interface HostApis {
+  uploadFile?: (file: File) => Promise<AttachmentItem>;
+  addComment?: (body: string) => void | Promise<void>;
+}
+
 export interface UIContext {
   entity: { type: string; id: string; data: Record<string, unknown> };
   order?: Record<string, unknown> | null;
@@ -81,6 +130,16 @@ export interface UIContext {
   screen: ScreenDefinition;
   theme: ThemeTokens;
   lineEditor?: LineEditorApi;
+  /** Phase 2 host-supplied context (ADR 0009) */
+  lookups?: {
+    warehouses?: PickerOption[];
+    drivers?: PickerOption[];
+  };
+  inventory?: InventoryLineView[];
+  timeline?: WorkflowTimelineEvent[];
+  comments?: CommentItem[];
+  attachments?: AttachmentItem[];
+  hostApis?: HostApis;
 }
 
 export type UIEventType =

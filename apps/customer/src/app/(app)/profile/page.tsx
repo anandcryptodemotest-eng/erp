@@ -1,7 +1,13 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { FormDefinition } from "@erp/workflow";
 import { api, clearAuth } from "@/lib/api-client";
+import {
+  CustomerScreenController,
+  createCustomerHost,
+} from "@/lib/ui-host/CustomerScreenController";
 
 interface Customer {
   id: string;
@@ -28,14 +34,13 @@ interface Notification {
   createdAt: string;
 }
 
-const emptyAddr = {
-  label: "Site",
-  line1: "",
-  city: "",
-  state: "",
-  pincode: "",
-  isDefault: false,
-};
+async function loadPublishedForm(formId: string): Promise<FormDefinition | null> {
+  const r = await api<{ data: { definition: FormDefinition } }>(
+    "sales",
+    `/api/workflow-forms/published?formId=${encodeURIComponent(formId)}&audience=CUSTOMER`
+  );
+  return r.data?.data?.definition ?? null;
+}
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -44,58 +49,77 @@ export default function ProfilePage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [tab, setTab] = useState<"info" | "addresses" | "notifications">("info");
   const [loading, setLoading] = useState(true);
-  const [showAddAddr, setShowAddAddr] = useState(false);
+  const [profileScreen, setProfileScreen] = useState<FormDefinition | null>(null);
+  const [addressScreen, setAddressScreen] = useState<FormDefinition | null>(null);
+  const [profileFields, setProfileFields] = useState<Record<string, string>>({});
+  const [addressFields, setAddressFields] = useState<Record<string, string>>({});
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [addressMode, setAddressMode] = useState<"create" | "edit">("create");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [addrForm, setAddrForm] = useState(emptyAddr);
-  const [savingAddr, setSavingAddr] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
-  async function load() {
-    const [custRes, notifRes] = await Promise.all([
+  const load = useCallback(async () => {
+    const [custRes, notifRes, profileForm, addressForm] = await Promise.all([
       api<{ data: Customer & { addresses?: Address[] } }>("sales", "/api/customers/me"),
       api<{ data: Notification[] }>("gateway", "/api/notifications?limit=30"),
+      loadPublishedForm("customer-profile"),
+      loadPublishedForm("customer-address"),
     ]);
     if (!custRes.error && custRes.data?.data) {
       const cust = custRes.data.data;
       setCustomer(cust);
       setAddresses(cust.addresses ?? []);
+      setProfileFields({
+        name: cust.name ?? "",
+        phone: cust.phone ?? "",
+        email: cust.email ?? "",
+      });
     }
-    if (!notifRes.error) setNotifications(notifRes.data.data ?? []);
+    if (!notifRes.error) setNotifications(notifRes.data?.data ?? []);
+    setProfileScreen(profileForm);
+    setAddressScreen(addressForm);
     setLoading(false);
-  }
+  }, []);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   async function refreshAddresses() {
     if (!customer) return;
     const addrRes = await api<{ data: Address[] }>("sales", `/api/customers/${customer.id}/addresses`);
-    if (!addrRes.error) setAddresses(addrRes.data.data);
+    if (!addrRes.error && addrRes.data?.data) setAddresses(addrRes.data.data);
   }
 
-  async function saveAddress() {
-    if (!customer) return;
-    setSavingAddr(true);
-    setMsg("");
-    const res = editingId
-      ? await api("sales", `/api/customers/${customer.id}/addresses/${editingId}`, {
-          method: "PATCH",
-          body: JSON.stringify(addrForm),
-        })
-      : await api("sales", `/api/customers/${customer.id}/addresses`, {
-          method: "POST",
-          body: JSON.stringify(addrForm),
-        });
-    setSavingAddr(false);
-    if (res.error) {
-      setMsg(res.error);
-      return;
-    }
-    await refreshAddresses();
-    setShowAddAddr(false);
+  function openCreateAddress() {
+    setAddressMode("create");
     setEditingId(null);
-    setAddrForm(emptyAddr);
+    setAddressFields({
+      label: "Site",
+      line1: "",
+      city: "",
+      state: "",
+      pincode: "",
+      isDefault: "false",
+    });
+    setShowAddressForm(true);
+    setMsg("");
+  }
+
+  function openEditAddress(a: Address) {
+    setAddressMode("edit");
+    setEditingId(a.id);
+    setAddressFields({
+      label: a.label,
+      line1: a.line1,
+      city: a.city,
+      state: a.state ?? "",
+      pincode: a.pincode,
+      isDefault: a.isDefault ? "true" : "false",
+    });
+    setShowAddressForm(true);
+    setMsg("");
   }
 
   async function deleteAddress(addrId: string) {
@@ -142,6 +166,15 @@ export default function ProfilePage() {
     router.replace("/login");
   }
 
+  const host = useMemo(
+    () =>
+      createCustomerHost({
+        permissions: { canEdit: true, canComplete: !saving, roles: ["CUSTOMER"] },
+        navigation: { push: (p) => router.push(p) },
+      }),
+    [router, saving]
+  );
+
   if (loading) return <div className="flex items-center justify-center py-16 text-gray-400">Loading…</div>;
 
   const unread = notifications.filter((n) => !n.isRead).length;
@@ -175,20 +208,44 @@ export default function ProfilePage() {
 
       {tab === "info" && (
         <div className="px-4 py-4 space-y-4">
-          {customer ? (
-            <div className="rounded-xl border border-gray-100 bg-white divide-y divide-gray-100">
-              {[
-                { label: "Name", value: customer.name },
-                { label: "Phone", value: customer.phone || "—" },
-                { label: "Email", value: customer.email || "—" },
-                { label: "Group", value: customer.customerGroup ?? "Regular" },
-              ].map((row) => (
-                <div key={row.label} className="flex justify-between px-4 py-3 text-sm">
-                  <span className="text-gray-500">{row.label}</span>
-                  <span className="font-medium text-gray-900">{row.value}</span>
-                </div>
-              ))}
-            </div>
+          {msg && <div className="text-sm text-red-600">{msg}</div>}
+          {customer && profileScreen ? (
+            <>
+              {customer.customerGroup && (
+                <p className="text-xs text-gray-500">
+                  Group: <span className="font-medium text-gray-800">{customer.customerGroup}</span>
+                </p>
+              )}
+              <CustomerScreenController
+                host={host}
+                screen={profileScreen}
+                customer={{ id: customer.id, name: customer.name }}
+                fieldValues={profileFields}
+                setFieldValue={(key, value) =>
+                  setProfileFields((prev) => ({ ...prev, [key]: value }))
+                }
+                busy={saving}
+                submitContext={{
+                  customerId: customer.id,
+                  onBusy: setSaving,
+                  onSuccess: async (result) => {
+                    setMsg("Profile saved");
+                    const data = (result as { data?: Customer } | undefined)?.data;
+                    if (data) {
+                      setCustomer((c) => (c ? { ...c, ...data } : data));
+                      setProfileFields({
+                        name: data.name ?? "",
+                        phone: data.phone ?? "",
+                        email: data.email ?? "",
+                      });
+                    } else {
+                      await load();
+                    }
+                  },
+                  onError: (m) => setMsg(m),
+                }}
+              />
+            </>
           ) : (
             <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
               No customer profile linked. Contact your supplier to invite you, or register again.
@@ -207,13 +264,13 @@ export default function ProfilePage() {
       {tab === "addresses" && customer && (
         <div className="px-4 py-4">
           {msg && <div className="mb-3 text-sm text-red-600">{msg}</div>}
-          <div className="space-y-2 mb-4">
+          <div className="mb-4 space-y-2">
             {addresses.map((a) => (
               <div key={a.id} className="rounded-xl border border-gray-100 bg-white p-4">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="mb-1 flex items-center gap-2">
                   <span className="text-sm font-semibold text-gray-800">{a.label}</span>
                   {a.isDefault && (
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700 font-medium">
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
                       Default
                     </span>
                   )}
@@ -224,29 +281,18 @@ export default function ProfilePage() {
                 </div>
                 <div className="mt-3 flex gap-3 text-xs font-semibold">
                   {!a.isDefault && (
-                    <button type="button" className="text-slate-700" onClick={() => setDefault(a)}>
+                    <button type="button" className="text-slate-700" onClick={() => void setDefault(a)}>
                       Set default
                     </button>
                   )}
-                  <button
-                    type="button"
-                    className="text-slate-700"
-                    onClick={() => {
-                      setEditingId(a.id);
-                      setAddrForm({
-                        label: a.label,
-                        line1: a.line1,
-                        city: a.city,
-                        state: a.state ?? "",
-                        pincode: a.pincode,
-                        isDefault: a.isDefault,
-                      });
-                      setShowAddAddr(true);
-                    }}
-                  >
+                  <button type="button" className="text-slate-700" onClick={() => openEditAddress(a)}>
                     Edit
                   </button>
-                  <button type="button" className="text-red-600" onClick={() => deleteAddress(a.id)}>
+                  <button
+                    type="button"
+                    className="text-red-600"
+                    onClick={() => void deleteAddress(a.id)}
+                  >
                     Delete
                   </button>
                 </div>
@@ -254,70 +300,59 @@ export default function ProfilePage() {
             ))}
           </div>
 
-          {!showAddAddr && (
+          {!showAddressForm && (
             <button
               type="button"
-              onClick={() => {
-                setEditingId(null);
-                setAddrForm(emptyAddr);
-                setShowAddAddr(true);
-              }}
+              onClick={openCreateAddress}
               className="w-full rounded-xl border-2 border-dashed border-slate-300 py-3 text-sm font-medium text-slate-700"
             >
               + Add New Address
             </button>
           )}
 
-          {showAddAddr && (
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
-              <div className="text-sm font-semibold text-gray-700">
-                {editingId ? "Edit Address" : "New Address"}
-              </div>
-              {(
-                [
-                  { key: "label", placeholder: "Label (e.g. Site Office)" },
-                  { key: "line1", placeholder: "Street / Flat / Building" },
-                  { key: "city", placeholder: "City" },
-                  { key: "state", placeholder: "State" },
-                  { key: "pincode", placeholder: "Pincode" },
-                ] as const
-              ).map(({ key, placeholder }) => (
-                <input
-                  key={key}
-                  placeholder={placeholder}
-                  value={addrForm[key]}
-                  onChange={(e) => setAddrForm((f) => ({ ...f, [key]: e.target.value }))}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-slate-500"
-                />
-              ))}
-              <label className="flex items-center gap-2 text-sm text-gray-600">
-                <input
-                  type="checkbox"
-                  checked={addrForm.isDefault}
-                  onChange={(e) => setAddrForm((f) => ({ ...f, isDefault: e.target.checked }))}
-                />
-                Set as default
-              </label>
-              <div className="flex gap-2">
+          {showAddressForm && addressScreen && (
+            <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-gray-700">
+                  {addressMode === "edit" ? "Edit Address" : "New Address"}
+                </div>
                 <button
                   type="button"
-                  onClick={saveAddress}
-                  disabled={savingAddr}
-                  className="flex-1 rounded-full bg-slate-900 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-                >
-                  {savingAddr ? "Saving…" : "Save"}
-                </button>
-                <button
-                  type="button"
+                  className="text-xs font-medium text-gray-600"
                   onClick={() => {
-                    setShowAddAddr(false);
+                    setShowAddressForm(false);
                     setEditingId(null);
                   }}
-                  className="flex-1 rounded-full border border-gray-200 py-2.5 text-sm font-medium text-gray-600"
                 >
                   Cancel
                 </button>
               </div>
+              <CustomerScreenController
+                host={host}
+                screen={{
+                  ...addressScreen,
+                  title: addressMode === "edit" ? "Edit address" : "New address",
+                }}
+                customer={{ id: customer.id, name: customer.name }}
+                fieldValues={addressFields}
+                setFieldValue={(key, value) =>
+                  setAddressFields((prev) => ({ ...prev, [key]: value }))
+                }
+                busy={saving}
+                submitContext={{
+                  customerId: customer.id,
+                  addressMode,
+                  addressId: editingId,
+                  onBusy: setSaving,
+                  onSuccess: async () => {
+                    setShowAddressForm(false);
+                    setEditingId(null);
+                    setMsg("");
+                    await refreshAddresses();
+                  },
+                  onError: (m) => setMsg(m),
+                }}
+              />
             </div>
           )}
         </div>
@@ -328,7 +363,7 @@ export default function ProfilePage() {
           {unread > 0 && (
             <button
               type="button"
-              onClick={markAllRead}
+              onClick={() => void markAllRead()}
               className="mb-3 text-xs font-semibold text-slate-700 underline"
             >
               Mark all as read
@@ -345,19 +380,19 @@ export default function ProfilePage() {
               <button
                 key={n.id}
                 type="button"
-                onClick={() => markRead(n)}
-                className={`w-full text-left rounded-xl p-4 ${
-                  n.isRead ? "bg-gray-50" : "bg-sky-50 border border-sky-100"
+                onClick={() => void markRead(n)}
+                className={`w-full rounded-xl p-4 text-left ${
+                  n.isRead ? "bg-gray-50" : "border border-sky-100 bg-sky-50"
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  {!n.isRead && <span className="h-2 w-2 rounded-full bg-sky-500 flex-shrink-0" />}
+                  {!n.isRead && <span className="h-2 w-2 flex-shrink-0 rounded-full bg-sky-500" />}
                   <span className="text-sm font-semibold text-gray-900">{n.title}</span>
                   <span className="ml-auto text-xs text-gray-400">
                     {new Date(n.createdAt).toLocaleDateString("en-IN")}
                   </span>
                 </div>
-                <p className="mt-1 text-sm text-gray-600 pl-4">{n.body}</p>
+                <p className="mt-1 pl-4 text-sm text-gray-600">{n.body}</p>
               </button>
             ))}
           </div>

@@ -6,7 +6,7 @@ import type { NextConfig } from "next";
 const GATEWAY_URL = process.env.GATEWAY_SERVICE_URL ?? "http://127.0.0.1:3010/admin";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@erp/ui", "@erp/types"],
+  transpilePackages: ["@erp/ui", "@erp/types", "@erp/ui-runtime", "@erp/workflow", "@erp/extensions"],
   allowedDevOrigins: ["150.242.201.102", "localhost", "127.0.0.1"],
   async rewrites() {
     return [

@@ -15,6 +15,12 @@ import {
   type UIContext,
   type LineItemLike,
   type LineEditorApi,
+  type PickerOption,
+  type InventoryLineView,
+  type WorkflowTimelineEvent,
+  type CommentItem,
+  type AttachmentItem,
+  type HostApis,
 } from "@erp/ui-runtime";
 import { ensureOmsWidgetsRegistered } from "./oms-widgets";
 import { SO_TASK_TYPES } from "@erp/workflow";
@@ -49,13 +55,19 @@ export function TaskScreenRuntime(props: {
   busy?: boolean;
   lineEditor?: LineEditorApi;
   toast?: { success: (m: string) => void; error: (m: string) => void };
+  lookups?: { warehouses?: PickerOption[]; drivers?: PickerOption[] };
+  inventory?: InventoryLineView[];
+  timeline?: WorkflowTimelineEvent[];
+  comments?: CommentItem[];
+  attachments?: AttachmentItem[];
+  hostApis?: HostApis;
 }): ReactNode {
   ensurePlatformExtensionsBootstrapped();
 
   const screen = useMemo(() => {
     try {
       return normalizeScreenDefinition(props.screen);
-    } catch (e) {
+    } catch {
       return null;
     }
   }, [props.screen]);
@@ -105,6 +117,12 @@ export function TaskScreenRuntime(props: {
     theme,
     task: { action: props.taskAction },
     lineEditor: props.lineEditor,
+    lookups: props.lookups,
+    inventory: props.inventory,
+    timeline: props.timeline,
+    comments: props.comments,
+    attachments: props.attachments,
+    hostApis: props.hostApis,
   };
   context.variables.__requestComplete = () => requestComplete(context);
 
@@ -135,3 +153,5 @@ export function TaskScreenRuntime(props: {
 }
 
 export { listWidgetManifests, normalizeScreenDefinition };
+export { createAdminHost } from "./admin-host";
+

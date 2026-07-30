@@ -5,6 +5,9 @@
  * → pricing → dispatch. CRM (Leads / Deals / Quotes / Sales Flow) is hidden until
  * re-enabled via role config or per-user `navModules`.
  *
+ * Governance: see docs/architecture/tenant-operating-model.md
+ * Role → Permissions → Navigation → Capabilities
+ *
  * How to change visibility:
  * 1. Edit DEFAULT_ROLE_NAV / TRADING_JOURNEY_NAV below, OR
  * 2. Pass per-user `navModules` at login / store in localStorage (override), OR
@@ -25,6 +28,7 @@ export type NavModuleKey =
   | "oms"
   | "workflows"
   | "configuration"
+  | "administration"
   | "users"
   | "vendors"
   | "purchase_orders"
@@ -45,6 +49,7 @@ export const ALL_NAV_MODULES: NavModuleKey[] = [
   "oms",
   "workflows",
   "configuration",
+  "administration",
   "users",
   "vendors",
   "purchase_orders",
@@ -79,30 +84,43 @@ export const CRM_NAV_MODULES: NavModuleKey[] = [
   "quotes",
 ];
 
+/** Process Owner permission set — business configuration (workflows / forms). */
+export const PROCESS_OWNER_NAV: NavModuleKey[] = [
+  "dashboard",
+  "oms",
+  "workflows",
+  "configuration",
+];
+
+/** Catalog Manager permission set — master data. */
+export const CATALOG_MANAGER_NAV: NavModuleKey[] = [
+  "dashboard",
+  "products",
+  "oms",
+];
+
 /** Role → allowed module keys. */
 export const DEFAULT_ROLE_NAV: Record<string, NavModuleKey[] | "*"> = {
-  // Platform / break-glass — full ERP including CRM
   SUPER_ADMIN: "*",
 
-  // Org roles — trading journey (CRM off until needed); Users = admin-only team setup
-  ADMIN: [...TRADING_JOURNEY_NAV, "users"],
-  ORG_ADMIN: [...TRADING_JOURNEY_NAV, "users"],
+  ADMIN: [...TRADING_JOURNEY_NAV, "administration", "users"],
+  ORG_ADMIN: [...TRADING_JOURNEY_NAV, "administration", "users"],
   MANAGER: TRADING_JOURNEY_NAV,
   BRANCH_ADMIN: TRADING_JOURNEY_NAV,
 
-  // Sales desk — SREQ→SO trading workbench + lookup masters (no grocery /orders counter)
+  /** Named permission sets (Tenant Operating Model) */
+  PROCESS_OWNER: PROCESS_OWNER_NAV,
+  CATALOG_MANAGER: CATALOG_MANAGER_NAV,
+
   SALES_EXECUTIVE: ["dashboard", "customers", "products", "oms"],
   SALES_REP: ["dashboard", "customers", "products", "oms"],
 
-  // OMS stage owners — Sales desk is their primary work surface
   PRICING_EXECUTIVE: ["dashboard", "products", "oms"],
   DISPATCH_EXECUTIVE: ["dashboard", "oms"],
   DELIVERY_EXECUTIVE: ["dashboard", "oms"],
 
-  // Procurement + vendor communication
   PROCUREMENT_OFFICER: ["dashboard", "products", "vendors", "purchase_orders", "oms", "orders"],
 
-  // Finance (no CRM)
   ACCOUNTANT: ["dashboard", "customers", "invoices", "oms"],
   HR_MANAGER: ["dashboard", "employees", "payroll"],
 
@@ -177,6 +195,7 @@ export function defaultHomePath(allowed: Set<NavModuleKey>): string {
     oms: "/oms",
     workflows: "/workflows",
     configuration: "/configuration",
+    administration: "/administration",
     users: "/users",
     vendors: "/vendors",
     purchase_orders: "/purchase-orders",
@@ -199,6 +218,7 @@ export function pathToModuleKey(pathname: string): NavModuleKey | null {
   if (pathname.startsWith("/oms")) return "oms";
   if (pathname.startsWith("/workflows")) return "workflows";
   if (pathname.startsWith("/configuration") || pathname.startsWith("/forms")) return "configuration";
+  if (pathname.startsWith("/administration")) return "administration";
   if (pathname.startsWith("/users")) return "users";
   if (pathname.startsWith("/vendors")) return "vendors";
   if (pathname.startsWith("/purchase-orders")) return "purchase_orders";
