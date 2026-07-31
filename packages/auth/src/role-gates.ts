@@ -31,6 +31,10 @@ export function roleAllowed(
   return allowed.includes(role);
 }
 
+/**
+ * @deprecated Use requireProcessDesigner(authContextFromHeaders(...)) for designer mutate APIs.
+ * Kept for non-designer call sites that still key off role only.
+ */
 export function requireProcessOwner(request: Request): Response | null {
   const role = request.headers.get("x-user-role");
   if (roleAllowed(role, PROCESS_OWNER_ROLES)) return null;

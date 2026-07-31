@@ -67,8 +67,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const tenantId = request.headers.get("x-tenant-id");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
-  const { requireProcessOwner } = await import("@erp/auth");
-  const denied = requireProcessOwner(request);
+  const { requireProcessDesignerFromRequest } = await import("@erp/auth");
+  const denied = requireProcessDesignerFromRequest(request);
   if (denied) return denied;
 
   const body = (await request.json()) as {

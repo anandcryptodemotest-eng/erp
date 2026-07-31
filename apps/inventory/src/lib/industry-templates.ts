@@ -20,8 +20,12 @@ export type IndustryTemplate = {
     isFilterable?: boolean;
     isSearchable?: boolean;
     isVariantAxis?: boolean;
+    isIdentity?: boolean;
     showOnLabel?: boolean;
     sortOrder?: number;
+    measureRole?: string;
+    measureUnit?: string;
+    sizePattern?: string;
   }[];
 };
 
@@ -29,8 +33,8 @@ export const INDUSTRY_TEMPLATES: IndustryTemplate[] = [
   {
     templateId: "industry.plywood",
     name: "Plywood / Timber",
-    version: 2,
-    description: "Plywood, Blockboard & Laminates — shared size field, different lists per category",
+    version: 4,
+    description: "Plywood, Blockboard & Laminates — size-driven PER_AREA pricing ({L}x{W} ft)",
     categories: [
       {
         name: "Plywood",
@@ -57,18 +61,6 @@ export const INDUSTRY_TEMPLATES: IndustryTemplate[] = [
     ],
     attributes: [
       {
-        key: "thickness_mm",
-        label: "Thickness",
-        dataType: "NUMBER",
-        unit: "mm",
-        isRequired: true,
-        isFilterable: true,
-        isVariantAxis: true,
-        showOnLabel: true,
-        validation: { min: 0.5, max: 50 },
-        sortOrder: 1,
-      },
-      {
         key: "size",
         label: "Size",
         dataType: "SELECT",
@@ -77,8 +69,27 @@ export const INDUSTRY_TEMPLATES: IndustryTemplate[] = [
         isRequired: true,
         isFilterable: true,
         isVariantAxis: true,
+        isIdentity: true,
         showOnLabel: true,
         sortOrder: 2,
+        measureRole: "LENGTH",
+        measureUnit: "ft",
+        sizePattern: "{L}x{W}",
+      },
+      {
+        key: "thickness_mm",
+        label: "Thickness",
+        dataType: "NUMBER",
+        unit: "mm",
+        isRequired: true,
+        isFilterable: true,
+        isVariantAxis: true,
+        isIdentity: true,
+        showOnLabel: true,
+        validation: { min: 0.5, max: 50 },
+        sortOrder: 1,
+        measureRole: "THICKNESS",
+        measureUnit: "mm",
       },
       {
         key: "grade",
@@ -87,6 +98,7 @@ export const INDUSTRY_TEMPLATES: IndustryTemplate[] = [
         options: ["MR", "BWR", "BWP", "Commercial"],
         isRequired: true,
         isFilterable: true,
+        isIdentity: true,
         showOnLabel: true,
         sortOrder: 3,
       },

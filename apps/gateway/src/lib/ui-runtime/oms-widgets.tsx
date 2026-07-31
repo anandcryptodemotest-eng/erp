@@ -206,20 +206,61 @@ const FormFieldsWidget: Widget = {
     return { ok: errors.length === 0, errors };
   },
   collectPayload(runtime) {
+    const fields = runtime.context.screen.fields ?? [];
     const out: Record<string, unknown> = {};
-    for (const f of runtime.context.screen.fields ?? []) {
-      if (f.scope === "per-item") continue;
-      const v = runtime.context.fieldValues[f.key];
-      if (v == null || v === "") continue;
-      if (f.type === "checkbox") out[f.key] = v === "true" || v === "1";
-      else if (
+
+    function coerce(f: (typeof fields)[number], v: string): unknown {
+      if (f.type === "checkbox") return v === "true" || v === "1";
+      if (
         f.type === "number" ||
         f.type === "currency" ||
         f.type === "percentage" ||
         f.type === "rating"
       ) {
-        out[f.key] = Number(v);
-      } else out[f.key] = v;
+        return Number(v);
+      }
+      return v;
+    }
+
+    for (const f of fields) {
+      if (f.scope === "per-item") continue;
+      const v = runtime.context.fieldValues[f.key];
+      if (v == null || v === "") continue;
+      out[f.key] = coerce(f, v);
+    }
+
+    const perItem = fields.filter((f) => f.scope === "per-item");
+    if (perItem.length > 0) {
+      out.items = (runtime.context.items ?? []).map((item) => {
+        const row: Record<string, unknown> = {
+          orderItemId: item.id,
+          id: item.id,
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        };
+        for (const f of perItem) {
+          if (f.type === "readonly") {
+            row[f.key] = (item as Record<string, unknown>)[f.source ?? f.key];
+            continue;
+          }
+          const raw = runtime.context.fieldValues[fieldKey(f.key, item.id)];
+          if (raw == null || raw === "") {
+            // Fall back to item field / source so verify-stock still gets availableQty
+            const fallback = (item as Record<string, unknown>)[f.source ?? f.key];
+            if (fallback != null && fallback !== "") {
+              row[f.key] =
+                f.type === "number" || f.type === "currency"
+                  ? Number(fallback)
+                  : fallback;
+            }
+            continue;
+          }
+          row[f.key] = coerce(f, raw);
+        }
+        return row;
+      });
     }
     return out;
   },

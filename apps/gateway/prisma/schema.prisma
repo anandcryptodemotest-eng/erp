@@ -38,9 +38,25 @@ model Tenant {
   users         TenantUser[]
   licenses      ModuleLicense[]
   settings      TenantSetting[]
+  capabilities  TenantCapability[]
   invitations   Invitation[]
   notifications Notification[]
   branches      Branch[]
+}
+
+/** Operational enablement (distinct from TenantSetting branding/config). */
+model TenantCapability {
+  id        String   @id @default(cuid())
+  tenantId  String
+  key       String
+  enabled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
 }
 
 model Branch {
@@ -253,4 +269,51 @@ model FCMToken {
 
   @@unique([userId, token])
   @@index([tenantId, userId])
+}
+
+/// SaaS operator — not a TenantUser. Future: mfaEnabled, failedLoginCount, lockedUntil.
+model PlatformOperator {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
+  passwordHash String
+  role         String    @default("PLATFORM_VIEWER")
+  // PLATFORM_OWNER | PLATFORM_ADMIN | PLATFORM_SUPPORT | PLATFORM_VIEWER
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  auditLogs PlatformAuditLog[]
+  refreshTokens PlatformRefreshToken[]
+}
+
+model PlatformRefreshToken {
+  id         String   @id @default(cuid())
+  operatorId String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  operator PlatformOperator @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+
+  @@index([operatorId])
+}
+
+model PlatformAuditLog {
+  id         String   @id @default(cuid())
+  operatorId String
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  operator PlatformOperator @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([operatorId, createdAt])
+  @@index([entityType, entityId])
 }

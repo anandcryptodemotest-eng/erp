@@ -19,8 +19,9 @@ export async function GET(request: Request) {
       ...(warehouseId && { warehouseId }),
     },
     include: {
-      product: { select: { id: true, sku: true, name: true, reorderLevel: true } },
+      product: { select: { id: true, sku: true, name: true, reorderLevel: true, productStructure: true } },
       warehouse: { select: { id: true, name: true } },
+      variant: { select: { id: true, sku: true, name: true } },
     },
   });
 

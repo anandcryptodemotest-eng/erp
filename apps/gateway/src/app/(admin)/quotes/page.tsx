@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/admin-api";
+import { buildLinePricingMeta, fetchPricingQuote } from "@/lib/pricing-quote";
 import LeadToCashGuide from "@/components/LeadToCashGuide";
 import LeadToCashUnderstanding from "@/components/LeadToCashUnderstanding";
 
@@ -37,6 +38,7 @@ interface SOLine {
   qty: string;
   unitPrice: string;
   discount: string;
+  pricingMeta?: ReturnType<typeof buildLinePricingMeta> | null;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -135,13 +137,38 @@ export default function QuotesPage() {
     setSuggestions(products.filter(p => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)).slice(0, 8));
   }, [productSearch, products]);
 
-  function addLine(product: Product) {
+  async function addLine(product: Product) {
     const existing = lines.findIndex(l => l.productId === product.id);
     if (existing >= 0) {
       setLines(ls => ls.map((l, i) => i === existing ? { ...l, qty: String(Number(l.qty) + 1) } : l));
-    } else {
-      setLines(ls => [...ls, { productId: product.id, productName: product.name, qty: "1", unitPrice: String(product.sellPrice), discount: "0" }]);
+      setProductSearch(""); setSuggestions([]);
+      return;
     }
+
+    const result = await fetchPricingQuote({ productId: product.id, quantity: 1 });
+    if (!result.ok && !result.soft) {
+      notify(`Cannot add ${product.name}: ${result.error}`, "err");
+      setProductSearch(""); setSuggestions([]);
+      return;
+    }
+
+    let unitPrice = String(product.sellPrice);
+    let pricingMeta: ReturnType<typeof buildLinePricingMeta> | null = null;
+    if (result.ok) {
+      unitPrice = String(result.quote.unitPrice);
+      pricingMeta = buildLinePricingMeta(result);
+    } else {
+      notify(`Pricing unavailable — using sell price for ${product.name}`, "err");
+    }
+
+    setLines(ls => [...ls, {
+      productId: product.id,
+      productName: product.name,
+      qty: "1",
+      unitPrice,
+      discount: "0",
+      pricingMeta,
+    }]);
     setProductSearch(""); setSuggestions([]);
   }
 

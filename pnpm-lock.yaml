@@ -231,6 +231,9 @@ importers:
       '@erp/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@erp/platform-core':
+        specifier: workspace:*
+        version: link:../../packages/platform-core
       '@erp/telemetry':
         specifier: workspace:*
         version: link:../../packages/telemetry
@@ -298,6 +301,9 @@ importers:
       tailwindcss:
         specifier: ^4
         version: 4.3.0
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.1
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
@@ -371,6 +377,9 @@ importers:
       '@erp/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@erp/pricing':
+        specifier: workspace:*
+        version: link:../../packages/pricing
       '@erp/telemetry':
         specifier: workspace:*
         version: link:../../packages/telemetry
@@ -416,6 +425,52 @@ importers:
         version: 4.3.0
       typescript:
         specifier: ^5.7.0
+        version: 5.9.3
+
+  apps/platform:
+    dependencies:
+      '@erp/platform-core':
+        specifier: workspace:*
+        version: link:../../packages/platform-core
+      '@erp/process-designer':
+        specifier: workspace:*
+        version: link:../../packages/process-designer
+      '@erp/process-forms':
+        specifier: workspace:*
+        version: link:../../packages/process-forms
+      '@erp/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      lucide-react:
+        specifier: ^1.16.0
+        version: 1.16.0(react@19.2.6)
+      next:
+        specifier: ^15.1.0
+        version: 15.5.18(@opentelemetry/api@1.9.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      react:
+        specifier: ^19.0.0
+        version: 19.2.6
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.6(react@19.2.6)
+    devDependencies:
+      '@tailwindcss/postcss':
+        specifier: ^4
+        version: 4.3.0
+      '@types/node':
+        specifier: ^22
+        version: 22.19.19
+      '@types/react':
+        specifier: ^19
+        version: 19.2.15
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.3(@types/react@19.2.15)
+      tailwindcss:
+        specifier: ^4
+        version: 4.3.0
+      typescript:
+        specifier: ^5
         version: 5.9.3
 
   apps/pos:
@@ -582,6 +637,9 @@ importers:
       '@erp/logger':
         specifier: workspace:*
         version: link:../logger
+      '@erp/platform-core':
+        specifier: workspace:*
+        version: link:../platform-core
       '@erp/types':
         specifier: workspace:*
         version: link:../types
@@ -626,6 +684,59 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.19
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/platform-core:
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/pricing:
+    devDependencies:
+      tsx:
+        specifier: ^4.19.0
+        version: 4.23.1
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/process-designer:
+    dependencies:
+      '@erp/platform-core':
+        specifier: workspace:*
+        version: link:../platform-core
+      next:
+        specifier: '>=15.0.0'
+        version: 15.5.18(@opentelemetry/api@1.9.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      react:
+        specifier: '>=18.0.0'
+        version: 19.2.6
+      react-dom:
+        specifier: '>=18.0.0'
+        version: 19.2.6(react@19.2.6)
+    devDependencies:
+      '@types/react':
+        specifier: ^19
+        version: 19.2.15
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/process-forms:
+    dependencies:
+      react:
+        specifier: '>=18.0.0'
+        version: 19.2.6
+      react-dom:
+        specifier: '>=18.0.0'
+        version: 19.2.6(react@19.2.6)
+    devDependencies:
+      '@types/react':
+        specifier: ^19
+        version: 19.2.15
       typescript:
         specifier: ^5.7.0
         version: 5.9.3

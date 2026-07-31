@@ -20,8 +20,12 @@ export type AttributeDefinition = {
   isRequired: boolean;
   isFilterable: boolean;
   isVariantAxis: boolean;
+  isIdentity: boolean;
   showOnLabel: boolean;
   sortOrder: number;
+  measureRole?: string | null;
+  measureUnit?: string | null;
+  sizePattern?: string | null;
 };
 
 type ValidationRules = {
@@ -71,8 +75,12 @@ export async function resolveAttributeDefinitions(
         isRequired: link?.isRequiredOverride ?? def.isRequired,
         isFilterable: def.isFilterable,
         isVariantAxis: def.isVariantAxis,
+        isIdentity: def.isIdentity,
         showOnLabel: def.showOnLabel,
         sortOrder: def.sortOrder,
+        measureRole: def.measureRole,
+        measureUnit: def.measureUnit,
+        sizePattern: def.sizePattern,
       };
     });
 }

@@ -14,6 +14,7 @@ import type {
   ProjectionPatch,
 } from "@erp/workflow";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma";
 import {
   reviewSchema,
   stockVerifySchema,
@@ -40,10 +41,11 @@ export const salesOrderAdapter: WorkflowDomainAdapter = {
   },
 
   async validateTask(task, payload, _ctx): Promise<ValidationResult> {
+    // Inventory items may be omitted by older UI clients — handler normalizes from order lines.
     if (task.taskType === "INVENTORY_CHECK" && payload && typeof payload === "object") {
       const items = (payload as { items?: unknown }).items;
-      if (!Array.isArray(items)) {
-        return { ok: false, errors: ["items array required for inventory check"] };
+      if (items != null && !Array.isArray(items)) {
+        return { ok: false, errors: ["items must be an array for inventory check"] };
       }
     }
     return { ok: true };
@@ -133,6 +135,31 @@ export function registerDefaultSalesHandlers() {
             const unitPrice = canEditPrice
               ? i.unitPrice
               : (existing?.unitPrice ?? i.unitPrice);
+            const existingSnap =
+              existing?.customSnapshot && typeof existing.customSnapshot === "object"
+                ? (existing.customSnapshot as Record<string, unknown>)
+                : null;
+            const incomingSnap =
+              i.customSnapshot && typeof i.customSnapshot === "object"
+                ? (i.customSnapshot as Record<string, unknown>)
+                : null;
+            let customSnapshot: Record<string, unknown> | undefined =
+              incomingSnap ?? existingSnap ?? undefined;
+            if (customSnapshot?.pricing && typeof customSnapshot.pricing === "object") {
+              const pricing = { ...(customSnapshot.pricing as Record<string, unknown>) };
+              const quoted = Number(pricing.quotedUnitPrice);
+              if (
+                Number.isFinite(quoted) &&
+                Math.abs(quoted - unitPrice) > 0.0001
+              ) {
+                const snap =
+                  pricing.pricingSnapshot && typeof pricing.pricingSnapshot === "object"
+                    ? { ...(pricing.pricingSnapshot as Record<string, unknown>), overridden: true }
+                    : pricing.pricingSnapshot;
+                pricing.pricingSnapshot = snap;
+                customSnapshot = { ...customSnapshot, pricing };
+              }
+            }
             return {
               salesOrderId: orderId,
               productId: i.productId,
@@ -141,6 +168,9 @@ export function registerDefaultSalesHandlers() {
               unitPrice,
               total: i.quantity * unitPrice,
               remarks: i.remarks,
+              ...(customSnapshot
+                ? { customSnapshot: customSnapshot as Prisma.InputJsonValue }
+                : {}),
             };
           }),
         });
@@ -181,9 +211,26 @@ export function registerDefaultSalesHandlers() {
   });
 
   registerSalesTaskHandler("INVENTORY_CHECK", async (_task, payload, ctx) => {
-    const parsed = stockVerifySchema.parse(payload);
     const orderId = ctx.instance.entityId;
     const order = await loadOrder(orderId);
+    const raw = (payload && typeof payload === "object" ? payload : {}) as {
+      items?: { orderItemId?: string; id?: string; availableQty?: number }[];
+      remarks?: string;
+    };
+
+    // Default: confirm full stock from order lines when UI sent no items
+    const lines =
+      Array.isArray(raw.items) && raw.items.length > 0
+        ? raw.items.map((line) => ({
+            orderItemId: String(line.orderItemId ?? line.id ?? ""),
+            availableQty: Number(line.availableQty ?? 0),
+          }))
+        : order.items.map((i) => ({
+            orderItemId: i.id,
+            availableQty: Number(i.availableQty ?? i.quantity),
+          }));
+
+    const parsed = stockVerifySchema.parse({ ...raw, items: lines });
     let hasShortage = false;
 
     await prisma.$transaction(async (tx) => {

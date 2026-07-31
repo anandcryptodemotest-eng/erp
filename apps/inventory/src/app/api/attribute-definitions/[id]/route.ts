@@ -20,6 +20,7 @@ const updateSchema = z.object({
   isFilterable: z.boolean().optional(),
   isSearchable: z.boolean().optional(),
   isVariantAxis: z.boolean().optional(),
+  isIdentity: z.boolean().optional(),
   showOnLabel: z.boolean().optional(),
   sortOrder: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),

@@ -24,7 +24,7 @@ function Invoke-Json([string]$name, [string]$method, [string]$url, [hashtable]$h
   }
 }
 
-$loginBody = @{ email = 'admin@simhapurifresh.com'; password = 'Admin@123'; tenantSlug = 'simhapuri-fresh' }
+$loginBody = @{ email = 'admin@simhapurifresh.com'; password = 'Admin@123'; tenantSlug = 'trustwood-enterprise' }
 $login = Invoke-Json 'Auth Login' 'POST' "$base/_svc/gateway/api/auth" @{} $loginBody
 if ($null -eq $login) {
   $results | Format-Table -AutoSize

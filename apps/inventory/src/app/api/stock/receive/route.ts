@@ -2,16 +2,25 @@ import { createLogger } from "@erp/logger";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import {
+  assertVariantStockScope,
+  normalizeVariantId,
+  upsertStockDelta,
+} from "@/lib/warehouse-stock";
 
 const log = createLogger({ service: "inventory" });
 
 const receiveSchema = z.object({
-  items: z.array(z.object({
-    productId: z.string(),
-    warehouseId: z.string(),
-    variantId: z.string().optional(),
-    quantity: z.number().positive(), // Float supports kg-based receiving (e.g. 50.5 kg)
-  })).min(1),
+  items: z
+    .array(
+      z.object({
+        productId: z.string(),
+        warehouseId: z.string(),
+        variantId: z.string().optional(),
+        quantity: z.number().positive(),
+      })
+    )
+    .min(1),
   reference: z.string().min(1),
   notes: z.string().optional(),
 });
@@ -25,13 +34,27 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { items, reference, notes } = receiveSchema.parse(body);
 
+    for (const item of items) {
+      const scope = await assertVariantStockScope(prisma, {
+        tenantId,
+        productId: item.productId,
+        variantId: item.variantId,
+      });
+      if (!scope.ok) {
+        return NextResponse.json({ error: scope.error }, { status: scope.status });
+      }
+    }
+
     const movements = await prisma.$transaction(async (tx) => {
       const ms = [];
       for (const item of items) {
-        await tx.warehouseStock.upsert({
-          where: { productId_warehouseId: { productId: item.productId, warehouseId: item.warehouseId } },
-          update: { quantity: { increment: item.quantity } },
-          create: { tenantId, productId: item.productId, warehouseId: item.warehouseId, quantity: item.quantity },
+        const variantId = normalizeVariantId(item.variantId);
+        await upsertStockDelta(tx, {
+          tenantId,
+          productId: item.productId,
+          warehouseId: item.warehouseId,
+          variantId,
+          quantityDelta: item.quantity,
         });
 
         const m = await tx.stockMovement.create({
@@ -39,7 +62,7 @@ export async function POST(request: Request) {
             tenantId,
             productId: item.productId,
             warehouseId: item.warehouseId,
-            variantId: item.variantId,
+            variantId,
             type: "IN",
             quantity: item.quantity,
             reference,
@@ -57,7 +80,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
     }
     const msg = error instanceof Error ? error.message : "Internal server error";
-    // Common: warehouse/product FK missing after catalog wipe
     if (/Foreign key constraint|WarehouseStock_warehouseId|WarehouseStock_productId/i.test(msg)) {
       return NextResponse.json(
         { error: "Invalid warehouse or product. Create a warehouse first, then receive stock." },

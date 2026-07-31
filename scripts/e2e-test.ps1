@@ -16,7 +16,7 @@ function Req { param($method,$path,$body=$null,$token="",$tid="")
         Invoke-RestMethod @p2
     }catch{$null}
 }
-$login=Req POST "/api/auth" @{action="login";email="admin@simhapurifresh.com";password="Admin@123";tenantSlug="simhapuri-fresh"}
+$login=Req POST "/api/auth" @{action="login";email="admin@simhapurifresh.com";password="Admin@123";tenantSlug="trustwood-enterprise"}
 if(!$login.data.accessToken){Write-Host "LOGIN FAILED";exit 1}
 T "Login" $true; $tok=$login.data.accessToken;$tid=$login.data.tenant.id
 

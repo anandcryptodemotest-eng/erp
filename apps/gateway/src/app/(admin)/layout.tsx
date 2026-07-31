@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { getToken, clearAuth, getAdminUser } from "@/lib/admin-api";
+import { api, getToken, clearAuth, getAdminUser, getTenantId } from "@/lib/admin-api";
 import {
   canAccessModule,
   defaultHomePath,
@@ -32,7 +32,11 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Catalog",
     items: [
       { href: "/dashboard", label: "Dashboard", icon: "DB", keywords: ["home", "kpi", "summary"], module: "dashboard" },
-      { href: "/products", label: "Products", icon: "PR", keywords: ["catalog", "inventory", "attributes", "custom fields", "size", "catalog manager"], module: "products" },
+      { href: "/products", label: "Products", icon: "PR", keywords: ["catalog", "inventory", "sku", "catalog manager"], module: "products" },
+      { href: "/categories", label: "Categories", icon: "CA", keywords: ["category", "taxonomy"], module: "products" },
+      { href: "/brands", label: "Brands", icon: "BR", keywords: ["brand", "manufacturer"], module: "products" },
+      { href: "/attributes", label: "Attributes", icon: "AT", keywords: ["custom fields", "identity", "attributes"], module: "products" },
+      { href: "/price-lists", label: "Price Lists", icon: "PL", keywords: ["pricing", "list price"], module: "products" },
       { href: "/customers", label: "Customers", icon: "CU", keywords: ["accounts", "buyers", "mobile"], module: "customers" },
     ],
   },
@@ -82,7 +86,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         href: "/administration",
-        label: "Tenant",
+        label: "Organization",
         icon: "TN",
         keywords: ["tenant", "settings", "modules", "branding", "portal", "branches", "security"],
         module: "administration",
@@ -161,6 +165,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState("");
   const [sessionUser, setSessionUser] = useState<ReturnType<typeof getAdminUser>>(null);
+  const [tenantDisplayName, setTenantDisplayName] = useState("ERP Admin");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     core: true,
     orderDesk: true,
@@ -173,8 +178,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   });
 
   const allowed = useMemo(
-    () => resolveNavModules(sessionUser?.role, sessionUser?.navModules),
-    [sessionUser?.role, sessionUser?.navModules]
+    () => resolveNavModules(sessionUser?.role, sessionUser?.navModules, sessionUser?.capabilities),
+    [sessionUser?.role, sessionUser?.navModules, sessionUser?.capabilities]
   );
 
   useEffect(() => {
@@ -184,7 +189,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
     const user = getAdminUser();
     setSessionUser(user);
-    const mods = resolveNavModules(user?.role, user?.navModules);
+    const mods = resolveNavModules(user?.role, user?.navModules, user?.capabilities);
     if (mods.size === 0) {
       clearAuth();
       router.replace("/login");
@@ -197,6 +202,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
     setReady(true);
   }, [router, pathname]);
+
+  useEffect(() => {
+    const tenantId = getTenantId();
+    if (!tenantId || !getToken()) return;
+    void api(`/api/tenants/${tenantId}`)
+      .then((r) => {
+        const settings = (r.data?.settings ?? {}) as Record<string, string>;
+        const name =
+          settings["brand.displayName"]?.trim() ||
+          (r.data?.name as string | undefined)?.trim() ||
+          "ERP Admin";
+        setTenantDisplayName(name);
+        if (typeof document !== "undefined") {
+          document.title = `${name} Admin`;
+        }
+      })
+      .catch(() => setTenantDisplayName("ERP Admin"));
+  }, []);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -244,7 +267,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             {!collapsed && (
               <div className="font-display text-xl font-semibold leading-tight truncate mt-1">
-                Trust Wood
+                {tenantDisplayName}
               </div>
             )}
           </div>
@@ -409,7 +432,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             ≡
           </button>
-          <div className="text-sm text-[var(--ink-soft)]/60">Trust Wood</div>
+          <div className="text-sm text-[var(--ink-soft)]/60 truncate max-w-[10rem]">{tenantDisplayName}</div>
           <div className="text-sm text-[var(--line)]">/</div>
           <div className="text-sm font-semibold text-[var(--ink)] truncate">{activeTitle}</div>
         </header>

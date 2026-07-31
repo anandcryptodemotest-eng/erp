@@ -4,7 +4,7 @@
 **Result:** 27 / 27 PASS  
 **Test script:** `scripts/e2e-test.ps1`  
 **Gateway:** `http://localhost:3010`  
-**Seed tenant:** `simhapuri-fresh` / `admin@simhapurifresh.com`
+**Seed tenant:** `trustwood-enterprise` / `admin@simhapurifresh.com`
 
 ---
 

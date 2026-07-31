@@ -9,6 +9,8 @@ export type AdminSessionUser = {
   role: string;
   /** Optional per-user module override (from admin config later) */
   navModules?: string[] | null;
+  /** Enabled TenantCapability keys */
+  capabilities?: string[] | null;
 };
 
 export function getToken() {
@@ -67,6 +69,16 @@ export async function api(path: string, options: RequestInit = {}) {
     },
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(json.error ?? `HTTP ${res.status}`) as Error & {
+      issues?: unknown;
+      analyze?: unknown;
+      status?: number;
+    };
+    err.issues = json.issues;
+    err.analyze = json.analyze;
+    err.status = res.status;
+    throw err;
+  }
   return json;
 }

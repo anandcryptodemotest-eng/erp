@@ -56,6 +56,9 @@ export interface AuthToken {
   tenantId: string;
   role: UserRole;
   modules: string[];
+  /** Enabled TenantCapability keys (operational grants). */
+  capabilities?: string[];
+  scope?: "tenant";
   exp: number;
 }
 
@@ -108,8 +111,13 @@ export interface Product {
   description: string | null;
   category: string | null;
   unit: string;
-  costPrice: number;
-  sellPrice: number;
+  costPrice: number | null;
+  sellPrice: number | null;
+  /** Inventory cost engine only — never an input to @erp/pricing */
+  costingMethod?: "MANUAL" | "LAST_PURCHASE" | "WEIGHTED_AVERAGE" | "FIFO";
+  pricingBasis?: string;
+  baseRate?: number | null;
+  pricingUom?: string | null;
   reorderLevel: number;
   isActive: boolean;
   customAttributes?: Record<string, unknown>;

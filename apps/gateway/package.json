@@ -8,11 +8,13 @@
     "start": "next start --port 3010",
     "lint": "eslint .",
     "db:generate": "prisma generate",
-    "db:push": "prisma db push"
+    "db:push": "prisma db push",
+    "seed:platform": "tsx scripts/seed-platform-operator.ts"
   },
   "dependencies": {
     "@erp/auth": "workspace:*",
     "@erp/config": "workspace:*",
+    "@erp/platform-core": "workspace:*",
     "@erp/extensions": "workspace:*",
     "@erp/logger": "workspace:*",
     "@erp/types": "workspace:*",
@@ -37,6 +39,7 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "tsx": "^4.19.2",
     "prisma": "^6.0.0",
     "tailwindcss": "^4",
     "typescript": "^5.7.0"

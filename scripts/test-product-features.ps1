@@ -23,7 +23,7 @@ function Req { param($method,$path,$body=$null,$token="",$tid="")
 }
 
 # ─── Auth ────────────────────────────────────────────────────────────────────
-$login = Req POST "/api/auth" @{action="login";email="admin@simhapurifresh.com";password="Admin@123";tenantSlug="simhapuri-fresh"}
+$login = Req POST "/api/auth" @{action="login";email="admin@simhapurifresh.com";password="Admin@123";tenantSlug="trustwood-enterprise"}
 if (!$login.data.accessToken) { Write-Host "LOGIN FAILED - is gateway running on :3010?" -ForegroundColor Red; exit 1 }
 $tok = $login.data.accessToken
 $tid = $login.data.tenant.id

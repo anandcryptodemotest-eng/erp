@@ -4,7 +4,7 @@ set -uo pipefail
 BASE_URL="${BASE_URL:-http://localhost:3010}"
 ADMIN_EMAIL="${ADMIN_EMAIL:-admin@simhapurifresh.com}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-Admin@123}"
-TENANT_SLUG="${TENANT_SLUG:-simhapuri-fresh}"
+TENANT_SLUG="${TENANT_SLUG:-trustwood-enterprise}"
 E2E_PASSWORD="${E2E_PASSWORD:-Pass@12345}"
 
 TS="$(date +%s)"

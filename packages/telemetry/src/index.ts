@@ -22,5 +22,7 @@ export {
   readyPayload,
   telemetryCheck,
   serviceVersion,
+  serviceBuild,
+  serviceCommit,
 } from "./health";
 export type { HealthPayload, CheckStatus } from "./health";

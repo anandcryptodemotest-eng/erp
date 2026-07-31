@@ -20,7 +20,7 @@ pnpm reset:oms
 pnpm e2e:oms
 ```
 
-Tenant: `simhapuri-fresh`
+Tenant: `trustwood-enterprise`
 
 ## Users (live)
 

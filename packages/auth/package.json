@@ -11,7 +11,8 @@
   "dependencies": {
     "jose": "^6.0.0",
     "@erp/types": "workspace:*",
-    "@erp/logger": "workspace:*"
+    "@erp/logger": "workspace:*",
+    "@erp/platform-core": "workspace:*"
   },
   "peerDependencies": {
     "next": ">=15.0.0"

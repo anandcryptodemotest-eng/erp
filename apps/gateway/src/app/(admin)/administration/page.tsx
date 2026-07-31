@@ -18,7 +18,7 @@ type Section =
 const SECTIONS: { id: Section; label: string; description: string }[] = [
   { id: "general", label: "General", description: "Name, plan, currency, timezone" },
   { id: "branding", label: "Branding", description: "Display name and accent" },
-  { id: "modules", label: "Modules", description: "Licensed platform modules" },
+  { id: "modules", label: "Modules", description: "Licensed modules (read-only)" },
   { id: "users", label: "Users", description: "Team members and roles" },
   { id: "branches", label: "Branches", description: "Locations and defaults" },
   { id: "security", label: "Security", description: "Organisation security settings" },
@@ -251,7 +251,8 @@ export default function AdministrationPage() {
       <div>
         <PageHeader title="Administration" />
         <p className="-mt-4 mb-2 text-sm text-slate-500">
-          Tenant configuration — organisation identity, modules, portal, and branches. Business
+          Tenant configuration — organisation identity, portal, and branches. Module licenses and
+          Process Studio are managed by Platform Admin.
           workflows live under Process Studio.
         </p>
         {tenant && (
@@ -353,6 +354,10 @@ export default function AdministrationPage() {
             <div className="space-y-4">
               <h2 className="text-sm font-semibold text-slate-900">Modules</h2>
               <p className="text-xs text-slate-500">
+                Licensed modules are managed by Platform Admin. Contact your operator to change
+                entitlements or enable Process Studio.
+              </p>
+              <p className="text-xs text-slate-500">
                 Active: {(tenant?.modules ?? []).join(", ") || "none"}
               </p>
               <ul className="space-y-2">
@@ -366,24 +371,14 @@ export default function AdministrationPage() {
                       <div>
                         <div className="text-sm font-medium text-slate-800">{m.name}</div>
                         <div className="text-xs text-slate-500">{m.description}</div>
-                        {m.dependencies?.length > 0 && (
-                          <div className="mt-1 text-[11px] text-slate-400">
-                            Needs: {m.dependencies.join(", ")}
-                          </div>
-                        )}
                       </div>
-                      {on ? (
-                        <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-700">
-                          Active
-                        </span>
-                      ) : (
-                        <Button
-                          disabled={busy || m.id === "core"}
-                          onClick={() => void licenseModule(m.id)}
-                        >
-                          Activate
-                        </Button>
-                      )}
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                          on ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
+                        {on ? "Active" : "Off"}
+                      </span>
                     </li>
                   );
                 })}

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** Attributes live inside Products now — keep old bookmark working. */
+/** Attributes / custom fields live under Products for now. */
 export default function AttributesRedirect() {
-  redirect("/products");
+  redirect("/products?tab=fields");
 }

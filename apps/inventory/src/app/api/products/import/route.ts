@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { upsertStockDelta } from "@/lib/warehouse-stock";
 
 const rowSchema = z.object({
   sku: z.string().min(1),
   name: z.string().min(1),
   unit: z.string().default("pcs"),
-  costPrice: z.coerce.number().nonnegative(),
-  sellPrice: z.coerce.number().nonnegative(),
+  costPrice: z.coerce.number().nonnegative().nullable().optional(),
+  sellPrice: z.coerce.number().nonnegative().nullable().optional(),
+  costingMethod: z
+    .enum(["MANUAL", "LAST_PURCHASE", "WEIGHTED_AVERAGE", "FIFO"])
+    .optional()
+    .default("MANUAL"),
   reorderLevel: z.coerce.number().int().min(0).default(10),
   initialStock: z.coerce.number().int().min(0).default(0),
   warehouseId: z.string().optional(),
@@ -33,7 +38,10 @@ export async function POST(request: Request) {
     for (const row of products) {
       try {
         const existing = await prisma.product.findFirst({ where: { tenantId, sku: row.sku } });
-        if (existing) { skipped++; continue; }
+        if (existing) {
+          skipped++;
+          continue;
+        }
 
         const product = await prisma.product.create({
           data: {
@@ -41,8 +49,9 @@ export async function POST(request: Request) {
             sku: row.sku,
             name: row.name,
             unit: row.unit,
-            costPrice: row.costPrice,
-            sellPrice: row.sellPrice,
+            costPrice: row.costPrice ?? null,
+            sellPrice: row.sellPrice ?? null,
+            costingMethod: row.costingMethod ?? "MANUAL",
             reorderLevel: row.reorderLevel,
           },
         });
@@ -50,13 +59,22 @@ export async function POST(request: Request) {
 
         if (row.initialStock > 0) {
           const warehouseId = row.warehouseId ?? "seed-warehouse-main";
-          await prisma.warehouseStock.upsert({
-            where: { productId_warehouseId: { productId: product.id, warehouseId } },
-            update: { quantity: { increment: row.initialStock } },
-            create: { tenantId, productId: product.id, warehouseId, quantity: row.initialStock },
+          await upsertStockDelta(prisma, {
+            tenantId,
+            productId: product.id,
+            warehouseId,
+            variantId: null,
+            quantityDelta: row.initialStock,
           });
           await prisma.stockMovement.create({
-            data: { tenantId, productId: product.id, warehouseId, type: "IN", quantity: row.initialStock, reference: "CSV_IMPORT" },
+            data: {
+              tenantId,
+              productId: product.id,
+              warehouseId,
+              type: "IN",
+              quantity: row.initialStock,
+              reference: "CSV_IMPORT",
+            },
           });
         }
       } catch {

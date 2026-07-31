@@ -69,7 +69,7 @@ export default function LoginPage() {
           {[
             { key: "email",      label: "Email",      type: "email",    placeholder: "cashier@store.com" },
             { key: "password",   label: "Password",   type: "password", placeholder: "••••••••" },
-            { key: "tenantSlug", label: "Store Code", type: "text",     placeholder: "simhapuri-fresh (optional)" },
+            { key: "tenantSlug", label: "Store Code", type: "text",     placeholder: "trustwood-enterprise (optional)" },
           ].map(({ key, label, type, placeholder }) => (
             <div key={key}>
               <label className="mb-1 block text-xs font-medium text-slate-400">{label}</label>

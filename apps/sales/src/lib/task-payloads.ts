@@ -12,6 +12,8 @@ export const reviewSchema = z.object({
         quantity: z.number().int().positive(),
         unitPrice: z.number().nonnegative(),
         remarks: z.string().optional(),
+        /** Product attrs + pricing engine snapshot at quote time */
+        customSnapshot: z.record(z.unknown()).optional(),
       })
     )
     .optional(),

@@ -8,6 +8,14 @@ import { z } from "zod";
 
 const log = createLogger({ service: "gateway" });
 
+async function enabledCapabilityKeys(tenantId: string): Promise<string[]> {
+  const rows = await prisma.tenantCapability.findMany({
+    where: { tenantId, enabled: true },
+    select: { key: true },
+  });
+  return rows.map((r) => r.key);
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function generateToken(): string {
@@ -94,7 +102,7 @@ async function handleLogin(request: Request) {
       where: { email },
       include: {
         tenants: {
-          where: { isActive: true },
+          where: { isActive: true, tenant: { isActive: true } },
           include: {
             tenant: {
               include: { licenses: { where: { isActive: true } } },
@@ -117,12 +125,38 @@ async function handleLogin(request: Request) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
-    // Determine tenant context
-    let tenantUser = user.tenants[0];
-    if (tenantSlug) {
-      const found = user.tenants.find((tu) => tu.tenant.slug === tenantSlug);
-      if (found) tenantUser = found;
+    // Determine tenant context — decision table (no silent fallback)
+    const slug = tenantSlug?.trim().toLowerCase() || undefined;
+    const memberships = user.tenants;
+
+    let tenantUser = memberships[0];
+
+    if (slug) {
+      const found = memberships.find((tu) => tu.tenant.slug === slug);
+      if (!found) {
+        return NextResponse.json(
+          { error: "No access to this organization" },
+          { status: 403 }
+        );
+      }
+      tenantUser = found;
+    } else if (memberships.length === 0) {
+      return NextResponse.json({ error: "No tenant access" }, { status: 403 });
+    } else if (memberships.length > 1) {
+      return NextResponse.json(
+        {
+          error: "Select an organization",
+          code: "TENANT_PICKER",
+          tenants: memberships.map((tu) => ({
+            slug: tu.tenant.slug,
+            name: tu.tenant.name,
+            id: tu.tenant.id,
+          })),
+        },
+        { status: 409 }
+      );
     }
+    // else: exactly one membership → auto-select tenantUser = memberships[0]
 
     if (!tenantUser) {
       return NextResponse.json({ error: "No tenant access" }, { status: 403 });
@@ -130,11 +164,18 @@ async function handleLogin(request: Request) {
 
     const modules = tenantUser.tenant.licenses.map((l) => l.moduleId);
 
+    const capRows = await prisma.tenantCapability.findMany({
+      where: { tenantId: tenantUser.tenantId, enabled: true },
+      select: { key: true },
+    });
+    const capabilities = capRows.map((c) => c.key);
+
     const accessToken = await createToken({
       userId: user.id,
       tenantId: tenantUser.tenantId,
       role: tenantUser.role as "ADMIN" | "USER" | "MANAGER",
       modules,
+      capabilities,
     });
 
     // Create refresh token — store SHA-256 hash only, return raw to client
@@ -155,9 +196,9 @@ async function handleLogin(request: Request) {
         user: { id: user.id, email: user.email, name: user.name, role: tenantUser.role },
         tenant: { id: tenantUser.tenant.id, name: tenantUser.tenant.name, slug: tenantUser.tenant.slug },
         modules,
+        capabilities,
       },
-    });
-  } catch (error) {
+    });  } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
     }
@@ -186,6 +227,16 @@ async function handleLogin(request: Request) {
 // ─── Register ────────────────────────────────────────────────────────────────
 
 async function handleRegister(request: Request) {
+  if (process.env.ALLOW_SELF_SERVE_TENANT !== "true") {
+    return NextResponse.json(
+      {
+        error:
+          "Self-serve registration is disabled. Contact your Platform Administrator to provision a tenant.",
+      },
+      { status: 403 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { name, email, password } = registerSchema.parse(body);
@@ -353,11 +404,13 @@ async function handleRefresh(request: Request) {
     }
 
     const modules = tenantUser.tenant.licenses.map((l) => l.moduleId);
+    const capabilities = await enabledCapabilityKeys(tenantUser.tenantId);
     const accessToken = await createToken({
       userId: stored.user.id,
       tenantId: tenantUser.tenantId,
       role: tenantUser.role as "ADMIN" | "USER" | "MANAGER",
       modules,
+      capabilities,
     });
 
     const newRaw = generateToken();
@@ -497,11 +550,13 @@ async function handleSwitchTenant(request: Request) {
     }
 
     const modules = tenantUser.tenant.licenses.map((l) => l.moduleId);
+    const capabilities = await enabledCapabilityKeys(tenantId);
     const accessToken = await createToken({
       userId: auth.userId,
       tenantId,
       role: tenantUser.role as "ADMIN" | "USER" | "MANAGER",
       modules,
+      capabilities,
     });
 
     return NextResponse.json({

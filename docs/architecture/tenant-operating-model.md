@@ -40,24 +40,31 @@ Business Operations
 
 | Layer | Owner | Responsibility | Examples |
 |-------|--------|----------------|----------|
-| **Platform** | Platform Admin | Operate the SaaS | Create tenants, break-glass, platform health |
-| **Tenant Configuration** | Tenant Admin | Configure the organisation | Users, branding, modules, currency, timezone, portal slug, branches, security |
-| **Business Configuration** | Process Owner (+ Catalog Manager for master data) | Configure how work and catalog behave | Workflow templates, forms, approval rules, numbering, notifications, policies; products / categories / brands |
-| **Business Operations** | Operations roles | Execute work | Complete sales / dispatch / delivery tasks; do **not** design process or own master data by default |
+| **Platform** | Platform Admin | Operate the SaaS; own default process design | Create tenants, licenses, health; Process Studio for any tenant; TenantCapability grants |
+| **Tenant Configuration** | Tenant Admin | Configure the organisation | Users, branding, currency, timezone, portal slug, branches, security (module licenses: Platform-only writes) |
+| **Business Configuration** | Platform (default) or Tenant Process Studio when capability granted | Configure how work and catalog behave | Workflow templates, forms; products / categories / brands (Catalog Manager) |
+| **Business Operations** | Operations roles | Execute work | Complete sales / dispatch / delivery tasks |
 
-**Key rule:** Workflows are **not** tenant identity—they are **business configuration**. A Tenant Admin may also hold Process Owner rights early in a tenant’s life, but the model treats those as distinct responsibilities.
+**Key rules:**
+- Workflows are **business configuration**, not tenant identity.
+- Platform owns process design by default. Tenant Process Studio requires `TenantCapability` (`processStudio`) **and** a matching ModuleLicense.
+- See [process-studio.md](../guides/process-studio.md). Future: Platform Default Library → Tenant Copy → customizations.
 
 ---
 
 ## Platform ownership
 
+**Platform Admin UI:** Implemented as separate app [`apps/platform`](../../apps/platform) (not tenant `SUPER_ADMIN`). See [platform-admin.md](../guides/platform-admin.md).
+
 Platform Admin operates the multi-tenant SaaS:
 
 - Provision and deactivate tenants
+- Module licenses and TenantCapability grants
+- Process Studio (workflows/forms) for a selected tenant — platform JWT, no impersonation
 - Break-glass access and platform health
 - Cross-tenant operational concerns
 
-Platform ownership does **not** include day-to-day catalog editing or executing a tenant’s sales workflow.
+Platform ownership does **not** include day-to-day catalog editing or executing a tenant’s sales workflow tasks.
 
 ---
 
@@ -67,15 +74,14 @@ Tenant Admin configures the **organisation**:
 
 - Users and invitations
 - Branding
-- Module licenses
-- Currency, timezone, and related settings
+- Currency, timezone, and related settings (not operational capabilities)
 - Portal slug / customer host binding
 - Branches
 - Security policies at the organisation level
 
-**Future UI (not required by this freeze):** Administration → Tenant → General, Branding, Modules, Users, Branches, Security, Portal, Integrations.
+Module license **writes** and Process Studio enablement are Platform Admin responsibilities. Tenant Administration shows licensed modules as read-only.
 
-Today much of this exists as Gateway APIs (`Tenant`, `TenantSetting`, `ModuleLicense`, users/roles); a dedicated Administration UI is an implementation roadmap item.
+**UI:** Administration → Organization → General, Branding, Modules (read-only), Users, Branches, Security, Portal, Integrations.
 
 ---
 
@@ -83,17 +89,13 @@ Today much of this exists as Gateway APIs (`Tenant`, `TenantSetting`, `ModuleLic
 
 ### Business Configuration
 
-**Process Owner** configures how work flows:
+**Default owner:** Platform Admin via Process Studio (target tenant selected).
 
-- Workflow templates (draft → validate → publish)
-- Forms (including Host audiences such as `CUSTOMER`)
-- Approval rules, numbering, notifications, business policies
+**Tenant Process Studio** (when `TenantCapability.processStudio` is enabled and licensed): Tenant Admin / Process Owner may draft → validate → publish for their tenant.
 
 **Catalog Manager** configures master data:
 
 - Products, categories, brands, attributes, list prices
-
-Process design and master-data ownership are separate from each other and from execution.
 
 ### Business Operations
 

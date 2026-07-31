@@ -7,6 +7,11 @@ import {
   runWithRequestContextAsync,
 } from "@erp/logger";
 import { withSpan, captureException } from "@erp/telemetry";
+import {
+  assertVariantStockScope,
+  availableQty,
+  normalizeVariantId,
+} from "@/lib/warehouse-stock";
 
 const log = createLogger({ service: "inventory" });
 
@@ -43,36 +48,37 @@ export async function POST(request: Request) {
         const { items, reference, expiresAt } = reserveSchema.parse(body);
 
         for (const item of items) {
-          const stock = await prisma.warehouseStock.findUnique({
-            where: {
-              productId_warehouseId: {
-                productId: item.productId,
-                warehouseId: item.warehouseId,
-              },
-            },
+          const scope = await assertVariantStockScope(prisma, {
+            tenantId,
+            productId: item.productId,
+            variantId: item.variantId,
           });
-          const currentQty = stock?.quantity ?? 0;
+          if (!scope.ok) {
+            return NextResponse.json({ error: scope.error }, { status: scope.status });
+          }
 
-          const existingReservations = await prisma.stockReservation.aggregate({
-            where: {
-              productId: item.productId,
-              warehouseId: item.warehouseId,
-              isReleased: false,
-              tenantId,
-            },
-            _sum: { reservedQty: true },
+          const { available } = await availableQty(prisma, {
+            tenantId,
+            productId: item.productId,
+            warehouseId: item.warehouseId,
+            variantId: item.variantId,
           });
-          const reserved = existingReservations._sum.reservedQty ?? 0;
-          const available = currentQty - reserved;
 
           if (available < item.quantity) {
             const product = await prisma.product.findUnique({
               where: { id: item.productId },
               select: { sku: true },
             });
+            const variant = item.variantId
+              ? await prisma.productVariant.findUnique({
+                  where: { id: item.variantId },
+                  select: { sku: true },
+                })
+              : null;
+            const label = variant?.sku ?? product?.sku ?? item.productId;
             return NextResponse.json(
               {
-                error: `Insufficient stock for product ${product?.sku ?? item.productId}: available ${available}, requested ${item.quantity}`,
+                error: `Insufficient stock for ${label}: available ${available}, requested ${item.quantity}`,
               },
               { status: 409 }
             );
@@ -86,7 +92,7 @@ export async function POST(request: Request) {
                 tenantId,
                 productId: item.productId,
                 warehouseId: item.warehouseId,
-                variantId: item.variantId,
+                variantId: normalizeVariantId(item.variantId),
                 reservedQty: item.quantity,
                 reference,
                 expiresAt: expiresAt ? new Date(expiresAt) : null,

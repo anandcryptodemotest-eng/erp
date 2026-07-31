@@ -65,7 +65,13 @@ model ProductAttributeDefinition {
   isFilterable  Boolean  @default(true)
   isSearchable  Boolean  @default(false)
   isVariantAxis Boolean  @default(false)
+  /// When true, this attribute participates in business-identity fingerprint (duplicate detection)
+  isIdentity    Boolean  @default(false)
   showOnLabel   Boolean  @default(false)
+  /// Pricing measure: LENGTH|WIDTH|HEIGHT|THICKNESS|AREA|VOLUME|WEIGHT|NONE
+  measureRole   String?
+  measureUnit   String?  // ft | mm | m | kg — source UOM for measureRole
+  sizePattern   String?  // e.g. "{L}x{W}" for SELECT size "8x4"
   sortOrder     Int      @default(0)
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
@@ -94,6 +100,13 @@ model AttributeCategoryLink {
   @@index([tenantId, categoryId])
 }
 
+/// Commercial product shape. SIMPLE = one stockable identity; VARIANT = axes + physical SKUs.
+/// Reserved for future: CONFIGURABLE | BUNDLE | KIT | SERVICE
+enum ProductStructure {
+  SIMPLE
+  VARIANT
+}
+
 model Product {
   id           String   @id @default(cuid())
   tenantId     String
@@ -102,6 +115,10 @@ model Product {
   description  String?
   categoryId   String?
   brandId      String?
+  /// Stable commercial group key (e.g. IPH17PRO, CENTURY-BWP). Optional; null = standalone card.
+  groupCode    String?
+  /// Customer-facing group title (e.g. "Apple iPhone 17 Pro"). Optional override.
+  groupName    String?
   countryCode  String   @default("IN")
   taxCode      String?
   hsnCode      String?
@@ -119,10 +136,20 @@ model Product {
   weightUnit   String?  // g | kg | ml | L | pcs
   unit         String   @default("pcs")  // pcs | kg | g | liter | ml | dozen | bag
   sellByWeight Boolean  @default(false)  // true = price × weight at billing
-  costPrice    Float
-  sellPrice    Float    // per unit; for weight items = price per kg
+  costPrice    Float?   // null = unknown; valuation/margin warn until set. Never used by @erp/pricing
+  sellPrice    Float?   // PER_EACH list price; null = no fixed sell price (measured products use baseRate + quote)
+  /// MANUAL | LAST_PURCHASE | WEIGHTED_AVERAGE | FIFO — inventory cost engine only; never used by @erp/pricing
+  costingMethod String  @default("MANUAL")
+  /// PER_EACH | PER_AREA | PER_WEIGHT | PER_VOLUME | FORMULA | CUSTOM
+  pricingBasis String   @default("PER_EACH")
+  /// Rate in pricingUom (e.g. ₹/sq_ft). Distinct from resolved list rate.
+  baseRate     Float?
+  pricingUom   String?  // sq_ft | sq_m | kg | m3 | each
   reorderLevel Float    @default(10)     // Float so loose items can have e.g. 5.0 kg minimum
-  hasVariants  Boolean  @default(false)
+  /// SIMPLE | VARIANT — replaces hasVariants; room to grow (CONFIGURABLE, BUNDLE, …)
+  productStructure ProductStructure @default(SIMPLE)
+  /// Ordered variant axis keys, e.g. ["size"] or ["size","color"]. Values live on ProductVariant.attributes.
+  variantAxes  Json     @default("[]")
   isFeatured   Boolean  @default(false)
   sortOrder    Int      @default(0)
   isActive     Boolean  @default(true)
@@ -146,6 +173,7 @@ model Product {
   @@unique([tenantId, sku])
   @@index([tenantId])
   @@index([tenantId, barcode])
+  @@index([tenantId, groupCode])
 }
 
 // Denormalized filter index for filterable custom attributes
@@ -171,15 +199,18 @@ model ProductVariant {
   productId  String
   sku        String
   name       String
+  /// Axis values for this physical SKU, e.g. { "size": "8x4" }
   attributes Json
   costPrice  Float?
   sellPrice  Float?
+  barcode    String?
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  product        Product         @relation(fields: [productId], references: [id])
+  product        Product          @relation(fields: [productId], references: [id])
   priceListItems PriceListItem[]
+  stocks         WarehouseStock[]
 
   @@unique([tenantId, sku])
   @@index([tenantId])
@@ -272,15 +303,21 @@ model WarehouseStock {
   tenantId    String
   productId   String
   warehouseId String
+  /// null = SIMPLE product stock; required when Product.productStructure = VARIANT
+  variantId   String?
   quantity    Float    @default(0)  // Float supports kg-based products (e.g. 2.5 kg)
   reservedQty Float    @default(0)
   updatedAt   DateTime @updatedAt
 
-  product   Product   @relation(fields: [productId], references: [id])
-  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
+  product   Product         @relation(fields: [productId], references: [id])
+  warehouse Warehouse       @relation(fields: [warehouseId], references: [id])
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
 
-  @@unique([productId, warehouseId])
+  /// Uniqueness enforced in migration SQL with NULLS NOT DISTINCT
+  /// (SIMPLE: one null-variant row per product+warehouse; VARIANT: one per variant+warehouse)
+  @@index([productId, warehouseId, variantId])
   @@index([tenantId])
+  @@index([variantId])
 }
 
 model StockMovement {

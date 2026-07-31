@@ -13,6 +13,7 @@
   "dependencies": {
     "@erp/auth": "workspace:*",
     "@erp/config": "workspace:*",
+    "@erp/pricing": "workspace:*",
     "@erp/types": "workspace:*",
     "@erp/ui": "workspace:*",
     "@prisma/client": "^6.0.0",

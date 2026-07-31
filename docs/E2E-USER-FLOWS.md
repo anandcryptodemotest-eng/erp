@@ -23,7 +23,7 @@ Note: Architecture docs mention domain personas like SALES_REP and ACCOUNTANT, b
 - Seed admin account:
   - Email: admin@simhapurifresh.com
   - Password: Admin@123
-  - Tenant: simhapuri-fresh
+  - Tenant: trustwood-enterprise
 
 ## Role-Wise E2E Use Cases
 
@@ -112,11 +112,11 @@ You can override defaults:
 - BASE_URL (default: http://localhost:3010)
 - ADMIN_EMAIL (default: admin@simhapurifresh.com)
 - ADMIN_PASSWORD (default: Admin@123)
-- TENANT_SLUG (default: simhapuri-fresh)
+- TENANT_SLUG (default: trustwood-enterprise)
 - E2E_PASSWORD (default: Pass@12345)
 
 Example:
 
 ```bash
-BASE_URL=http://localhost:3010 TENANT_SLUG=simhapuri-fresh bash scripts/e2e-user-flows.sh
+BASE_URL=http://localhost:3010 TENANT_SLUG=trustwood-enterprise bash scripts/e2e-user-flows.sh
 ```

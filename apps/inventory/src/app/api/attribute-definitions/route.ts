@@ -35,6 +35,7 @@ const createSchema = z.object({
   isFilterable: z.boolean().default(true),
   isSearchable: z.boolean().default(false),
   isVariantAxis: z.boolean().default(false),
+  isIdentity: z.boolean().default(false),
   showOnLabel: z.boolean().default(false),
   sortOrder: z.number().int().min(0).default(0),
   categoryIds: z.array(z.string()).optional(), // empty / omit = global

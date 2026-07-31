@@ -1,0 +1,24 @@
+# Platform Admin — nginx only (do not publish :3011).
+#
+# App: next.dev/start --hostname 127.0.0.1 --port 3011 with basePath /platform
+# Public URL: https://HOST/platform/login
+# APIs: /api/platform/* → gateway (existing /api/ location)
+
+upstream erp_platform {
+    server 127.0.0.1:3011;
+    keepalive 8;
+}
+
+# Inside the TLS server block (before location /):
+#
+#    location /platform {
+#        proxy_pass http://erp_platform;
+#        proxy_http_version 1.1;
+#        proxy_set_header Host $host;
+#        proxy_set_header X-Real-IP $remote_addr;
+#        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#        proxy_set_header X-Forwarded-Proto $scheme;
+#        proxy_set_header Upgrade $http_upgrade;
+#        proxy_set_header Connection $connection_upgrade;
+#        proxy_read_timeout 300s;
+#    }

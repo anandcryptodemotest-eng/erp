@@ -1,13 +1,27 @@
 "use client";
 import { useEffect, useState } from "react";
-import { api } from "@/lib/admin-api";
+import { api, getTenantId } from "@/lib/admin-api";
 
 interface Stats { products: number; customers: number; orders: number; invoices: number; }
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats>({ products: 0, customers: 0, orders: 0, invoices: 0 });
+  const [displayName, setDisplayName] = useState("ERP");
 
   useEffect(() => {
+    const tenantId = getTenantId();
+    if (tenantId) {
+      void api(`/api/tenants/${tenantId}`)
+        .then((r) => {
+          const settings = (r.data?.settings ?? {}) as Record<string, string>;
+          setDisplayName(
+            settings["brand.displayName"]?.trim() ||
+              (r.data?.name as string | undefined)?.trim() ||
+              "ERP"
+          );
+        })
+        .catch(() => undefined);
+    }
     const safe = async (path: string) => {
       try {
         return await api(path);
@@ -40,7 +54,7 @@ export default function DashboardPage() {
   return (
     <div className="p-8">
       <h1 className="font-display text-2xl font-semibold text-[var(--ink)] mb-2">Dashboard</h1>
-      <p className="text-[var(--ink-soft)]/70 text-sm mb-8">Welcome to Trust Wood ERP</p>
+      <p className="text-[var(--ink-soft)]/70 text-sm mb-8">Welcome to {displayName}</p>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
         {cards.map(c => (

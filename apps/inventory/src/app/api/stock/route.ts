@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import {
+  assertVariantStockScope,
+  normalizeVariantId,
+  upsertStockDelta,
+} from "@/lib/warehouse-stock";
 
 const stockMovementSchema = z.object({
   productId: z.string(),
   warehouseId: z.string(),
   variantId: z.string().optional(),
   type: z.enum(["IN", "OUT", "ADJUSTMENT"]),
-  quantity: z.number().int().positive(),
+  quantity: z.number().positive(),
   reference: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -22,18 +27,32 @@ export async function GET(request: Request) {
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20")));
   const skip = (page - 1) * limit;
   const warehouseId = url.searchParams.get("warehouseId") ?? undefined;
+  const productId = url.searchParams.get("productId") ?? undefined;
+  const variantId = url.searchParams.get("variantId") ?? undefined;
 
   const where = {
     tenantId,
     ...(warehouseId && { warehouseId }),
+    ...(productId && { productId }),
+    ...(variantId !== undefined && { variantId: variantId || null }),
   };
 
   const [stocks, total] = await Promise.all([
     prisma.warehouseStock.findMany({
       where,
       include: {
-        product: { select: { id: true, sku: true, name: true, reorderLevel: true } },
+        product: {
+          select: {
+            id: true,
+            sku: true,
+            name: true,
+            reorderLevel: true,
+            productStructure: true,
+            costPrice: true,
+          },
+        },
         warehouse: { select: { id: true, name: true } },
+        variant: { select: { id: true, sku: true, name: true, costPrice: true } },
       },
       orderBy: { product: { name: "asc" } },
       skip,
@@ -57,22 +76,43 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const data = stockMovementSchema.parse(body);
+    const variantId = normalizeVariantId(data.variantId);
 
-    // Verify product belongs to tenant
-    const product = await prisma.product.findFirst({ where: { id: data.productId, tenantId } });
-    if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    const scope = await assertVariantStockScope(prisma, {
+      tenantId,
+      productId: data.productId,
+      variantId,
+    });
+    if (!scope.ok) {
+      return NextResponse.json({ error: scope.error }, { status: scope.status });
+    }
 
-    const warehouse = await prisma.warehouse.findFirst({ where: { id: data.warehouseId, tenantId } });
+    const warehouse = await prisma.warehouse.findFirst({
+      where: { id: data.warehouseId, tenantId },
+    });
     if (!warehouse) return NextResponse.json({ error: "Warehouse not found" }, { status: 404 });
 
     const quantityDelta = data.type === "OUT" ? -data.quantity : data.quantity;
 
     const movement = await prisma.$transaction(async (tx) => {
-      const m = await tx.stockMovement.create({ data: { ...data, tenantId } });
-      await tx.warehouseStock.upsert({
-        where: { productId_warehouseId: { productId: data.productId, warehouseId: data.warehouseId } },
-        update: { quantity: { increment: quantityDelta } },
-        create: { tenantId, productId: data.productId, warehouseId: data.warehouseId, quantity: Math.max(0, quantityDelta) },
+      const m = await tx.stockMovement.create({
+        data: {
+          tenantId,
+          productId: data.productId,
+          warehouseId: data.warehouseId,
+          variantId,
+          type: data.type,
+          quantity: data.quantity,
+          reference: data.reference,
+          notes: data.notes,
+        },
+      });
+      await upsertStockDelta(tx, {
+        tenantId,
+        productId: data.productId,
+        warehouseId: data.warehouseId,
+        variantId,
+        quantityDelta,
       });
       return m;
     });
@@ -85,4 +125,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   ClipboardList,
@@ -19,6 +19,10 @@ import {
   useToast,
 } from "@erp/ui";
 import { api, getAdminUser } from "@/lib/admin-api";
+import {
+  buildLinePricingMeta,
+  fetchPricingQuote,
+} from "@/lib/pricing-quote";
 import { ScreenController } from "@/lib/ui-runtime/ScreenController";
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
@@ -75,6 +79,7 @@ interface OrderItem {
   purchasePrice?: number | null;
   taxRate?: number;
   remarks?: string | null;
+  customSnapshot?: Record<string, unknown> | null;
 }
 
 interface EditableLine {
@@ -82,14 +87,29 @@ interface EditableLine {
   id?: string;
   productId: string;
   productName: string;
+  variantId?: string | null;
   quantity: number;
   unitPrice: number;
+  /** Pricing engine meta nested under customSnapshot.pricing when persisting */
+  pricingMeta?: ReturnType<typeof buildLinePricingMeta> | null;
+  customSnapshot?: Record<string, unknown> | null;
 }
 
 interface CatalogProduct {
   id: string;
   name: string;
   sku?: string | null;
+  sellPrice?: number | null;
+  productStructure?: "SIMPLE" | "VARIANT" | null;
+  customAttributes?: Record<string, unknown> | null;
+}
+
+interface CatalogVariant {
+  id: string;
+  sku: string;
+  name: string;
+  attributes?: Record<string, unknown> | null;
+  costPrice?: number | null;
   sellPrice?: number | null;
 }
 
@@ -312,6 +332,8 @@ export default function OmsOrdersPage() {
   // Generic step-field inputs: key = "fieldKey" (order scope) or "fieldKey:itemId" (per-item)
   const [stepInputs, setStepInputs] = useState<Record<string, string>>({});
   const [actionBusy, setActionBusy] = useState<string | null>(null);
+  /** Sync lock — React state alone cannot block double-clicks before re-render */
+  const convertingRef = useRef(false);
 
   function stepInput(fieldKey: string, itemId?: string) {
     return stepInputs[itemId ? `${fieldKey}:${itemId}` : fieldKey] ?? "";
@@ -338,6 +360,13 @@ export default function OmsOrdersPage() {
   const [productSearch, setProductSearch] = useState("");
   const [productHits, setProductHits] = useState<CatalogProduct[]>([]);
   const [productSearching, setProductSearching] = useState(false);
+  const [pricingWarning, setPricingWarning] = useState<string | null>(null);
+  const [quotingProductId, setQuotingProductId] = useState<string | null>(null);
+  const [variantPicker, setVariantPicker] = useState<{
+    product: CatalogProduct;
+    variants: CatalogVariant[];
+  } | null>(null);
+  const [variantPickerBusy, setVariantPickerBusy] = useState(false);
 
   function reportError(e: unknown) {
     toast.error(e instanceof Error ? e.message : String(e));
@@ -363,12 +392,18 @@ export default function OmsOrdersPage() {
   function hydrateReviewForm(order: OrderDetails) {
     setReviewRemarks(order.salesRemarks ?? "");
     setReviewDeliveryDate(toDateInputValue(order.deliveryDate));
+    setPricingWarning(null);
     const qty: Record<string, string> = {};
     const price: Record<string, string> = {};
     const lines: EditableLine[] = [];
     for (const item of order.items ?? []) {
       qty[item.id] = String(item.quantity);
       price[item.id] = String(item.unitPrice);
+      const snap = item.customSnapshot ?? null;
+      const pricing =
+        snap && typeof snap === "object" && snap.pricing && typeof snap.pricing === "object"
+          ? (snap.pricing as ReturnType<typeof buildLinePricingMeta>)
+          : null;
       lines.push({
         key: item.id,
         id: item.id,
@@ -376,6 +411,8 @@ export default function OmsOrdersPage() {
         productName: item.productName,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
+        customSnapshot: snap,
+        pricingMeta: pricing,
       });
     }
     setReviewQty(qty);
@@ -511,6 +548,8 @@ export default function OmsOrdersPage() {
   }
 
   async function convertSreq(id: string) {
+    if (convertingRef.current || actionBusy === "convert") return;
+    convertingRef.current = true;
     setActionBusy("convert");
     try {
       // Persist line/notes edits before convert so SO inherits them
@@ -535,7 +574,12 @@ export default function OmsOrdersPage() {
       }
 
       const r = await api(`/api/sales-requests/${id}/convert`, { method: "POST", body: "{}" });
-      toast.success(`Converted → ${r.data?.soNumber ?? r.data?.salesOrder?.orderNumber}`);
+      const soNum = r.data?.soNumber ?? r.data?.salesOrder?.orderNumber;
+      toast.success(
+        r.data?.alreadyConverted
+          ? `Already converted → ${soNum}`
+          : `Converted → ${soNum}`
+      );
       await Promise.all([loadSreqs(), loadInflight()]);
       const orderId = r.data?.salesOrder?.id as string | undefined;
       if (orderId) {
@@ -547,6 +591,7 @@ export default function OmsOrdersPage() {
     } catch (e: unknown) {
       reportError(e);
     } finally {
+      convertingRef.current = false;
       setActionBusy(null);
     }
   }
@@ -637,15 +682,36 @@ export default function OmsOrdersPage() {
     }
     setActionBusy("review");
     try {
-      const items = reviewLines.map((line) => ({
-        id: line.id,
-        productId: line.productId,
-        productName: line.productName,
-        quantity: Math.max(1, Math.round(Number(reviewQty[line.key] ?? line.quantity))),
-        unitPrice: canEditPrice
+      const items = reviewLines.map((line) => {
+        const unitPrice = canEditPrice
           ? Math.max(0, Number(reviewUnitPrice[line.key] ?? line.unitPrice))
-          : line.unitPrice,
-      }));
+          : line.unitPrice;
+        let customSnapshot = line.customSnapshot ? { ...line.customSnapshot } : undefined;
+        if (line.pricingMeta) {
+          const overridden =
+            Math.abs(unitPrice - line.pricingMeta.quotedUnitPrice) > 0.0001;
+          const snap = line.pricingMeta.pricingSnapshot;
+          customSnapshot = {
+            ...(customSnapshot ?? {}),
+            pricing: {
+              ...line.pricingMeta,
+              pricingSnapshot: {
+                ...snap,
+                overridden: overridden || Boolean(snap && typeof snap === "object" && (snap as { overridden?: boolean }).overridden),
+              },
+            },
+          };
+        }
+        return {
+          id: line.id,
+          productId: line.productId,
+          productName: line.productName,
+          variantId: line.variantId ?? undefined,
+          quantity: Math.max(1, Math.round(Number(reviewQty[line.key] ?? line.quantity))),
+          unitPrice,
+          ...(customSnapshot ? { customSnapshot } : {}),
+        };
+      });
       const body: Record<string, unknown> = {
         remarks: reviewRemarks || undefined,
         items,
@@ -681,33 +747,107 @@ export default function OmsOrdersPage() {
     }
   }
 
-  function addProductToReview(p: CatalogProduct) {
-    const exists = reviewLines.find((l) => l.productId === p.id);
+  async function addProductToReview(p: CatalogProduct) {
+    if (p.productStructure === "VARIANT") {
+      setQuotingProductId(p.id);
+      try {
+        const r = await api(`/api/products/${p.id}/variants?limit=100`);
+        const variants = (r.data ?? []) as CatalogVariant[];
+        if (!variants.length) {
+          toast.error(`${p.name} has no variants — create size/SKU variants first`);
+          return;
+        }
+        setVariantPicker({ product: p, variants });
+        setProductSearch("");
+        setProductHits([]);
+      } catch (e: unknown) {
+        reportError(e);
+      } finally {
+        setQuotingProductId(null);
+      }
+      return;
+    }
+
+    await commitReviewLine(p);
+  }
+
+  async function commitReviewLine(p: CatalogProduct, variant?: CatalogVariant) {
+    const lineKeyMatch = (l: EditableLine) =>
+      l.productId === p.id && (l.variantId ?? null) === (variant?.id ?? null);
+    const exists = reviewLines.find(lineKeyMatch);
     if (exists) {
       const nextQty = exists.quantity + 1;
       setReviewLines(
         reviewLines.map((l) => (l.key === exists.key ? { ...l, quantity: nextQty } : l))
       );
       setReviewQty({ ...reviewQty, [exists.key]: String(nextQty) });
-    } else {
-      const key = `new-${p.id}-${Date.now()}`;
-      const unitPrice = Number(p.sellPrice ?? 0);
+      setProductSearch("");
+      setProductHits([]);
+      setVariantPicker(null);
+      toast.success(`Added ${variant ? variant.name : p.name}`);
+      return;
+    }
+
+    setQuotingProductId(p.id);
+    setVariantPickerBusy(true);
+    try {
+      const result = await fetchPricingQuote({
+        productId: p.id,
+        variantId: variant?.id,
+        quantity: 1,
+        attributes:
+          (variant?.attributes as Record<string, unknown> | undefined) ??
+          (p.customAttributes as Record<string, unknown> | undefined) ??
+          undefined,
+      });
+
+      if (!result.ok && !result.soft) {
+        toast.error(`Cannot add ${p.name}: ${result.error}`);
+        return;
+      }
+
+      let unitPrice = Number(variant?.sellPrice ?? p.sellPrice ?? 0);
+      let pricingMeta: ReturnType<typeof buildLinePricingMeta> | null = null;
+      if (result.ok) {
+        unitPrice = result.quote.unitPrice;
+        pricingMeta = buildLinePricingMeta(result);
+        setPricingWarning(null);
+      } else {
+        if ((variant?.sellPrice ?? p.sellPrice) == null) {
+          toast.error(`Cannot add ${p.name}: ${result.error}`);
+          return;
+        }
+        setPricingWarning(
+          `Pricing service unavailable — using catalog sell price for ${p.name}. ${result.error}`
+        );
+        toast.error(`Pricing unavailable — used sell price for ${p.name}`);
+      }
+
+      const displayName = variant ? `${p.name} · ${variant.name}` : p.name;
+      const key = `new-${p.id}-${variant?.id ?? "simple"}-${Date.now()}`;
       setReviewLines([
         ...reviewLines,
         {
           key,
           productId: p.id,
-          productName: p.name,
+          productName: displayName,
+          variantId: variant?.id ?? null,
           quantity: 1,
           unitPrice,
+          pricingMeta,
+          customSnapshot: pricingMeta ? { pricing: pricingMeta } : null,
         },
       ]);
       setReviewQty({ ...reviewQty, [key]: "1" });
       setReviewUnitPrice({ ...reviewUnitPrice, [key]: String(unitPrice) });
+      setProductSearch("");
+      setProductHits([]);
+      setVariantPicker(null);
+      toast.success(`Added ${displayName}`);
+    } finally {
+      setQuotingProductId(null);
+      setVariantPickerBusy(false);
     }
-    setProductSearch("");
-    setProductHits([]);
-    toast.success(`Added ${p.name}`);
   }
 
   async function removeReviewLine(key: string) {
@@ -776,40 +916,61 @@ export default function OmsOrdersPage() {
     try {
       let body: Record<string, unknown> = collected ? { ...collected } : {};
 
-      if (!collected) {
-        const fields = actionUi?.fields ?? [];
-        const perItemFields = fields.filter((f) => f.scope === "per-item" && f.type !== "readonly");
-        const orderFields = fields.filter((f) => f.scope === "order");
-        if (perItemFields.length > 0) {
-          body = {
-            items: (selected.items ?? []).map((item) => {
-              const row: Record<string, unknown> = { orderItemId: item.id };
-              for (const f of perItemFields) {
-                const raw = stepInput(f.key, item.id);
-                row[f.key] = f.type === "number" && raw ? Number(raw) : raw || undefined;
-              }
-              const readonlyFields = fields.filter(
-                (f) => f.scope === "per-item" && f.type === "readonly"
-              );
-              for (const f of readonlyFields) {
-                row[f.key] = (item as unknown as Record<string, unknown>)[f.source ?? f.key];
-              }
-              return row;
-            }),
-          };
-        }
-        for (const f of orderFields) {
-          const raw = stepInput(f.key);
-          body[f.key] = raw || undefined;
-        }
+      const fields = actionUi?.fields ?? [];
+      const perItemFields = fields.filter((f) => f.scope === "per-item" && f.type !== "readonly");
+      const orderFields = fields.filter((f) => f.scope === "order");
+      const missingItems = !Array.isArray(body.items) || (body.items as unknown[]).length === 0;
+
+      // Build per-item payload when ScreenController collected nothing useful
+      // (FormFields used to skip per-item → empty {} still truthy).
+      if (missingItems && perItemFields.length > 0) {
+        body = {
+          ...body,
+          items: (selected.items ?? []).map((item) => {
+            const row: Record<string, unknown> = { orderItemId: item.id };
+            for (const f of perItemFields) {
+              const raw = stepInput(f.key, item.id);
+              row[f.key] = f.type === "number" && raw ? Number(raw) : raw || undefined;
+            }
+            const readonlyFields = fields.filter(
+              (f) => f.scope === "per-item" && f.type === "readonly"
+            );
+            for (const f of readonlyFields) {
+              row[f.key] = (item as unknown as Record<string, unknown>)[f.source ?? f.key];
+            }
+            return row;
+          }),
+        };
+      }
+      for (const f of orderFields) {
+        if (body[f.key] != null && body[f.key] !== "") continue;
+        const raw = stepInput(f.key);
+        if (raw) body[f.key] = raw;
       }
 
       // Normalize inventory payload shape
-      if (action === "verify-stock" && Array.isArray(body.items)) {
-        body.items = (body.items as Record<string, unknown>[]).map((row) => ({
-          orderItemId: row.orderItemId ?? row.id,
-          availableQty: Number(row.availableQty ?? 0),
-        }));
+      if (action === "verify-stock") {
+        const hasRows = Array.isArray(body.items) && (body.items as unknown[]).length > 0;
+        const rows = (hasRows
+          ? (body.items as Record<string, unknown>[])
+          : (selected.items ?? []).map((item) => ({
+              orderItemId: item.id,
+              availableQty: Number(
+                stepInput("availableQty", item.id) || item.availableQty || item.quantity || 0
+              ),
+            }))) as Record<string, unknown>[];
+        body.items = rows.map((row) => {
+          const id = String(row.orderItemId ?? row.id ?? "");
+          const fromInput = id ? stepInput("availableQty", id) : "";
+          const qty =
+            row.availableQty != null && row.availableQty !== ""
+              ? Number(row.availableQty)
+              : Number(fromInput || 0);
+          return {
+            orderItemId: row.orderItemId ?? row.id,
+            availableQty: Number.isFinite(qty) ? qty : 0,
+          };
+        });
       }
       if (action === "complete-pricing" && Array.isArray(body.items)) {
         body.items = (body.items as Record<string, unknown>[]).map((row) => ({
@@ -821,6 +982,53 @@ export default function OmsOrdersPage() {
       if (action === "review" && body.deliveryDate) {
         const iso = dateInputToIso(String(body.deliveryDate));
         if (iso) body.deliveryDate = iso;
+      }
+      if (action === "review" && Array.isArray(body.items)) {
+        body.items = (body.items as Record<string, unknown>[]).map((row) => {
+          const productId = String(row.productId ?? "");
+          const line =
+            reviewLines.find(
+              (l) =>
+                l.productId === productId ||
+                l.id === row.id ||
+                l.key === row.id ||
+                (l.id ?? l.key) === row.id
+            ) ?? null;
+          const unitPrice = Number(row.unitPrice ?? line?.unitPrice ?? 0);
+          let customSnapshot = line?.customSnapshot
+            ? { ...line.customSnapshot }
+            : undefined;
+          if (line?.pricingMeta) {
+            const overridden =
+              Math.abs(unitPrice - line.pricingMeta.quotedUnitPrice) > 0.0001;
+            const snap = line.pricingMeta.pricingSnapshot;
+            customSnapshot = {
+              ...(customSnapshot ?? {}),
+              pricing: {
+                ...line.pricingMeta,
+                pricingSnapshot: {
+                  ...snap,
+                  overridden:
+                    overridden ||
+                    Boolean(
+                      snap &&
+                        typeof snap === "object" &&
+                        (snap as { overridden?: boolean }).overridden
+                    ),
+                },
+              },
+            };
+          }
+          return {
+            id: row.id ?? line?.id,
+            productId: row.productId ?? line?.productId,
+            productName: row.productName ?? line?.productName,
+            variantId: row.variantId ?? line?.variantId ?? undefined,
+            quantity: Number(row.quantity ?? 1),
+            unitPrice,
+            ...(customSnapshot ? { customSnapshot } : {}),
+          };
+        });
       }
 
       if (action === "confirm" && !Object.keys(body).length) {
@@ -1018,20 +1226,7 @@ export default function OmsOrdersPage() {
       <PageHeader
         title="Sales desk"
         breadcrumb={[{ label: "Home", href: "/dashboard" }, { label: "Sales desk" }]}
-        primaryAction={
-          deskTab === "sreq" &&
-          selectedSreq?.status === "OPEN" &&
-          !selectedSreq.salesOrder?.id ? (
-            <button
-              type="button"
-              disabled={actionBusy === "convert" || customerSummary?.isBlocked === true}
-              onClick={() => convertSreq(selectedSreq.id)}
-              className="inline-flex h-10 items-center justify-center rounded-lg bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800 disabled:opacity-50"
-            >
-              {actionBusy === "convert" ? "Converting…" : "Convert to Sales Order"}
-            </button>
-          ) : undefined
-        }
+        primaryAction={undefined}
         secondaryActions={
           <div className="flex flex-wrap items-center gap-2">
             {(
@@ -1633,33 +1828,23 @@ export default function OmsOrdersPage() {
               )}
 
               {selectedSreq.status === "OPEN" && !selectedSreq.salesOrder?.id && (
-                <div className="sticky bottom-0 z-10 flex flex-col gap-2 border-t border-slate-200 bg-white pt-4">
-                  <button
-                    type="button"
-                    disabled={actionBusy === "convert" || customerSummary?.isBlocked === true}
-                    onClick={() => convertSreq(selectedSreq.id)}
-                    className="w-full rounded-lg bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
+                <div className="sticky bottom-0 z-10 flex flex-wrap gap-2 border-t border-slate-200 bg-white pt-4">
+                  <Button
+                    loading={actionBusy === "save-sreq"}
+                    variant="outline"
+                    onClick={() => saveSreqChanges(selectedSreq.id)}
                   >
-                    {actionBusy === "convert" ? "Converting…" : "Convert to Sales Order"}
-                  </button>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      loading={actionBusy === "save-sreq"}
-                      variant="outline"
-                      onClick={() => saveSreqChanges(selectedSreq.id)}
-                    >
-                      Save changes
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setShowRejectModal(true);
-                        setRejectReason("");
-                      }}
-                    >
-                      Reject
-                    </Button>
-                  </div>
+                    Save changes
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowRejectModal(true);
+                      setRejectReason("");
+                    }}
+                  >
+                    Reject
+                  </Button>
                 </div>
               )}
 
@@ -1897,6 +2082,21 @@ export default function OmsOrdersPage() {
                 })()}
 
                 {/* Screen Controller → UI Runtime */}
+                {pricingWarning && (
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                    {pricingWarning}
+                    <button
+                      type="button"
+                      className="ml-2 text-amber-700 underline"
+                      onClick={() => setPricingWarning(null)}
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                )}
+                {quotingProductId && (
+                  <p className="text-xs text-slate-500">Fetching price from pricing engine…</p>
+                )}
                 {myVisibleActions.map((act) => {
                     const ui = act.ui;
                     if ((act.blockedBy ?? []).length > 0) {
@@ -2110,6 +2310,54 @@ export default function OmsOrdersPage() {
           )}
         </Card>
       </div>
+
+      {variantPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">Select variant</h3>
+                <p className="text-xs text-slate-500">{variantPicker.product.name}</p>
+              </div>
+              <button
+                type="button"
+                className="text-slate-400 hover:text-slate-700"
+                onClick={() => setVariantPicker(null)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <ul className="max-h-80 overflow-y-auto divide-y divide-slate-100">
+              {variantPicker.variants.map((v) => (
+                <li key={v.id}>
+                  <button
+                    type="button"
+                    disabled={variantPickerBusy}
+                    className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50 disabled:opacity-50"
+                    onClick={() => void commitReviewLine(variantPicker.product, v)}
+                  >
+                    <span>
+                      <span className="block text-sm font-medium text-slate-900">{v.name}</span>
+                      <span className="block font-mono text-xs text-slate-500">{v.sku}</span>
+                      {v.attributes && (
+                        <span className="mt-0.5 block text-xs text-slate-400">
+                          {Object.entries(v.attributes)
+                            .map(([k, val]) => `${k}=${val}`)
+                            .join(" · ")}
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-xs text-indigo-600 shrink-0">
+                      {variantPickerBusy ? "…" : "Add"}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

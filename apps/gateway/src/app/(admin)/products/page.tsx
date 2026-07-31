@@ -1,9 +1,21 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { api, getAdminUser } from "@/lib/admin-api";
+import { fetchPricingQuote, type QuoteSuccess } from "@/lib/pricing-quote";
 import dynamic from "next/dynamic";
+import { ProductEditorForm } from "./ProductEditorForm";
+import {
+  ProductPricingSection,
+  isMeasuredPricingBasis,
+} from "./ProductPricingSection";
+import { ProductInventorySection } from "./ProductInventorySection";
+import { ProductVariantsSection } from "./ProductVariantsSection";
+import { CreateProductEditor } from "./CreateProductEditor";
+import { ProductMediaGallery } from "@/components/ProductMediaGallery";
 
 const BarcodeScannerModal = dynamic(() => import("@/components/BarcodeScannerModal"), { ssr: false });
+
+const FIELD_TYPES = ["TEXT", "NUMBER", "SELECT", "MULTI_SELECT", "BOOLEAN", "UNIT_NUMBER"] as const;
 
 interface Stock {
   warehouseId: string;
@@ -15,9 +27,17 @@ interface Product {
   sku: string;
   name: string;
   unit: string;
-  costPrice: number;
-  sellPrice: number;
+  costPrice: number | null;
+  sellPrice: number | null;
+  costingMethod?: string | null;
+  pricingBasis?: string | null;
+  baseRate?: number | null;
+  pricingUom?: string | null;
+  weight?: number | null;
+  weightUnit?: string | null;
   reorderLevel: number;
+  productStructure?: "SIMPLE" | "VARIANT" | null;
+  variantAxes?: string[] | null;
   categoryId?: string | null;
   brandId?: string | null;
   barcode?: string | null;
@@ -51,6 +71,11 @@ interface AttrDef {
   options?: string[] | null;
   isRequired: boolean;
   isFilterable: boolean;
+  isVariantAxis?: boolean;
+  isIdentity?: boolean;
+  measureRole?: string | null;
+  measureUnit?: string | null;
+  sizePattern?: string | null;
   categoryLinks?: {
     categoryId: string;
     optionsOverride?: string[] | null;
@@ -74,11 +99,19 @@ const EMPTY_FORM = {
   unit: "pcs",
   costPrice: "",
   sellPrice: "",
+  costingMethod: "MANUAL",
+  pricingBasis: "PER_EACH",
+  baseRate: "",
+  pricingUom: "each",
+  weight: "",
+  weightUnit: "kg",
   reorderLevel: "10",
   initialStock: "0",
   barcode: "",
   categoryId: "",
   brandId: "",
+  productStructure: "SIMPLE" as "SIMPLE" | "VARIANT",
+  variantAxes: [] as string[],
 };
 
 const EMPTY_CATEGORY_FORM = {
@@ -99,8 +132,6 @@ const EMPTY_INLINE_FIELD_FORM = {
   options: "",
   isRequired: false,
 };
-
-const FIELD_TYPES = ["TEXT", "NUMBER", "SELECT", "MULTI_SELECT", "BOOLEAN", "UNIT_NUMBER"] as const;
 
 function slugifyKey(label: string): string {
   const base = label
@@ -134,6 +165,14 @@ export default function ProductsPage() {
     "CATALOG_MANAGER",
   ].includes(role);
   const [tab, setTab] = useState<Tab>("catalog");
+  useEffect(() => {
+    try {
+      const t = new URLSearchParams(window.location.search).get("tab");
+      if (t === "fields" || t === "setup" || t === "catalog") setTab(t);
+    } catch {
+      /* ignore */
+    }
+  }, []);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -154,19 +193,21 @@ export default function ProductsPage() {
 
   /** null = closed, "new" = create form, "edit" = editing an existing product */
   const [formMode, setFormMode] = useState<"new" | "edit" | null>(null);
+  const [showCreateEditor, setShowCreateEditor] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productForm, setProductForm] = useState(EMPTY_FORM);
   /** When true, user typed SKU manually — stop overwriting on category/brand change */
   const [skuManual, setSkuManual] = useState(false);
   const [skuSuggesting, setSkuSuggesting] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [imageUploading, setImageUploading] = useState(false);
   const [defaultWarehouseId, setDefaultWarehouseId] = useState<string>("");
-  const imageInputRef = useRef<HTMLInputElement>(null);
   const [customAttrs, setCustomAttrs] = useState<Record<string, string>>({});
   const [formDefs, setFormDefs] = useState<AttrDef[]>([]);
   const [addAnother, setAddAnother] = useState(false);
   const [creatingProduct, setCreatingProduct] = useState(false);
+  const [quotePreview, setQuotePreview] = useState<QuoteSuccess | null>(null);
+  const [quotePreviewError, setQuotePreviewError] = useState("");
+  const [quotePreviewLoading, setQuotePreviewLoading] = useState(false);
 
   // Inline "quick add" sections inside the New Product modal — no navigation away.
   const [inlineCategoryOpen, setInlineCategoryOpen] = useState(false);
@@ -375,19 +416,13 @@ export default function ProductsPage() {
   }
 
   function openNewProductForm() {
-    setFormMode("new");
+    setShowCreateEditor(true);
+    setFormMode(null);
     setEditingProduct(null);
-    setProductForm(EMPTY_FORM);
-    setSkuManual(false);
-    setImageUrls([]);
-    setFormDefs([]);
-    setCustomAttrs({});
-    setAddAnother(false);
-    resetInlineSections();
     setMsg("");
   }
 
-  function openEditProductForm(p: Product) {
+  async function openEditProductForm(p: Product) {
     setFormMode("edit");
     setEditingProduct(p);
     setSkuManual(true);
@@ -396,15 +431,30 @@ export default function ProductsPage() {
       sku: p.sku,
       name: p.name,
       unit: p.unit,
-      costPrice: String(p.costPrice),
-      sellPrice: String(p.sellPrice),
+      costPrice: p.costPrice != null ? String(p.costPrice) : "",
+      sellPrice:
+        p.sellPrice != null && !isMeasuredPricingBasis(p.pricingBasis || "PER_EACH")
+          ? String(p.sellPrice)
+          : p.sellPrice != null
+            ? String(p.sellPrice)
+            : "",
+      costingMethod: "MANUAL",
+      pricingBasis: p.pricingBasis || "PER_EACH",
+      baseRate: p.baseRate != null ? String(p.baseRate) : "",
+      pricingUom: p.pricingUom || (p.pricingBasis === "PER_AREA" ? "sq_ft" : "each"),
+      weight: p.weight != null ? String(p.weight) : "",
+      weightUnit: p.weightUnit || "kg",
       reorderLevel: String(p.reorderLevel),
       initialStock: "0",
       barcode: p.barcode ?? "",
       categoryId: p.categoryId ?? p.category?.id ?? "",
       brandId: p.brandId ?? p.brand?.id ?? "",
+      productStructure: p.productStructure === "VARIANT" ? "VARIANT" : "SIMPLE",
+      variantAxes: Array.isArray(p.variantAxes) ? p.variantAxes.map(String) : [],
     });
     setAddAnother(false);
+    setQuotePreview(null);
+    setQuotePreviewError("");
     resetInlineSections();
     setMsg("");
     const categoryId = p.categoryId ?? p.category?.id ?? "";
@@ -414,27 +464,112 @@ export default function ProductsPage() {
       setFormDefs([]);
       setCustomAttrs({});
     }
+    try {
+      const r = await api(`/api/products/${p.id}`);
+      if (r.data) {
+        setEditingProduct({
+          ...p,
+          ...r.data,
+          stocks: r.data.stocks ?? p.stocks,
+        });
+      }
+    } catch {
+      /* keep list payload */
+    }
   }
 
-  async function uploadProductImages(files: FileList | File[]) {
-    const list = Array.from(files).slice(0, Math.max(0, 4 - imageUrls.length));
-    if (!list.length) return;
-    setImageUploading(true);
-    try {
-      const uploaded: string[] = [];
-      for (const file of list) {
-        const fd = new FormData();
-        fd.append("file", file);
-        const r = await api("/api/uploads/product-image", { method: "POST", body: fd });
-        if (r?.data?.url) uploaded.push(r.data.url as string);
+  function validatePricingConfig(): string | null {
+    const basis = productForm.pricingBasis || "PER_EACH";
+    if (basis === "PER_EACH") return null;
+
+    const attrs = buildCustomAttributesPayload();
+    const hasFilled = (d: AttrDef) => {
+      const v = attrs[d.key] ?? customAttrs[d.key];
+      return v !== undefined && v !== null && String(v).trim() !== "";
+    };
+
+    if (basis === "PER_AREA") {
+      const areaReady = formDefs.some(
+        (d) =>
+          (d.sizePattern || d.measureRole === "AREA") && hasFilled(d)
+      );
+      const lengthWidth =
+        formDefs.some((d) => d.measureRole === "LENGTH" && hasFilled(d)) &&
+        formDefs.some((d) => d.measureRole === "WIDTH" && hasFilled(d));
+      if (!areaReady && !lengthWidth) {
+        return "PER_AREA requires an area derivation (size pattern like 8×4, or length/width measures) with values set.";
       }
-      if (uploaded.length) setImageUrls((prev) => [...prev, ...uploaded].slice(0, 4));
-    } catch (e: unknown) {
-      notify(`Image upload failed: ${errText(e)}`, "error");
-    } finally {
-      setImageUploading(false);
-      if (imageInputRef.current) imageInputRef.current.value = "";
+      if (!productForm.baseRate || Number(productForm.baseRate) < 0) {
+        return "PER_AREA requires a rate per pricing UOM.";
+      }
+      if (!productForm.pricingUom || productForm.pricingUom === "each") {
+        return "PER_AREA requires a pricing UOM (e.g. sq_ft).";
+      }
     }
+
+    if (basis === "PER_WEIGHT") {
+      const weightAttr = formDefs.some((d) => d.measureRole === "WEIGHT" && hasFilled(d));
+      const productWeight = Number(productForm.weight) > 0;
+      if (!weightAttr && !productWeight) {
+        return "PER_WEIGHT requires a weight measure attribute or product weight.";
+      }
+      if (!productForm.baseRate || Number(productForm.baseRate) < 0) {
+        return "PER_WEIGHT requires a rate per pricing UOM.";
+      }
+    }
+
+    if (basis === "PER_VOLUME") {
+      const volumeReady = formDefs.some(
+        (d) => d.measureRole === "VOLUME" && hasFilled(d)
+      );
+      const lwh =
+        formDefs.some((d) => d.measureRole === "LENGTH" && hasFilled(d)) &&
+        formDefs.some((d) => d.measureRole === "WIDTH" && hasFilled(d)) &&
+        formDefs.some((d) => d.measureRole === "HEIGHT" && hasFilled(d));
+      if (!volumeReady && !lwh) {
+        return "PER_VOLUME requires a volume measure or length/width/height values.";
+      }
+      if (!productForm.baseRate || Number(productForm.baseRate) < 0) {
+        return "PER_VOLUME requires a rate per pricing UOM.";
+      }
+      if (!productForm.pricingUom) {
+        return "PER_VOLUME requires a pricing UOM.";
+      }
+    }
+
+    return null;
+  }
+
+  function pricingPayloadFields(): {
+    pricingBasis: string;
+    pricingUom: string | null;
+    baseRate: number | null;
+    weight?: number;
+    weightUnit?: string;
+  } {
+    const basis = productForm.pricingBasis || "PER_EACH";
+    // Normalize on save: PER_EACH must not persist measured UOM/rate
+    if (basis === "PER_EACH") {
+      return {
+        pricingBasis: basis,
+        pricingUom: "each",
+        baseRate: null,
+        ...(productForm.weight !== ""
+          ? { weight: Number(productForm.weight), weightUnit: productForm.weightUnit || "kg" }
+          : {}),
+      };
+    }
+    return {
+      pricingBasis: basis,
+      pricingUom: productForm.pricingUom || null,
+      baseRate:
+        productForm.baseRate !== "" && productForm.baseRate != null
+          ? Number(productForm.baseRate)
+          : null,
+      ...(productForm.weight !== ""
+        ? { weight: Number(productForm.weight), weightUnit: productForm.weightUnit || "kg" }
+        : {}),
+    };
   }
 
   async function suggestSku(categoryId: string, brandId: string) {
@@ -465,11 +600,129 @@ export default function ProductsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productForm.categoryId, productForm.brandId, formMode, skuManual]);
 
+  // Live pricing preview via quote API only (no client-side math)
+  useEffect(() => {
+    if (!formMode) {
+      setQuotePreview(null);
+      setQuotePreviewError("");
+      return;
+    }
+    const basis = productForm.pricingBasis || "PER_EACH";
+    const timer = setTimeout(() => {
+      void (async () => {
+        setQuotePreviewLoading(true);
+        setQuotePreviewError("");
+        const attributes = buildCustomAttributesPayload();
+        // Preview uses active basis only — ignore preserved hidden fields for PER_EACH
+        const draftProduct =
+          basis === "PER_EACH"
+            ? {
+                pricingBasis: "PER_EACH" as const,
+                baseRate: null,
+                sellPrice:
+                  productForm.sellPrice !== "" ? Number(productForm.sellPrice) : null,
+                pricingUom: "each",
+                weight: productForm.weight !== "" ? Number(productForm.weight) : null,
+                weightUnit: productForm.weightUnit || null,
+                categoryId: productForm.categoryId || null,
+                attributes,
+                attributeDefs: formDefs.map((d) => ({
+                  key: d.key,
+                  measureRole: d.measureRole ?? null,
+                  measureUnit: d.measureUnit ?? d.unit ?? null,
+                  sizePattern: d.sizePattern ?? null,
+                })),
+              }
+            : {
+                pricingBasis: basis,
+                baseRate:
+                  productForm.baseRate !== "" ? Number(productForm.baseRate) : null,
+                sellPrice: null,
+                pricingUom: productForm.pricingUom || null,
+                weight: productForm.weight !== "" ? Number(productForm.weight) : null,
+                weightUnit: productForm.weightUnit || null,
+                categoryId: productForm.categoryId || null,
+                attributes,
+                attributeDefs: formDefs.map((d) => ({
+                  key: d.key,
+                  measureRole: d.measureRole ?? null,
+                  measureUnit: d.measureUnit ?? d.unit ?? null,
+                  sizePattern: d.sizePattern ?? null,
+                })),
+              };
+        const result = await fetchPricingQuote({
+          productId: null,
+          draftProduct,
+          quantity: 1,
+          attributes,
+        });
+        if (result.ok) {
+          setQuotePreview(result);
+          setQuotePreviewError("");
+        } else {
+          setQuotePreview(null);
+          setQuotePreviewError(result.error);
+        }
+        setQuotePreviewLoading(false);
+      })();
+    }, 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    formMode,
+    editingProduct?.id,
+    productForm.pricingBasis,
+    productForm.baseRate,
+    productForm.pricingUom,
+    productForm.sellPrice,
+    productForm.weight,
+    productForm.weightUnit,
+    productForm.categoryId,
+    customAttrs,
+  ]);
+
+  function resolveSellPriceForSave(): number | null {
+    const basis = productForm.pricingBasis || "PER_EACH";
+    if (isMeasuredPricingBasis(basis)) return null;
+    if (productForm.sellPrice === "" || productForm.sellPrice == null) {
+      return Number.NaN;
+    }
+    return Number(productForm.sellPrice);
+  }
+
+  /** null = unknown cost; 0 is an explicit zero cost */
+  function resolveCostPriceForSave(): number | null {
+    if (productForm.costPrice === "" || productForm.costPrice == null) return null;
+    const n = Number(productForm.costPrice);
+    if (!Number.isFinite(n) || n < 0) return NaN as unknown as number;
+    return n;
+  }
+
+  function costIsMissing(cost: number | null | undefined): boolean {
+    return cost == null || (typeof cost === "number" && !Number.isFinite(cost));
+  }
+
   async function submitProductForm(e: React.FormEvent) {
     e.preventDefault();
+    const pricingError = validatePricingConfig();
+    if (pricingError) {
+      notify(pricingError, "error");
+      return;
+    }
+    const sellPrice = resolveSellPriceForSave();
+    if (sellPrice !== null && (!Number.isFinite(sellPrice) || sellPrice < 0)) {
+      notify("Sell price is required for PER_EACH products.", "error");
+      return;
+    }
+    const costPrice = resolveCostPriceForSave();
+    if (typeof costPrice === "number" && Number.isNaN(costPrice)) {
+      notify("Cost price must be blank (unknown) or a non-negative number.", "error");
+      return;
+    }
     setCreatingProduct(true);
     try {
       const customAttributes = buildCustomAttributesPayload();
+      const pricingFields = pricingPayloadFields();
 
       if (formMode === "edit" && editingProduct) {
         await api(`/api/products/${editingProduct.id}`, {
@@ -477,17 +730,26 @@ export default function ProductsPage() {
           body: JSON.stringify({
             name: productForm.name,
             unit: productForm.unit,
-            costPrice: Number(productForm.costPrice),
-            sellPrice: Number(productForm.sellPrice),
+            costPrice,
+            sellPrice,
+            costingMethod: "MANUAL",
             reorderLevel: Number(productForm.reorderLevel),
             barcode: productForm.barcode || null,
             categoryId: productForm.categoryId || null,
             brandId: productForm.brandId || null,
             imageUrls: imageUrls.length ? imageUrls : null,
             customAttributes,
+            productStructure: productForm.productStructure,
+            variantAxes: productForm.variantAxes,
+            ...pricingFields,
           }),
         });
-        notify(`Product "${productForm.name}" updated`, "success");
+        notify(
+          costIsMissing(costPrice)
+            ? `Product "${productForm.name}" updated. Cost not set — valuation and margin unavailable until cost is entered.`
+            : `Product "${productForm.name}" updated`,
+          "success"
+        );
         setFormMode(null);
         setEditingProduct(null);
         setImageUrls([]);
@@ -501,14 +763,23 @@ export default function ProductsPage() {
           sku: productForm.sku,
           name: productForm.name,
           unit: productForm.unit,
-          costPrice: Number(productForm.costPrice),
-          sellPrice: Number(productForm.sellPrice),
+          costPrice,
+          sellPrice,
+          costingMethod: "MANUAL",
           reorderLevel: Number(productForm.reorderLevel),
           ...(productForm.barcode && { barcode: productForm.barcode }),
           ...(productForm.categoryId && { categoryId: productForm.categoryId }),
           ...(productForm.brandId && { brandId: productForm.brandId }),
           ...(imageUrls.length ? { imageUrls } : {}),
           ...(Object.keys(customAttributes).length ? { customAttributes } : {}),
+          pricingBasis: pricingFields.pricingBasis,
+          pricingUom: pricingFields.pricingUom ?? undefined,
+          ...(pricingFields.baseRate != null ? { baseRate: pricingFields.baseRate } : {}),
+          ...(pricingFields.weight != null
+            ? { weight: pricingFields.weight, weightUnit: pricingFields.weightUnit }
+            : {}),
+          productStructure: productForm.productStructure,
+          variantAxes: productForm.variantAxes,
         }),
       });
       const productId = created.data?.id;
@@ -522,7 +793,12 @@ export default function ProductsPage() {
           }),
         });
       }
-      notify(`Product "${productForm.name}" created`, "success");
+      notify(
+        costIsMissing(costPrice)
+          ? `Product "${productForm.name}" created. Cost not set — update before inventory valuation or when purchase cost is known.`
+          : `Product "${productForm.name}" created`,
+        "success"
+      );
       if (addAnother) {
         setSkuManual(false);
         setImageUrls([]);
@@ -1071,7 +1347,7 @@ export default function ProductsPage() {
               {importing ? "Importing…" : "Import CSV"}
             </button>
             <button
-              onClick={openNewProductForm}
+              onClick={() => setShowCreateEditor(true)}
               className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-800 shadow-sm transition-colors"
             >
               + New Product
@@ -1152,7 +1428,23 @@ export default function ProductsPage() {
                           {formatAttrs(p) || "—"}
                         </td>
                         <td className="px-4 py-3 text-gray-500">{p.unit}</td>
-                        <td className="px-4 py-3 font-semibold text-emerald-700">₹{p.sellPrice}</td>
+                        <td className="px-4 py-3 font-semibold text-emerald-700">
+                          <div className="flex flex-col gap-0.5">
+                            <span>
+                              {p.sellPrice != null ? `₹${p.sellPrice}` : isMeasuredPricingBasis(p.pricingBasis || "PER_EACH") ? "Quote" : "—"}
+                            </span>
+                            {p.pricingBasis && p.pricingBasis !== "PER_EACH" && (
+                              <span className="text-[10px] font-medium uppercase tracking-wide text-indigo-600">
+                                {p.baseRate != null && p.pricingUom
+                                  ? `₹${p.baseRate} / ${p.pricingUom}`
+                                  : p.pricingBasis}
+                              </span>
+                            )}
+                            {p.costPrice == null && (
+                              <span className="text-[10px] font-medium text-amber-600">No cost</span>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-4 py-3">
                           <span className={`font-bold ${isLow ? "text-red-600" : "text-gray-900"}`}>
                             {totalStock} {p.unit}
@@ -1171,7 +1463,7 @@ export default function ProductsPage() {
                                 onClick={() => {
                                   setStockModal(p);
                                   setStockQty("100");
-                                  setStockCost(String(p.costPrice));
+                                  setStockCost(p.costPrice != null ? String(p.costPrice) : "");
                                   setMsg("");
                                 }}
                                 className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 font-medium transition-colors"
@@ -1265,6 +1557,7 @@ export default function ProductsPage() {
                   <tr>
                     <th className="px-4 py-2 text-xs uppercase tracking-wide text-gray-500 font-semibold">Field</th>
                     <th className="px-4 py-2 text-xs uppercase tracking-wide text-gray-500 font-semibold">Type</th>
+                    <th className="px-4 py-2 text-xs uppercase tracking-wide text-gray-500 font-semibold">Identity</th>
                     <th className="px-4 py-2 text-xs uppercase tracking-wide text-gray-500 font-semibold">Shows on category</th>
                     <th className="px-4 py-2 text-xs uppercase tracking-wide text-gray-500 font-semibold">Lists (per category)</th>
                     <th className="px-4 py-2 text-xs uppercase tracking-wide text-gray-500 font-semibold">Required</th>
@@ -1282,6 +1575,7 @@ export default function ProductsPage() {
                         {d.dataType}
                         {d.unit ? ` (${d.unit})` : ""}
                       </td>
+                      <td className="px-4 py-2 text-gray-600">{d.isIdentity ? "Yes" : "—"}</td>
                       <td className="px-4 py-2 text-gray-500">
                         {!d.categoryLinks?.length
                           ? "All products"
@@ -1484,42 +1778,53 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {formMode && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <form
-            onSubmit={submitProductForm}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden"
-          >
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-100 flex items-start justify-between shrink-0">
-              <div>
-                <h2 className="font-bold text-gray-900 text-lg">
-                  {formMode === "edit" ? `Edit Product — ${editingProduct?.name}` : "New Product"}
-                </h2>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {formMode === "edit"
-                    ? "Update details, pricing or attributes. SKU is fixed once created."
-                    : "Category, brand and attributes can all be created right here — no need to leave this screen."}
-                </p>
-              </div>
+      {showCreateEditor && (
+        <CreateProductEditor
+          onClose={() => setShowCreateEditor(false)}
+          onDone={() => {
+            void loadCatalog();
+            setTab("catalog");
+          }}
+        />
+      )}
+
+      {formMode === "edit" && (
+        <ProductEditorForm
+          title={`Edit Product — ${editingProduct?.name}`}
+          subtitle="Update identity, pricing, inventory, and attributes."
+          onClose={() => {
+            setFormMode(null);
+            setEditingProduct(null);
+          }}
+          onSubmit={submitProductForm}
+          footer={
+            <>
               <button
                 type="button"
+                onClick={() => editingProduct && deactivateProduct(editingProduct)}
+                className="text-xs font-medium text-red-600 hover:text-red-800 mr-auto"
+              >
+                Deactivate product
+              </button>
+              <button
+                type="button"
+                className="pe-btn-ghost"
                 onClick={() => {
                   setFormMode(null);
                   setEditingProduct(null);
                 }}
-                className="shrink-0 h-8 w-8 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 flex items-center justify-center transition-colors"
-                aria-label="Close"
               >
-                ×
+                Cancel
               </button>
-            </div>
-
-            {/* Body */}
-            <div className="px-6 py-5 overflow-y-auto space-y-6">
+              <button type="submit" disabled={creatingProduct} className="pe-btn-primary">
+                {creatingProduct ? "Saving…" : "Save changes"}
+              </button>
+            </>
+          }
+        >
               {/* Classification */}
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Classification</h3>
+                <h3 className="pe-section-title">Classification</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2 sm:col-span-1">
                     <div className="flex items-center justify-between mb-1">
@@ -1684,7 +1989,7 @@ export default function ProductsPage() {
 
               {/* Basic details */}
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Basic details</h3>
+                <h3 className="pe-section-title">Identity</h3>
                 <div className="grid grid-cols-2 gap-4">
                   {(
                     [
@@ -1746,102 +2051,64 @@ export default function ProductsPage() {
                 </div>
               </div>
 
-              {/* Images */}
+              {/* Media */}
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">
-                  Product images
-                  <span className="ml-2 font-normal normal-case text-gray-400">
-                    up to 4 · JPG/PNG/WebP · max 2 MB · first is primary
-                  </span>
+                  Media
                 </h3>
-                <div className="flex flex-wrap gap-3 items-start">
-                  {imageUrls.map((url, idx) => (
-                    <div
-                      key={url}
-                      className="relative h-24 w-24 rounded-xl overflow-hidden border border-gray-200 bg-gray-50 group"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={url} alt="" className="h-full w-full object-cover" />
-                      {idx === 0 && (
-                        <span className="absolute left-1 top-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                          Primary
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setImageUrls((prev) => prev.filter((u) => u !== url))}
-                        className="absolute right-1 top-1 hidden group-hover:inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-white text-xs"
-                        aria-label="Remove image"
-                      >
-                        ×
-                      </button>
-                      {idx > 0 && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setImageUrls((prev) => {
-                              const next = [...prev];
-                              const [item] = next.splice(idx, 1);
-                              next.unshift(item);
-                              return next;
-                            })
-                          }
-                          className="absolute bottom-1 left-1 hidden group-hover:inline-flex rounded bg-black/70 px-1.5 py-0.5 text-[10px] text-white"
-                        >
-                          Make primary
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  {imageUrls.length < 4 && (
-                    <label className="flex h-24 w-24 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-white text-center text-xs text-gray-500 hover:border-indigo-400 hover:text-indigo-600">
-                      <input
-                        ref={imageInputRef}
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        multiple
-                        className="hidden"
-                        disabled={imageUploading}
-                        onChange={(e) => {
-                          if (e.target.files?.length) void uploadProductImages(e.target.files);
-                        }}
-                      />
-                      {imageUploading ? "Uploading…" : "+ Add"}
-                    </label>
-                  )}
-                </div>
+                <ProductMediaGallery
+                  value={imageUrls}
+                  onChange={setImageUrls}
+                  onError={(msg) => notify(`Image upload failed: ${msg}`, "error")}
+                />
               </div>
 
-              {/* Pricing & stock */}
-              <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Pricing & stock</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {(
-                    [
-                      ["Cost Price (₹) *", "number", "costPrice"],
-                      ["Sell Price (₹) *", "number", "sellPrice"],
-                      ["Reorder Level", "number", "reorderLevel"],
-                      ...(formMode === "edit" ? [] : [["Initial Stock", "number", "initialStock"] as const]),
-                    ] as const
-                  ).map(([label, type, key]) => (
-                    <div key={key}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-                      <input
-                        type={type}
-                        required={label.includes("*")}
-                        value={productForm[key]}
-                        onChange={(e) => setProductForm((f) => ({ ...f, [key]: e.target.value }))}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <ProductPricingSection
+                form={{
+                  pricingBasis: productForm.pricingBasis,
+                  pricingUom: productForm.pricingUom,
+                  baseRate: productForm.baseRate,
+                  sellPrice: productForm.sellPrice,
+                  weight: productForm.weight,
+                  weightUnit: productForm.weightUnit,
+                }}
+                onChange={(patch) => setProductForm((f) => ({ ...f, ...patch }))}
+                quotePreview={quotePreview}
+                quotePreviewLoading={quotePreviewLoading}
+                quotePreviewError={quotePreviewError}
+              />
+
+              <ProductInventorySection
+                form={{
+                  costPrice: productForm.costPrice,
+                  reorderLevel: productForm.reorderLevel,
+                  initialStock: productForm.initialStock,
+                }}
+                onChange={(patch) => setProductForm((f) => ({ ...f, ...patch }))}
+                showInitialStock={formMode !== "edit" && productForm.productStructure === "SIMPLE"}
+              />
+
+              <ProductVariantsSection
+                productId={formMode === "edit" ? editingProduct?.id ?? null : null}
+                productSku={productForm.sku}
+                productStructure={productForm.productStructure}
+                variantAxes={productForm.variantAxes}
+                axisDefs={formDefs
+                  .filter((d) => d.isVariantAxis || ["size", "color", "pack", "thickness"].includes(d.key))
+                  .map((d) => ({
+                    key: d.key,
+                    label: d.label,
+                    options: Array.isArray(d.options) ? d.options.map(String) : [],
+                  }))}
+                onStructureChange={(s) => setProductForm((f) => ({ ...f, productStructure: s }))}
+                onAxesChange={(axes) => setProductForm((f) => ({ ...f, variantAxes: axes }))}
+                api={api}
+              />
 
               {/* Attributes */}
               <div className="border-t border-gray-100 pt-5">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  <h3 className="pe-section-title" style={{ borderBottom: "none", marginBottom: 0, paddingBottom: 0 }}>
                     Attributes {selectedCategoryName ? `— ${selectedCategoryName}` : ""}
                   </h3>
                   {productForm.categoryId && !inlineFieldOpen && (
@@ -1992,50 +2259,7 @@ export default function ProductsPage() {
                   </div>
                 )}
               </div>
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/60 shrink-0 flex items-center gap-3">
-              {formMode === "edit" ? (
-                <button
-                  type="button"
-                  onClick={() => editingProduct && deactivateProduct(editingProduct)}
-                  className="text-xs font-medium text-red-600 hover:text-red-800 mr-auto"
-                >
-                  Deactivate product
-                </button>
-              ) : (
-                <label className="flex items-center gap-2 text-xs text-gray-600 mr-auto">
-                  <input type="checkbox" checked={addAnother} onChange={(e) => setAddAnother(e.target.checked)} />
-                  Save &amp; add another
-                </label>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setFormMode(null);
-                  setEditingProduct(null);
-                }}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={creatingProduct}
-                className="px-5 py-2 bg-gray-900 text-white rounded-lg text-sm font-semibold hover:bg-gray-800 disabled:opacity-50 transition-colors"
-              >
-                {creatingProduct
-                  ? formMode === "edit"
-                    ? "Saving…"
-                    : "Creating…"
-                  : formMode === "edit"
-                    ? "Save changes"
-                    : "Create Product"}
-              </button>
-            </div>
-          </form>
-        </div>
+        </ProductEditorForm>
       )}
 
       {showAddField && (

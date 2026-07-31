@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { verifyToken, extractToken } from "./index";
+import { verifyToken, verifyPlatformToken, extractToken } from "./index";
 import {
   resolveRequestIds,
   REQUEST_ID_HEADER,
   CORRELATION_ID_HEADER,
 } from "@erp/logger/ids";
+import { isPlatformRole } from "@erp/platform-core";
 
 /**
  * Middleware for individual microservices.
- * Validates JWT (or service key), injects auth + request correlation headers.
- * Edge-safe: uses @erp/logger/ids (no Node ALS / createLogger).
+ * Validates JWT (platform or tenant) or service key; injects auth + correlation headers.
+ * Never synthesizes a tenant identity for platform callers.
  */
 export function createServiceMiddleware(moduleId: string) {
   return async function middleware(request: NextRequest) {
@@ -51,8 +52,24 @@ export function createServiceMiddleware(moduleId: string) {
       return withIds(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
     }
 
+    // Platform operator — explicit identity; target tenant from client header
+    const platform = await verifyPlatformToken(token);
+    if (platform && isPlatformRole(platform.role)) {
+      const targetTenant = request.headers.get("x-tenant-id");
+      const headers = new Headers(request.headers);
+      headers.set("x-auth-scope", "platform");
+      headers.set("x-operator-id", platform.sub);
+      headers.set("x-operator-role", platform.role);
+      if (targetTenant) headers.set("x-tenant-id", targetTenant);
+      else headers.delete("x-tenant-id");
+      headers.delete("x-user-id");
+      headers.delete("x-user-role");
+      injectIds(headers);
+      return withIds(NextResponse.next({ request: { headers } }));
+    }
+
     const auth = await verifyToken(token);
-    if (!auth) {
+    if (!auth?.userId || !auth.tenantId) {
       return withIds(NextResponse.json({ error: "Invalid token" }, { status: 401 }));
     }
 
@@ -66,10 +83,15 @@ export function createServiceMiddleware(moduleId: string) {
       );
     }
 
+    const capabilities = Array.isArray(auth.capabilities) ? auth.capabilities : [];
+
     const headers = new Headers(request.headers);
+    headers.set("x-auth-scope", "tenant");
     headers.set("x-user-id", auth.userId);
     headers.set("x-tenant-id", auth.tenantId);
     headers.set("x-user-role", auth.role);
+    headers.set("x-modules", modules.join(","));
+    headers.set("x-capabilities", capabilities.join(","));
     injectIds(headers);
 
     return withIds(NextResponse.next({ request: { headers } }));

@@ -68,8 +68,6 @@ export const TRADING_JOURNEY_NAV: NavModuleKey[] = [
   "customers",
   "products",
   "oms",
-  "workflows",
-  "configuration",
   "orders",
   "vendors",
   "purchase_orders",
@@ -143,19 +141,50 @@ export function modulesForRole(role: string | null | undefined): Set<NavModuleKe
  */
 export function resolveNavModules(
   role: string | null | undefined,
-  userOverride?: string[] | null
+  userOverride?: string[] | null,
+  capabilities?: string[] | null
 ): Set<NavModuleKey> {
-  if (userOverride?.includes("*")) return new Set(ALL_NAV_MODULES);
-  if (userOverride && userOverride.length > 0) {
-    const allowed = new Set<NavModuleKey>();
+  let allowed: Set<NavModuleKey>;
+  if (userOverride?.includes("*")) {
+    allowed = new Set(ALL_NAV_MODULES);
+  } else if (userOverride && userOverride.length > 0) {
+    allowed = new Set<NavModuleKey>();
     for (const key of userOverride) {
       if ((ALL_NAV_MODULES as string[]).includes(key)) {
         allowed.add(key as NavModuleKey);
       }
     }
-    return allowed.size > 0 ? allowed : modulesForRole(role);
+    if (allowed.size === 0) allowed = modulesForRole(role);
+  } else {
+    allowed = modulesForRole(role);
   }
-  return modulesForRole(role);
+  return applyProcessStudioCapability(allowed, role, capabilities);
+}
+
+/** Process Studio nav only when TenantCapability processStudio is enabled. */
+export function applyProcessStudioCapability(
+  allowed: Set<NavModuleKey>,
+  role: string | null | undefined,
+  capabilities?: string[] | null
+): Set<NavModuleKey> {
+  const next = new Set(allowed);
+  const enabled = capabilities?.includes("processStudio") === true;
+  if (!enabled) {
+    next.delete("workflows");
+    next.delete("configuration");
+    return next;
+  }
+  const designer =
+    role === "SUPER_ADMIN" ||
+    role === "ADMIN" ||
+    role === "ORG_ADMIN" ||
+    role === "PROCESS_OWNER" ||
+    allowed.size === ALL_NAV_MODULES.length;
+  if (designer) {
+    next.add("workflows");
+    next.add("configuration");
+  }
+  return next;
 }
 
 export function canAccessModule(
@@ -214,7 +243,7 @@ export function pathToModuleKey(pathname: string): NavModuleKey | null {
   if (pathname.startsWith("/opportunities")) return "opportunities";
   if (pathname.startsWith("/quotes")) return "quotes";
   if (pathname.startsWith("/orders")) return "orders";
-  if (pathname.startsWith("/products") || pathname.startsWith("/attributes")) return "products";
+  if (pathname.startsWith("/products") || pathname.startsWith("/attributes") || pathname.startsWith("/categories") || pathname.startsWith("/brands") || pathname.startsWith("/price-lists")) return "products";
   if (pathname.startsWith("/oms")) return "oms";
   if (pathname.startsWith("/workflows")) return "workflows";
   if (pathname.startsWith("/configuration") || pathname.startsWith("/forms")) return "configuration";

@@ -4,9 +4,10 @@ import { z } from "zod";
 
 const updateVariantSchema = z.object({
   name: z.string().min(1).optional(),
-  attributes: z.record(z.string()).optional(),
-  costPrice: z.number().positive().optional(),
-  sellPrice: z.number().positive().optional(),
+  attributes: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
+  costPrice: z.number().nonnegative().nullable().optional(),
+  sellPrice: z.number().nonnegative().nullable().optional(),
+  barcode: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
 });
 

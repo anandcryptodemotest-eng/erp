@@ -4,7 +4,7 @@
  * Customers never type this — it comes from the link/domain they opened.
  */
 
-const DEFAULT_SLUG = "simhapuri-fresh";
+const DEFAULT_SLUG = "trustwood-enterprise";
 
 const RESERVED_HOST_LABELS = new Set([
   "www",
@@ -20,7 +20,7 @@ export function tenantSlugFromHost(hostname: string): string | null {
   const host = hostname.split(":")[0].toLowerCase();
   if (host === "localhost" || host === "127.0.0.1") return null;
 
-  // simhapuri-fresh.localhost or org.orders.example.com → first label
+  // trustwood-enterprise.localhost or org.orders.example.com → first label
   const parts = host.split(".").filter(Boolean);
   if (parts.length >= 2) {
     const sub = parts[0];

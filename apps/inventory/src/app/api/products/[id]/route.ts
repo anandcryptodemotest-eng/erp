@@ -13,6 +13,8 @@ const updateProductSchema = z.object({
   description: z.string().nullable().optional(),
   categoryId: z.string().nullable().optional(),
   brandId: z.string().nullable().optional(),
+  groupCode: z.string().min(1).max(64).nullable().optional(),
+  groupName: z.string().min(1).max(200).nullable().optional(),
   countryCode: z.string().length(2).optional(),
   taxCode: z.string().nullable().optional(),
   hsnCode: z.string().nullable().optional(),
@@ -23,10 +25,21 @@ const updateProductSchema = z.object({
   weight: z.number().positive().nullable().optional(),
   weightUnit: z.string().nullable().optional(),
   unit: z.string().optional(),
-  costPrice: z.number().nonnegative().optional(),
-  sellPrice: z.number().nonnegative().optional(),
+  costPrice: z.number().nonnegative().nullable().optional(),
+  sellPrice: z.number().nonnegative().nullable().optional(),
+  costingMethod: z
+    .enum(["MANUAL", "LAST_PURCHASE", "WEIGHTED_AVERAGE", "FIFO"])
+    .optional(),
+  pricingBasis: z
+    .enum(["PER_EACH", "PER_AREA", "PER_WEIGHT", "PER_VOLUME", "FORMULA", "CUSTOM"])
+    .optional(),
+  baseRate: z.number().nonnegative().nullable().optional(),
+  pricingUom: z.string().nullable().optional(),
   reorderLevel: z.number().int().min(0).optional(),
+  productStructure: z.enum(["SIMPLE", "VARIANT"]).optional(),
+  /** @deprecated use productStructure */
   hasVariants: z.boolean().optional(),
+  variantAxes: z.array(z.string().min(1)).optional(),
   isFeatured: z.boolean().optional(),
   sortOrder: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),
@@ -142,7 +155,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       taxReviewNotes = taxReviewNotes ?? "Partial HSN match. Manager approval required.";
     }
 
-    const { customAttributes: incomingAttrs, ...scalarData } = data;
+    const { customAttributes: incomingAttrs, hasVariants, productStructure, variantAxes, ...scalarData } =
+      data;
 
     const updatePayload: Record<string, unknown> = {
       ...scalarData,
@@ -157,19 +171,54 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       taxRate,
     };
 
+    if (hasVariants === true) updatePayload.productStructure = "VARIANT";
+    else if (hasVariants === false) updatePayload.productStructure = "SIMPLE";
+    else if (productStructure !== undefined) updatePayload.productStructure = productStructure;
+
+    if (variantAxes !== undefined) updatePayload.variantAxes = variantAxes;
+
     if (incomingAttrs !== undefined || data.categoryId !== undefined) {
       const definitions = await resolveAttributeDefinitions(tenantId, effectiveCategoryId);
+      const prevAttrs = (existing.customAttributes as Record<string, unknown>) ?? {};
       const mergedAttrs = {
-        ...((existing.customAttributes as Record<string, unknown>) ?? {}),
+        ...prevAttrs,
         ...(incomingAttrs ?? {}),
       };
       const attrResult = validateCustomAttributes(definitions, mergedAttrs);
       if (!attrResult.ok) {
         return NextResponse.json({ error: attrResult.error }, { status: 400 });
       }
+
+      const identityKeys = definitions.filter((d) => d.isIdentity).map((d) => d.key);
+      if (identityKeys.length) {
+        const effectiveBrandId =
+          data.brandId === undefined ? existing.brandId : data.brandId;
+        const brand = effectiveBrandId
+          ? await prisma.brand.findFirst({
+              where: { id: effectiveBrandId, tenantId },
+              select: { name: true },
+            })
+          : null;
+        const { findIdentityDuplicate } = await import("@/lib/identity-fingerprint");
+        const dup = await findIdentityDuplicate({
+          tenantId,
+          brandId: effectiveBrandId,
+          brandName: brand?.name || "",
+          identityKeys,
+          attrs: attrResult.values,
+          excludeProductId: id,
+        });
+        if (dup) {
+          return NextResponse.json(
+            { error: `A product with the same identity already exists (SKU ${dup.sku})` },
+            { status: 409 }
+          );
+        }
+      }
+
       const product = await prisma.product.update({
         where: { id },
-        data: { ...updatePayload, customAttributes: attrResult.values },
+        data: { ...updatePayload, customAttributes: attrResult.values as object },
       });
       await syncAttributeIndex(tenantId, product.id, definitions, attrResult.values);
       return NextResponse.json({ data: product });
@@ -180,6 +229,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
+    }
+    if ((error as { code?: string }).code === "P2002") {
+      return NextResponse.json({ error: "SKU already exists" }, { status: 409 });
     }
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

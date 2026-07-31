@@ -20,8 +20,8 @@ export async function GET(request: Request, { params }: Ctx) {
 export async function PATCH(request: Request, { params }: Ctx) {
   const tenantId = request.headers.get("x-tenant-id");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
-  const { requireProcessOwner } = await import("@erp/auth");
-  const denied = requireProcessOwner(request);
+  const { requireProcessDesignerFromRequest } = await import("@erp/auth");
+  const denied = requireProcessDesignerFromRequest(request);
   if (denied) return denied;
   const { id } = await params;
 

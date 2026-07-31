@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
   // Served publicly only via nginx at https://host/admin (apps bind to 127.0.0.1).
   basePath: "/admin",
   allowedDevOrigins: ["150.242.201.102", "localhost", "127.0.0.1"],
-  transpilePackages: ["@erp/logger", "@erp/telemetry", "@erp/ui", "@erp/types", "@erp/auth", "@erp/config", "@erp/workflow", "@erp/ui-runtime", "@erp/extensions"],
+  transpilePackages: ["@erp/logger", "@erp/telemetry", "@erp/ui", "@erp/types", "@erp/auth", "@erp/config", "@erp/workflow", "@erp/ui-runtime", "@erp/extensions", "@erp/pricing"],
   async rewrites() {
     return {
       // Local-dev parity for nginx's public `/api/*` → gateway `/admin/api/*` rewrite.
@@ -63,12 +63,16 @@ const nextConfig: NextConfig = {
       { source: "/api/stock",                destination: `${INVENTORY_URL}/api/stock` },
       { source: "/api/price-lists/:path*",   destination: `${INVENTORY_URL}/api/price-lists/:path*` },
       { source: "/api/price-lists",          destination: `${INVENTORY_URL}/api/price-lists` },
+      { source: "/api/pricing/:path*",       destination: `${INVENTORY_URL}/api/pricing/:path*` },
+      { source: "/api/pricing",              destination: `${INVENTORY_URL}/api/pricing` },
       { source: "/api/brands/:path*",        destination: `${INVENTORY_URL}/api/brands/:path*` },
       { source: "/api/brands",               destination: `${INVENTORY_URL}/api/brands` },
       { source: "/api/attribute-definitions/:path*", destination: `${INVENTORY_URL}/api/attribute-definitions/:path*` },
       { source: "/api/attribute-definitions",        destination: `${INVENTORY_URL}/api/attribute-definitions` },
       { source: "/api/attribute-templates/:path*",   destination: `${INVENTORY_URL}/api/attribute-templates/:path*` },
       { source: "/api/attribute-templates",          destination: `${INVENTORY_URL}/api/attribute-templates` },
+      { source: "/api/catalog/:path*",               destination: `${INVENTORY_URL}/api/catalog/:path*` },
+      { source: "/api/catalog",                      destination: `${INVENTORY_URL}/api/catalog` },
 
       // ── Accounting ────────────────────────────────────────────────────
       { source: "/api/accounts/:path*",      destination: `${ACCOUNTING_URL}/api/accounts/:path*` },

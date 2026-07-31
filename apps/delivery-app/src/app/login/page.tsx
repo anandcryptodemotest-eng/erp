@@ -50,7 +50,7 @@ export default function LoginPage() {
           <div>
             <label className="mb-1 block text-xs font-medium text-stone-500">Store / Tenant</label>
             <input value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} required
-              placeholder="simhapuri-fresh"
+              placeholder="trustwood-enterprise"
               className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-orange-400" />
           </div>
           <div>

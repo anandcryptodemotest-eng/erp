@@ -5,7 +5,7 @@
  */
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3010/admin";
-const TENANT = process.env.TENANT_SLUG ?? "simhapuri-fresh";
+const TENANT = process.env.TENANT_SLUG ?? "trustwood-enterprise";
 
 type LoginResult = { token: string; tenantId: string; role: string; email: string };
 

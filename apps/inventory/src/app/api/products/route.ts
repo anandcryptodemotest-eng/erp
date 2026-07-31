@@ -6,6 +6,7 @@ import {
   syncAttributeIndex,
   validateCustomAttributes,
 } from "@/lib/attributes";
+import { createProducts, isEngineCreateBody } from "@/services/product-creation.engine";
 import { z } from "zod";
 
 const createProductSchema = z.object({
@@ -14,25 +15,81 @@ const createProductSchema = z.object({
   description: z.string().optional(),
   categoryId: z.string().optional(),
   brandId: z.string().optional(),
+  groupCode: z.string().min(1).max(64).nullable().optional(),
+  groupName: z.string().min(1).max(200).nullable().optional(),
   countryCode: z.string().length(2).optional(),
   taxCode: z.string().optional(),
   hsnCode: z.string().optional(),
   taxRate: z.number().min(0).optional(),
   taxIncluded: z.boolean().default(false),
   barcode: z.string().optional(),
-  pluCode: z.string().optional(),       // PLU for weight-based items (no barcode)
+  pluCode: z.string().optional(),
   imageUrls: z.array(z.string().min(1)).optional(),
   weight: z.number().positive().optional(),
   weightUnit: z.string().optional(),
-  unit: z.string().default("pcs"),      // pcs | kg | g | liter | ml | dozen | bag
-  sellByWeight: z.boolean().default(false), // true = price × weight at billing
-  costPrice: z.number().nonnegative(),
-  sellPrice: z.number().nonnegative(),  // per unit; for weight items = per kg
-  reorderLevel: z.number().min(0).default(10), // Float so loose items support e.g. 5.0 kg min
-  hasVariants: z.boolean().default(false),
+  unit: z.string().default("pcs"),
+  sellByWeight: z.boolean().default(false),
+  costPrice: z.number().nonnegative().nullable().optional(),
+  sellPrice: z.number().nonnegative().nullable(),
+  costingMethod: z
+    .enum(["MANUAL", "LAST_PURCHASE", "WEIGHTED_AVERAGE", "FIFO"])
+    .optional()
+    .default("MANUAL"),
+  pricingBasis: z
+    .enum(["PER_EACH", "PER_AREA", "PER_WEIGHT", "PER_VOLUME", "FORMULA", "CUSTOM"])
+    .optional(),
+  baseRate: z.number().nonnegative().optional(),
+  pricingUom: z.string().optional(),
+  reorderLevel: z.number().min(0).default(10),
+  productStructure: z.enum(["SIMPLE", "VARIANT"]).optional().default("SIMPLE"),
+  hasVariants: z.boolean().optional(),
+  variantAxes: z.array(z.string().min(1)).optional(),
   isFeatured: z.boolean().default(false),
   sortOrder: z.number().int().min(0).default(0),
   customAttributes: z.record(z.unknown()).optional(),
+});
+
+const pricingPolicySchema = z
+  .object({
+    type: z.enum(["SAME", "CONFIGURATION"]),
+    basePrice: z.number().nonnegative().nullable().optional(),
+    attribute: z.string().min(1).optional(),
+    values: z.record(z.number().nonnegative()).optional(),
+    overrides: z.record(z.number().nonnegative()).optional(),
+  })
+  .optional()
+  .nullable();
+
+const mediaSchema = z
+  .object({
+    images: z.array(z.string().min(1)).max(4).optional().default([]),
+  })
+  .optional()
+  .nullable();
+
+const engineCreateSchema = z.object({
+  categoryId: z.string().min(1),
+  brandId: z.string().nullable().optional(),
+  productName: z.string().nullable().optional(),
+  axes: z.record(z.array(z.union([z.string(), z.number()]))),
+  skuTemplate: z.string().nullable().optional(),
+  nameTemplate: z.string().nullable().optional(),
+  barcodeTemplate: z.string().nullable().optional(),
+  groupCode: z.string().min(1).max(64).nullable().optional(),
+  groupName: z.string().min(1).max(200).nullable().optional(),
+  description: z.string().max(5000).nullable().optional(),
+  media: mediaSchema,
+  costPrice: z.number().nonnegative().nullable().optional(),
+  reorderLevel: z.number().min(0).nullable().optional(),
+  openingStock: z.number().min(0).nullable().optional(),
+  pricingBasis: z
+    .enum(["PER_EACH", "PER_AREA", "PER_WEIGHT", "PER_VOLUME", "FORMULA", "CUSTOM"])
+    .optional()
+    .default("PER_EACH"),
+  pricingUom: z.string().nullable().optional(),
+  baseRate: z.number().nonnegative().nullable().optional(),
+  sellPrice: z.number().nonnegative().nullable().optional(),
+  pricingPolicy: pricingPolicySchema,
 });
 
 // GET /api/products
@@ -121,7 +178,7 @@ export async function GET(request: Request) {
   return NextResponse.json({ data, meta: { page, limit, total: lowStock ? data.length : total, pages: Math.ceil((lowStock ? data.length : total) / limit) } });
 }
 
-// POST /api/products
+// POST /api/products — façade: single SKU body OR axes → ProductCreationEngine
 export async function POST(request: Request) {
   const tenantId = request.headers.get("x-tenant-id");
   const userId = request.headers.get("x-user-id") ?? undefined;
@@ -132,6 +189,37 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
+
+    if (isEngineCreateBody(body)) {
+      const raw = engineCreateSchema.parse(body);
+      const axes: Record<string, string[]> = {};
+      for (const [k, v] of Object.entries(raw.axes)) {
+        if (Array.isArray(v) && v.length) axes[k] = v.map(String);
+      }
+      if (Object.keys(axes).length === 0) {
+        return NextResponse.json({ error: "Select at least one attribute value" }, { status: 400 });
+      }
+      const result = await createProducts(tenantId, {
+        ...raw,
+        axes,
+        pricingPolicy: (raw.pricingPolicy ?? undefined) as import("@/lib/pricing-policy").PricingPolicy | undefined,
+      });
+      if (!result.ok) {
+        return NextResponse.json({ error: result.error, data: { plan: result.plan } }, { status: 400 });
+      }
+      return NextResponse.json(
+        {
+          data: {
+            created: result.created,
+            skipped: result.skipped,
+            plan: result.plan,
+            summary: result.summary,
+          },
+        },
+        { status: 201 }
+      );
+    }
+
     const data = createProductSchema.parse(body);
     const countryCode = (data.countryCode ?? "IN").toUpperCase();
 
@@ -203,10 +291,42 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: attrResult.error }, { status: 400 });
     }
 
-    const { customAttributes: _ca, ...productFields } = data;
+    const identityKeys = definitions.filter((d) => d.isIdentity).map((d) => d.key);
+    if (identityKeys.length) {
+      const brand = data.brandId
+        ? await prisma.brand.findFirst({ where: { id: data.brandId, tenantId }, select: { name: true } })
+        : null;
+      const { findIdentityDuplicate } = await import("@/lib/identity-fingerprint");
+      const dup = await findIdentityDuplicate({
+        tenantId,
+        brandId: data.brandId,
+        brandName: brand?.name || "",
+        identityKeys,
+        attrs: attrResult.values,
+      });
+      if (dup) {
+        return NextResponse.json(
+          { error: `A product with the same identity already exists (SKU ${dup.sku})` },
+          { status: 409 }
+        );
+      }
+    }
+
+    const { customAttributes: _ca, hasVariants, variantAxes, productStructure, ...productFields } =
+      data;
+    const structure =
+      hasVariants === true
+        ? "VARIANT"
+        : hasVariants === false
+          ? "SIMPLE"
+          : productStructure ?? "SIMPLE";
     const product = await prisma.product.create({
       data: {
         ...productFields,
+        productStructure: structure,
+        variantAxes: variantAxes ?? [],
+        costPrice: productFields.costPrice ?? null,
+        sellPrice: productFields.sellPrice ?? null,
         tenantId,
         countryCode,
         hsnCode,
@@ -217,7 +337,7 @@ export async function POST(request: Request) {
         taxApprovedBy: taxApprovalStatus === "APPROVED" ? (userId ?? "SYSTEM") : undefined,
         taxCode,
         taxRate,
-        customAttributes: attrResult.values,
+        customAttributes: attrResult.values as object,
       },
     });
 
@@ -231,6 +351,7 @@ export async function POST(request: Request) {
     if ((error as { code?: string }).code === "P2002") {
       return NextResponse.json({ error: "SKU already exists" }, { status: 409 });
     }
+    console.error("products POST", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

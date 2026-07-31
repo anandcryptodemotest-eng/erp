@@ -54,6 +54,16 @@ export async function POST(request: Request) {
       });
       if (existing) {
         keyToId.set(attr.key, existing.id);
+        if (attr.measureRole || attr.sizePattern || attr.measureUnit) {
+          await prisma.productAttributeDefinition.update({
+            where: { id: existing.id },
+            data: {
+              measureRole: attr.measureRole ?? existing.measureRole,
+              measureUnit: attr.measureUnit ?? existing.measureUnit,
+              sizePattern: attr.sizePattern ?? existing.sizePattern,
+            },
+          });
+        }
         continue;
       }
       const def = await prisma.productAttributeDefinition.create({
@@ -69,8 +79,12 @@ export async function POST(request: Request) {
           isFilterable: attr.isFilterable ?? true,
           isSearchable: attr.isSearchable ?? false,
           isVariantAxis: attr.isVariantAxis ?? false,
+          isIdentity: attr.isIdentity ?? false,
           showOnLabel: attr.showOnLabel ?? false,
           sortOrder: attr.sortOrder ?? 0,
+          measureRole: attr.measureRole,
+          measureUnit: attr.measureUnit ?? attr.unit,
+          sizePattern: attr.sizePattern,
         },
       });
       keyToId.set(attr.key, def.id);

@@ -17,8 +17,8 @@ const body = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Trust Wood Admin",
-  description: "Trust Wood ERP — orders, catalog, and operations",
+  title: "ERP Admin",
+  description: "Tenant ERP — orders, catalog, and operations",
 };
 
 export const viewport: Viewport = {
