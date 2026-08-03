@@ -19,13 +19,13 @@ export default function LeadToCashGuide({ current }: LeadToCashGuideProps) {
   const currentIndex = Math.max(0, STEPS.findIndex((s) => s.key === current));
 
   return (
-    <div className="mb-5 rounded-xl border border-slate-200 bg-gradient-to-r from-slate-50 to-white p-4">
+    <div className="mb-5 rounded-xl border border-[var(--line)] bg-gradient-to-r from-slate-50 to-white p-4">
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-slate-800">Lead-to-Cash Guide</h2>
-          <p className="text-xs text-slate-500">Follow this sequence for Phase 1 E2E validation</p>
+          <h2 className="text-sm font-semibold text-[var(--ink)]">Lead-to-Cash Guide</h2>
+          <p className="text-xs text-[var(--ink-soft)]">Follow this sequence for Phase 1 E2E validation</p>
         </div>
-        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+        <span className="rounded-full bg-[var(--mist)] px-2.5 py-1 text-xs font-medium text-[var(--ink-soft)]">
           Step {currentIndex + 1} of {STEPS.length}
         </span>
       </div>
@@ -42,8 +42,8 @@ export default function LeadToCashGuide({ current }: LeadToCashGuideProps) {
                 active
                   ? "border-emerald-300 bg-emerald-50"
                   : done
-                    ? "border-sky-200 bg-sky-50 hover:bg-sky-100"
-                    : "border-slate-200 bg-white hover:bg-slate-50"
+                    ? "border-sky-200 bg-[var(--mist)] hover:bg-sky-100"
+                    : "border-[var(--line)] bg-white hover:bg-[var(--mist)]"
               }`}
             >
               <div className="mb-1 flex items-center gap-2">
@@ -52,15 +52,15 @@ export default function LeadToCashGuide({ current }: LeadToCashGuideProps) {
                     active
                       ? "bg-emerald-600 text-white"
                       : done
-                        ? "bg-sky-600 text-white"
-                        : "bg-slate-200 text-slate-600"
+                        ? "bg-[var(--brand)] text-white"
+                        : "bg-slate-200 text-[var(--ink-soft)]"
                   }`}
                 >
                   {idx + 1}
                 </span>
-                <span className="text-xs font-semibold text-slate-800">{step.label}</span>
+                <span className="text-xs font-semibold text-[var(--ink)]">{step.label}</span>
               </div>
-              <p className="text-[11px] text-slate-500">{step.hint}</p>
+              <p className="text-[11px] text-[var(--ink-soft)]">{step.hint}</p>
             </Link>
           );
         })}

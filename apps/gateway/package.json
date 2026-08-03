@@ -12,15 +12,20 @@
     "seed:platform": "tsx scripts/seed-platform-operator.ts"
   },
   "dependencies": {
+    "@erp/admin-ui-host": "workspace:^",
     "@erp/auth": "workspace:*",
     "@erp/config": "workspace:*",
-    "@erp/platform-core": "workspace:*",
     "@erp/extensions": "workspace:*",
     "@erp/logger": "workspace:*",
+    "@erp/platform-core": "workspace:*",
+    "@erp/process-designer": "workspace:*",
+    "@erp/process-forms": "workspace:^",
+    "@erp/telemetry": "workspace:*",
     "@erp/types": "workspace:*",
     "@erp/ui": "workspace:*",
     "@erp/ui-runtime": "workspace:*",
     "@erp/workflow": "workspace:*",
+    "@hookform/resolvers": "^3.9.0",
     "@prisma/client": "^6.0.0",
     "@xyflow/react": "^12.6.0",
     "@zxing/browser": "^0.2.0",
@@ -30,8 +35,8 @@
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "zod": "^3.24.0",
-    "@erp/telemetry": "workspace:*"
+    "react-hook-form": "^7.54.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -39,9 +44,9 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "tsx": "^4.19.2",
     "prisma": "^6.0.0",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.0"
   }
 }

@@ -23,11 +23,11 @@ interface SOLine {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-600",
-  CONFIRMED: "bg-blue-100 text-blue-700",
+  DRAFT: "bg-[var(--mist)] text-[var(--ink-soft)]",
+  CONFIRMED: "bg-blue-100 text-[var(--brand)]",
   PARTIALLY_SHIPPED: "bg-yellow-100 text-yellow-800",
   SHIPPED: "bg-green-100 text-green-700",
-  INVOICED: "bg-purple-100 text-purple-700",
+  INVOICED: "bg-purple-100 text-[var(--brand)]",
   CANCELLED: "bg-red-100 text-red-600",
 };
 
@@ -306,7 +306,7 @@ export default function OrdersPage() {
       <LeadToCashUnderstanding current="orders" />
 
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Sales Orders</h1>
+        <h1 className="text-2xl font-bold text-[var(--ink)]">Sales Orders</h1>
         <button
           onClick={() => { setShowForm(true); setMsg(""); setLines([]); setSearch(""); setBarcodeInput(""); setScanQty("1"); setCustomerSearch(""); setShowCustomerDrop(false); setTimeout(() => barcodeRef.current?.focus(), 150); }}
           className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700"
@@ -319,38 +319,38 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {loading ? <p className="text-gray-400">Loading…</p> : (
+      {loading ? <p className="text-[var(--ink-soft)]">Loading…</p> : (
         <div className="bg-white rounded-xl border overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-[var(--mist)] border-b">
               <tr>
                 {["Order #", "Customer", "Amount", "Status", "Date", "Actions"].map(h => (
-                  <th key={h} className="px-4 py-3 text-left font-medium text-gray-600">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left font-medium text-[var(--ink-soft)]">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y">
               {orders.map(o => (
-                <tr key={o.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-mono text-xs font-bold text-indigo-700">{o.orderNumber}</td>
+                <tr key={o.id} className="hover:bg-[var(--mist)]">
+                  <td className="px-4 py-3 font-mono text-xs font-bold text-[var(--brand)]">{o.orderNumber}</td>
                   <td className="px-4 py-3 font-medium">{o.customer?.name ?? "—"}</td>
                   <td className="px-4 py-3 font-semibold">&#8377;{o.total?.toFixed(2)}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[o.status] ?? "bg-gray-100"}`}>
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[o.status] ?? "bg-[var(--mist)]"}`}>
                       {o.status.replace(/_/g, " ")}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-400">{new Date(o.createdAt).toLocaleDateString("en-IN")}</td>
+                  <td className="px-4 py-3 text-xs text-[var(--ink-soft)]">{new Date(o.createdAt).toLocaleDateString("en-IN")}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
                       {o.status === "DRAFT" && (
-                        <button onClick={() => setConfirmModal(o)} className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700">Confirm</button>
+                        <button onClick={() => setConfirmModal(o)} className="text-xs bg-[var(--brand)] text-white px-2 py-1 rounded hover:bg-[var(--brand-mid)]">Confirm</button>
                       )}
                       {(o.status === "CONFIRMED" || o.status === "PARTIALLY_SHIPPED") && (
                         <button onClick={() => openShipModal(o)} className="text-xs bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600">Ship</button>
                       )}
                       {o.status === "SHIPPED" && (
-                        <button onClick={() => actionOrder(o.id, "invoice", "Invoice created")} className="text-xs bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700">Invoice</button>
+                        <button onClick={() => actionOrder(o.id, "invoice", "Invoice created")} className="text-xs bg-[var(--brand)] text-white px-2 py-1 rounded hover:bg-[var(--brand-mid)]">Invoice</button>
                       )}
                       {o.status === "DRAFT" && (
                         <button onClick={() => actionOrder(o.id, "cancel", "Order cancelled")} className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">Cancel</button>
@@ -360,7 +360,7 @@ export default function OrdersPage() {
                 </tr>
               ))}
               {orders.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400">No orders yet</td></tr>
+                <tr><td colSpan={6} className="px-4 py-10 text-center text-[var(--ink-soft)]">No orders yet</td></tr>
               )}
             </tbody>
           </table>
@@ -374,20 +374,20 @@ export default function OrdersPage() {
 
             <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">New Sales Order</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Quick Sale = scan &amp; done in one click &middot; B2B Order = confirm &amp; ship separately</p>
+                <h2 className="text-lg font-bold text-[var(--ink)]">New Sales Order</h2>
+                <p className="text-xs text-[var(--ink-soft)] mt-0.5">Quick Sale = scan &amp; done in one click &middot; B2B Order = confirm &amp; ship separately</p>
               </div>
-              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
+              <button onClick={() => setShowForm(false)} className="text-[var(--ink-soft)] hover:text-[var(--ink-soft)] text-2xl leading-none">&times;</button>
             </div>
 
             {/* Mode toggle */}
-            <div className="px-6 py-3 bg-gray-50 border-b flex gap-2">
+            <div className="px-6 py-3 bg-[var(--mist)] border-b flex gap-2">
               <button type="button"
                 onClick={() => setSaleMode("quicksale")}
                 className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors ${
                   saleMode === "quicksale"
                     ? "bg-orange-500 text-white border-orange-500 shadow-sm"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-orange-300"
+                    : "bg-white text-[var(--ink-soft)] border-[var(--line)] hover:border-orange-300"
                 }`}>
                 &#9889; Quick Sale
                 <span className="block text-xs font-normal opacity-80">Scan &rarr; Pay &rarr; Done</span>
@@ -396,8 +396,8 @@ export default function OrdersPage() {
                 onClick={() => setSaleMode("order")}
                 className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors ${
                   saleMode === "order"
-                    ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"
+                    ? "bg-[var(--brand)] text-white border-[var(--brand)] shadow-sm"
+                    : "bg-white text-[var(--ink-soft)] border-[var(--line)] hover:border-blue-300"
                 }`}>
                 &#128203; B2B Order
                 <span className="block text-xs font-normal opacity-80">Confirm &rarr; Ship &rarr; Invoice</span>
@@ -406,9 +406,9 @@ export default function OrdersPage() {
 
             <form onSubmit={createOrder}>
               {/* Customer + Quick Sale warehouse */}
-              <div className="px-6 py-4 bg-gray-50 border-b flex gap-4">
+              <div className="px-6 py-4 bg-[var(--mist)] border-b flex gap-4">
                 <div className="flex-1">
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                  <label className="block text-xs font-semibold text-[var(--ink-soft)] uppercase tracking-wide mb-1">
                     {saleMode === "quicksale" ? "Customer (phone / name)" : "Customer *"}
                   </label>
                   <div className="relative">
@@ -422,28 +422,28 @@ export default function OrdersPage() {
                       className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
                     {showCustomerDrop && (
-                      <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-56 overflow-auto">
+                      <div className="absolute z-50 w-full bg-white border border-[var(--line)] rounded-lg shadow-lg mt-1 max-h-56 overflow-auto">
                         {saleMode === "quicksale" && (
                           <button type="button" onMouseDown={e => { e.preventDefault(); selectWalkIn(); }}
                             className="w-full px-3 py-2.5 text-left text-sm hover:bg-orange-50 border-b flex items-center gap-2">
                             <span className="text-lg">&#128100;</span>
                             <div>
                               <div className="font-semibold text-orange-700">Walk-in / Cash</div>
-                              <div className="text-xs text-gray-400">anonymous retail customer</div>
+                              <div className="text-xs text-[var(--ink-soft)]">anonymous retail customer</div>
                             </div>
                           </button>
                         )}
                         {customerSuggestions.map(c => (
                           <button key={c.id} type="button" onMouseDown={e => { e.preventDefault(); selectCustomer(c); }}
-                            className="w-full px-3 py-2.5 text-left text-sm hover:bg-gray-50 border-b last:border-0">
-                            <div className="font-medium text-gray-800">{c.name}</div>
+                            className="w-full px-3 py-2.5 text-left text-sm hover:bg-[var(--mist)] border-b last:border-0">
+                            <div className="font-medium text-[var(--ink)]">{c.name}</div>
                             {(c.phone || c.email) && (
-                              <div className="text-xs text-gray-400">{c.phone ?? c.email}</div>
+                              <div className="text-xs text-[var(--ink-soft)]">{c.phone ?? c.email}</div>
                             )}
                           </button>
                         ))}
                         {customerSuggestions.length === 0 && (
-                          <div className="px-3 py-2.5 text-xs text-gray-400">No customers match &ldquo;{customerSearch}&rdquo;</div>
+                          <div className="px-3 py-2.5 text-xs text-[var(--ink-soft)]">No customers match &ldquo;{customerSearch}&rdquo;</div>
                         )}
                       </div>
                     )}
@@ -452,17 +452,17 @@ export default function OrdersPage() {
                     <p className="text-xs text-green-600 mt-1">&#10003; {customers.find(c => c.id === customerId)?.name}</p>
                   )}
                   {!customerId && saleMode === "quicksale" && !showCustomerDrop && (
-                    <p className="text-xs text-gray-400 mt-1">Leave blank or pick Walk-in for cash sales</p>
+                    <p className="text-xs text-[var(--ink-soft)] mt-1">Leave blank or pick Walk-in for cash sales</p>
                   )}
                 </div>
                 {saleMode === "quicksale" && (
                   <div className="flex-1">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Ship From Warehouse *</label>
+                    <label className="block text-xs font-semibold text-[var(--ink-soft)] uppercase tracking-wide mb-1">Ship From Warehouse *</label>
                     <select value={quickSaleWarehouse} onChange={e => setQuickSaleWarehouse(e.target.value)}
                       className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
                       {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                     </select>
-                    <p className="text-xs text-gray-400 mt-1">Stock deducted instantly on sale</p>
+                    <p className="text-xs text-[var(--ink-soft)] mt-1">Stock deducted instantly on sale</p>
                   </div>
                 )}
               </div>
@@ -471,17 +471,17 @@ export default function OrdersPage() {
               <div className="px-6 pt-5 pb-5 border-b">
                 {/* Batch Qty */}
                 <div className="flex items-center gap-2 mb-5">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Batch Qty</span>
+                  <span className="text-xs font-semibold text-[var(--ink-soft)] uppercase tracking-wide">Batch Qty</span>
                   <div className="flex items-center border rounded-lg overflow-hidden bg-white shadow-sm">
                     <button type="button" onClick={() => setScanQty(q => String(Math.max(1, Number(q) - 1)))}
-                      className="px-2.5 py-1.5 text-gray-500 hover:bg-gray-100 text-base leading-none border-r">&minus;</button>
+                      className="px-2.5 py-1.5 text-[var(--ink-soft)] hover:bg-[var(--mist)] text-base leading-none border-r">&minus;</button>
                     <input ref={scanQtyRef} type="number" min="0.001" step="1" value={scanQty}
                       onChange={e => setScanQty(e.target.value)} onFocus={e => e.target.select()}
                       className="w-14 py-1.5 text-sm text-center focus:outline-none" />
                     <button type="button" onClick={() => setScanQty(q => String(Number(q) + 1))}
-                      className="px-2.5 py-1.5 text-gray-500 hover:bg-gray-100 text-base leading-none border-l">+</button>
+                      className="px-2.5 py-1.5 text-[var(--ink-soft)] hover:bg-[var(--mist)] text-base leading-none border-l">+</button>
                   </div>
-                  <span className="text-xs text-gray-400">units per scan / add</span>
+                  <span className="text-xs text-[var(--ink-soft)]">units per scan / add</span>
                   {lastAdded && (
                     <span className="ml-auto text-xs font-semibold text-green-600 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
                       &#10003; Added: {lastAdded}
@@ -491,13 +491,13 @@ export default function OrdersPage() {
 
                 {/* Barcode scanner zone */}
                 <div className="mb-1">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                  <p className="text-xs font-semibold text-[var(--ink-soft)] uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h1M4 10h1M4 14h1M4 18h1M8 4v16M12 4v16M15 6h1M15 10h1M15 14h1M15 18h1M19 4v16" />
                     </svg>
                     Scan Barcode
                   </p>
-                  <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 focus-within:border-green-400 focus-within:bg-green-50/30 transition-colors group">
+                  <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 border-dashed border-[var(--line)] bg-[var(--mist)] focus-within:border-green-400 focus-within:bg-green-50/30 transition-colors group">
                     <div className="flex items-center gap-[2px] shrink-0 opacity-25 group-focus-within:opacity-60 transition-opacity" aria-hidden>
                       {([3,1,2,1,3,1,2,3,1,2,1,3,2,1] as number[]).map((w, i) => (
                         <div key={i} style={{width: `${w}px`}} className={`bg-gray-700 rounded-[1px] ${i % 2 === 0 ? "h-8" : "h-5"}`} />
@@ -510,28 +510,28 @@ export default function OrdersPage() {
                       onKeyDown={handleBarcodeKey}
                       placeholder="Point scanner here and scan — or type barcode + Enter"
                       autoComplete="off"
-                      className="flex-1 text-sm font-mono tracking-widest bg-transparent focus:outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-gray-400"
+                      className="flex-1 text-sm font-mono tracking-widest bg-transparent focus:outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-[var(--ink-soft)]"
                     />
                     {barcodeInput && (
                       <button type="button" onClick={() => { setBarcodeInput(""); barcodeRef.current?.focus(); }}
-                        className="text-gray-400 hover:text-red-400 text-xl leading-none shrink-0">&times;</button>
+                        className="text-[var(--ink-soft)] hover:text-red-400 text-xl leading-none shrink-0">&times;</button>
                     )}
                     <button type="button" onClick={() => setShowCameraScanner(true)}
                       title="Scan with laptop camera"
-                      className="shrink-0 flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
+                      className="shrink-0 flex items-center gap-1 bg-[var(--brand)] hover:bg-[var(--brand-mid)] text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
                       </svg>
                       Camera
                     </button>
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">Physical scanner auto-submits on scan. Same item scanned again increments qty.</p>
+                  <p className="text-xs text-[var(--ink-soft)] mt-1">Physical scanner auto-submits on scan. Same item scanned again increments qty.</p>
                 </div>
 
                 {/* OR divider */}
                 <div className="flex items-center gap-3 my-4">
                   <div className="flex-1 h-px bg-gray-200" />
-                  <span className="text-xs text-gray-400 px-1">or search by name</span>
+                  <span className="text-xs text-[var(--ink-soft)] px-1">or search by name</span>
                   <div className="flex-1 h-px bg-gray-200" />
                 </div>
 
@@ -539,7 +539,7 @@ export default function OrdersPage() {
                 <div className="relative">
                   <div className="flex gap-2">
                     <div className="relative flex-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">&#128269;</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-soft)] text-sm pointer-events-none">&#128269;</span>
                       <input
                         ref={searchRef}
                         value={search}
@@ -562,14 +562,14 @@ export default function OrdersPage() {
                         <button key={p.id} type="button" onClick={() => addProductLine(p)}
                           className="w-full text-left px-4 py-2.5 text-sm hover:bg-green-50 flex items-center justify-between border-b last:border-0">
                           <div>
-                            <span className="font-medium text-gray-900">{p.name}</span>
-                            <span className="text-gray-400 text-xs ml-2">{p.sku}</span>
+                            <span className="font-medium text-[var(--ink)]">{p.name}</span>
+                            <span className="text-[var(--ink-soft)] text-xs ml-2">{p.sku}</span>
                           </div>
-                          <div className="text-xs text-gray-500 shrink-0">{p.unit} &middot; &#8377;{p.sellPrice}</div>
+                          <div className="text-xs text-[var(--ink-soft)] shrink-0">{p.unit} &middot; &#8377;{p.sellPrice}</div>
                         </button>
                       ))}
                       <button type="button" onClick={() => addNewProductLine(search.trim())}
-                        className="w-full text-left px-4 py-2.5 text-sm text-indigo-600 hover:bg-indigo-50 font-medium">
+                        className="w-full text-left px-4 py-2.5 text-sm text-[var(--brand)] hover:bg-[var(--mist)] font-medium">
                         + Create new product &ldquo;{search}&rdquo;
                       </button>
                     </div>
@@ -580,7 +580,7 @@ export default function OrdersPage() {
               {/* Line items table */}
               <div className="px-6 py-4">
                 {lines.length === 0 ? (
-                  <div className="text-center py-10 text-gray-400 text-sm border-2 border-dashed rounded-xl">
+                  <div className="text-center py-10 text-[var(--ink-soft)] text-sm border-2 border-dashed rounded-xl">
                     <div className="text-3xl mb-2">&#128722;</div>
                     No products added yet<br />
                     <span className="text-xs">Scan a barcode or search above to add items</span>
@@ -588,19 +588,19 @@ export default function OrdersPage() {
                 ) : (
                   <div className="border rounded-xl overflow-hidden">
                     <table className="w-full text-sm">
-                      <thead className="bg-gray-50 border-b">
+                      <thead className="bg-[var(--mist)] border-b">
                         <tr>
-                          <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Product Name</th>
-                          <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide w-16">Unit</th>
-                          <th className="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide w-24">Quantity</th>
-                          <th className="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Sell Price</th>
-                          <th className="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Line Total</th>
+                          <th className="px-3 py-2.5 text-left text-xs font-semibold text-[var(--ink-soft)] uppercase tracking-wide">Product Name</th>
+                          <th className="px-3 py-2.5 text-center text-xs font-semibold text-[var(--ink-soft)] uppercase tracking-wide w-16">Unit</th>
+                          <th className="px-3 py-2.5 text-right text-xs font-semibold text-[var(--ink-soft)] uppercase tracking-wide w-24">Quantity</th>
+                          <th className="px-3 py-2.5 text-right text-xs font-semibold text-[var(--ink-soft)] uppercase tracking-wide w-28">Sell Price</th>
+                          <th className="px-3 py-2.5 text-right text-xs font-semibold text-[var(--ink-soft)] uppercase tracking-wide w-28">Line Total</th>
                           <th className="w-8"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
                         {lines.map((line, i) => (
-                          <tr key={i} className="hover:bg-gray-50 align-top">
+                          <tr key={i} className="hover:bg-[var(--mist)] align-top">
                             <td className="px-3 py-2">
                               {line.productId === "__NEW__" ? (
                                 <div className="space-y-1">
@@ -610,12 +610,12 @@ export default function OrdersPage() {
                                   <input value={line.productSku} onChange={e => updateLine(i, { productSku: e.target.value })}
                                     placeholder="SKU (optional)"
                                     className="w-full border rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-green-400" />
-                                  <span className="text-xs text-indigo-500">&#10022; Will be created in product catalog</span>
+                                  <span className="text-xs text-[var(--brand)]">&#10022; Will be created in product catalog</span>
                                 </div>
                               ) : (
                                 <div>
-                                  <div className="font-medium text-gray-900">{line.productName}</div>
-                                  <div className="text-xs text-gray-400">{line.productSku}</div>
+                                  <div className="font-medium text-[var(--ink)]">{line.productName}</div>
+                                  <div className="text-xs text-[var(--ink-soft)]">{line.productSku}</div>
                                 </div>
                               )}
                             </td>
@@ -625,7 +625,7 @@ export default function OrdersPage() {
                                   placeholder="pcs"
                                   className="w-14 border rounded px-2 py-1.5 text-xs text-center" />
                               ) : (
-                                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">{line.productUnit}</span>
+                                <span className="text-xs text-[var(--ink-soft)] bg-[var(--mist)] px-2 py-1 rounded">{line.productUnit}</span>
                               )}
                             </td>
                             <td className="px-3 py-2">
@@ -635,14 +635,14 @@ export default function OrdersPage() {
                             </td>
                             <td className="px-3 py-2">
                               <div className="flex items-center gap-1">
-                                <span className="text-xs text-gray-400">&#8377;</span>
+                                <span className="text-xs text-[var(--ink-soft)]">&#8377;</span>
                                 <input type="number" min="0" step="0.01" value={line.unitPrice}
                                   onChange={e => updateLine(i, { unitPrice: e.target.value })}
                                   required
                                   className="flex-1 border rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-green-400" />
                               </div>
                             </td>
-                            <td className="px-3 py-2 text-right font-semibold text-gray-800">
+                            <td className="px-3 py-2 text-right font-semibold text-[var(--ink)]">
                               &#8377;{((Number(line.qty) || 0) * (Number(line.unitPrice) || 0)).toFixed(2)}
                             </td>
                             <td className="px-3 py-2">
@@ -652,9 +652,9 @@ export default function OrdersPage() {
                           </tr>
                         ))}
                       </tbody>
-                      <tfoot className="bg-gray-50 border-t-2 border-gray-200">
+                      <tfoot className="bg-[var(--mist)] border-t-2 border-[var(--line)]">
                         <tr>
-                          <td colSpan={4} className="px-3 py-3 text-right text-sm font-semibold text-gray-600">
+                          <td colSpan={4} className="px-3 py-3 text-right text-sm font-semibold text-[var(--ink-soft)]">
                             {lines.length} item{lines.length !== 1 ? "s" : ""} &middot; Order Total
                           </td>
                           <td className="px-3 py-3 text-right text-base font-bold text-green-700">&#8377;{soTotal.toFixed(2)}</td>
@@ -681,7 +681,7 @@ export default function OrdersPage() {
                   </button>
                 )}
                 <button type="button" onClick={() => setShowForm(false)}
-                  className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg text-sm hover:bg-gray-200">
+                  className="flex-1 bg-[var(--mist)] text-[var(--ink-soft)] py-2.5 rounded-lg text-sm hover:bg-gray-200">
                   Cancel
                 </button>
               </div>
@@ -696,26 +696,26 @@ export default function OrdersPage() {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4">
             <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Confirm Order</h2>
-                <p className="text-xs text-gray-500 mt-0.5">{confirmModal.orderNumber} &middot; {confirmModal.customer?.name}</p>
+                <h2 className="text-lg font-bold text-[var(--ink)]">Confirm Order</h2>
+                <p className="text-xs text-[var(--ink-soft)] mt-0.5">{confirmModal.orderNumber} &middot; {confirmModal.customer?.name}</p>
               </div>
-              <button onClick={() => setConfirmModal(null)} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
+              <button onClick={() => setConfirmModal(null)} className="text-[var(--ink-soft)] hover:text-[var(--ink-soft)] text-2xl leading-none">&times;</button>
             </div>
             <div className="px-6 py-4">
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Reserve Stock From</label>
+              <label className="block text-xs font-semibold text-[var(--ink-soft)] uppercase tracking-wide mb-1">Reserve Stock From</label>
               <select value={confirmWarehouse} onChange={e => setConfirmWarehouse(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]">
                 {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
               </select>
-              <p className="text-xs text-gray-400 mt-2">Confirms the order, checks credit limit, and reserves stock in the selected warehouse.</p>
+              <p className="text-xs text-[var(--ink-soft)] mt-2">Confirms the order, checks credit limit, and reserves stock in the selected warehouse.</p>
             </div>
             <div className="px-6 pb-5 flex gap-3">
               <button onClick={doConfirm}
-                className="flex-1 bg-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700">
+                className="flex-1 bg-[var(--brand)] text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-[var(--brand-mid)]">
                 Confirm &rarr; Reserve Stock
               </button>
               <button onClick={() => setConfirmModal(null)}
-                className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg text-sm hover:bg-gray-200">
+                className="flex-1 bg-[var(--mist)] text-[var(--ink-soft)] py-2.5 rounded-lg text-sm hover:bg-gray-200">
                 Cancel
               </button>
             </div>
@@ -729,13 +729,13 @@ export default function OrdersPage() {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
             <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Ship Items</h2>
-                <p className="text-xs text-gray-500 mt-0.5">{shipModal.order.orderNumber} &middot; {shipModal.order.customer?.name}</p>
+                <h2 className="text-lg font-bold text-[var(--ink)]">Ship Items</h2>
+                <p className="text-xs text-[var(--ink-soft)] mt-0.5">{shipModal.order.orderNumber} &middot; {shipModal.order.customer?.name}</p>
               </div>
-              <button onClick={() => setShipModal(null)} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
+              <button onClick={() => setShipModal(null)} className="text-[var(--ink-soft)] hover:text-[var(--ink-soft)] text-2xl leading-none">&times;</button>
             </div>
-            <div className="px-6 pt-4 pb-3 bg-gray-50 border-b">
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Ship From Warehouse</label>
+            <div className="px-6 pt-4 pb-3 bg-[var(--mist)] border-b">
+              <label className="block text-xs font-semibold text-[var(--ink-soft)] uppercase tracking-wide mb-1">Ship From Warehouse</label>
               <select value={shipWarehouse} onChange={e => setShipWarehouse(e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400">
                 {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
@@ -745,18 +745,18 @@ export default function OrdersPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase pb-2">Product</th>
-                    <th className="text-right text-xs font-semibold text-gray-500 uppercase pb-2">Ordered</th>
-                    <th className="text-right text-xs font-semibold text-gray-500 uppercase pb-2">Shipped</th>
-                    <th className="text-right text-xs font-semibold text-gray-500 uppercase pb-2 w-28">Shipping Now</th>
+                    <th className="text-left text-xs font-semibold text-[var(--ink-soft)] uppercase pb-2">Product</th>
+                    <th className="text-right text-xs font-semibold text-[var(--ink-soft)] uppercase pb-2">Ordered</th>
+                    <th className="text-right text-xs font-semibold text-[var(--ink-soft)] uppercase pb-2">Shipped</th>
+                    <th className="text-right text-xs font-semibold text-[var(--ink-soft)] uppercase pb-2 w-28">Shipping Now</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {shipModal.items.map(item => (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="py-2.5 font-medium text-gray-900">{item.productName}</td>
-                      <td className="py-2.5 text-right text-gray-500">{item.quantity}</td>
-                      <td className="py-2.5 text-right text-gray-500">{item.shippedQty}</td>
+                    <tr key={item.id} className="hover:bg-[var(--mist)]">
+                      <td className="py-2.5 font-medium text-[var(--ink)]">{item.productName}</td>
+                      <td className="py-2.5 text-right text-[var(--ink-soft)]">{item.quantity}</td>
+                      <td className="py-2.5 text-right text-[var(--ink-soft)]">{item.shippedQty}</td>
                       <td className="py-2.5 text-right">
                         <input type="number" min="0" step="0.001"
                           max={item.quantity - item.shippedQty}
@@ -768,7 +768,7 @@ export default function OrdersPage() {
                   ))}
                 </tbody>
               </table>
-              <p className="text-xs text-gray-400 mt-3">Confirming will deduct reserved stock and create an AR invoice in accounting.</p>
+              <p className="text-xs text-[var(--ink-soft)] mt-3">Confirming will deduct reserved stock and create an AR invoice in accounting.</p>
             </div>
             <div className="px-6 pb-5 flex gap-3">
               <button onClick={doShip}
@@ -776,7 +776,7 @@ export default function OrdersPage() {
                 Confirm Shipment &rarr; Deduct Stock
               </button>
               <button onClick={() => setShipModal(null)}
-                className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg text-sm hover:bg-gray-200">
+                className="flex-1 bg-[var(--mist)] text-[var(--ink-soft)] py-2.5 rounded-lg text-sm hover:bg-gray-200">
                 Cancel
               </button>
             </div>

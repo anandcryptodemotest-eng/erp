@@ -45,10 +45,10 @@ export default function DashboardPage() {
   }, []);
 
   const cards = [
-    { label: "Products",  value: stats.products,  icon: "📦", color: "bg-blue-50  border-blue-200",  href: "/products"  },
+    { label: "Products",  value: stats.products,  icon: "📦", color: "bg-[var(--mist)]  border-[var(--line)]",  href: "/products"  },
     { label: "Customers", value: stats.customers, icon: "👥", color: "bg-green-50 border-green-200", href: "/customers" },
     { label: "Orders",    value: stats.orders,    icon: "🧾", color: "bg-yellow-50 border-yellow-200", href: "/orders"  },
-    { label: "Invoices",  value: stats.invoices,  icon: "💰", color: "bg-purple-50 border-purple-200", href: "/invoices" },
+    { label: "Invoices",  value: stats.invoices,  icon: "💰", color: "bg-[var(--mist)] border-purple-200", href: "/invoices" },
   ];
 
   return (
@@ -68,8 +68,8 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-semibold text-gray-800 mb-4">B2B Lead-to-Cash Flow</h2>
-          <ol className="space-y-2 text-sm text-gray-600">
+          <h2 className="font-semibold text-[var(--ink)] mb-4">B2B Lead-to-Cash Flow</h2>
+          <ol className="space-y-2 text-sm text-[var(--ink-soft)]">
             {[
               ["📦 Products", "Add products & stock", "/products"],
               ["👥 Customers", "Create a customer", "/customers"],
@@ -82,15 +82,15 @@ export default function DashboardPage() {
               <li key={desc} className="flex items-center gap-3">
                 <span className="w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold shrink-0">→</span>
                 <a href={href} className="hover:text-green-700 hover:underline font-medium">{icon}</a>
-                <span className="text-gray-400">— {desc}</span>
+                <span className="text-[var(--ink-soft)]">— {desc}</span>
               </li>
             ))}
           </ol>
         </div>
 
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-semibold text-gray-800 mb-4">Retail / POS Flow</h2>
-          <ol className="space-y-2 text-sm text-gray-600">
+          <h2 className="font-semibold text-[var(--ink)] mb-4">Retail / POS Flow</h2>
+          <ol className="space-y-2 text-sm text-[var(--ink-soft)]">
             {[
               ["📦 Products", "Add products with barcode & stock", "/products"],
               ["🏧 POS Billing", "Open shift → Scan & bill → Close shift", "http://localhost:3008"],
@@ -99,9 +99,9 @@ export default function DashboardPage() {
               ["📋 Procurement", "Restock from vendor → Receive stock", "/purchase-orders"],
             ].map(([icon, desc, href]) => (
               <li key={desc} className="flex items-center gap-3">
-                <span className="w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold shrink-0">→</span>
-                <a href={href} className="hover:text-blue-700 hover:underline font-medium">{icon}</a>
-                <span className="text-gray-400">— {desc}</span>
+                <span className="w-6 h-6 bg-blue-100 text-[var(--brand)] rounded-full flex items-center justify-center text-xs font-bold shrink-0">→</span>
+                <a href={href} className="hover:text-[var(--brand)] hover:underline font-medium">{icon}</a>
+                <span className="text-[var(--ink-soft)]">— {desc}</span>
               </li>
             ))}
           </ol>

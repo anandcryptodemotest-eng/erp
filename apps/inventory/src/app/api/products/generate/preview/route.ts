@@ -1,6 +1,9 @@
+import { createLogger } from "@erp/logger";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { previewProductCreation } from "@/services/product-creation.engine";
+
+const log = createLogger({ service: "inventory" });
 
 const bodySchema = z.object({
   categoryId: z.string().min(1),
@@ -57,7 +60,7 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
     }
-    console.error("generate/preview", error);
+    log.error("products_generate_preview", { err: error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

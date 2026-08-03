@@ -1,6 +1,8 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Button, Container, SectionHeader, Skeleton } from "@erp/ui";
 import { api } from "@/lib/api-client";
 import { displayRequestStatus, omsLabel, sreqLabel } from "@/lib/oms-status";
 
@@ -19,19 +21,19 @@ interface SalesRequestRow {
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  OPEN: "bg-amber-100 text-amber-900",
-  CONVERTED: "bg-sky-100 text-sky-800",
-  REJECTED: "bg-red-100 text-red-700",
-  CANCELLED: "bg-red-100 text-red-700",
-  DRAFT: "bg-slate-100 text-slate-700",
-  CONFIRMED: "bg-sky-100 text-sky-800",
-  FULFILLING: "bg-violet-100 text-violet-900",
-  READY_FOR_DISPATCH: "bg-teal-100 text-teal-900",
-  DISPATCHED: "bg-blue-100 text-blue-900",
-  DELIVERED: "bg-emerald-100 text-emerald-900",
-  INVOICED: "bg-indigo-100 text-indigo-900",
-  PAID: "bg-emerald-100 text-emerald-900",
-  CLOSED: "bg-emerald-200 text-emerald-950",
+  OPEN: "bg-[var(--amber-soft)]/40 text-[var(--ink)]",
+  CONVERTED: "bg-[var(--mist)] text-[var(--forest)]",
+  REJECTED: "bg-red-50 text-[var(--danger)]",
+  CANCELLED: "bg-red-50 text-[var(--danger)]",
+  DRAFT: "bg-[var(--mist)] text-[var(--ink-soft)]",
+  CONFIRMED: "bg-[var(--mist)] text-[var(--forest)]",
+  FULFILLING: "bg-[var(--mist)] text-[var(--forest-mid)]",
+  READY_FOR_DISPATCH: "bg-[var(--mist)] text-[var(--forest)]",
+  DISPATCHED: "bg-[var(--mist)] text-[var(--forest)]",
+  DELIVERED: "bg-[var(--mist)] text-[var(--success)]",
+  INVOICED: "bg-[var(--mist)] text-[var(--forest)]",
+  PAID: "bg-[var(--mist)] text-[var(--success)]",
+  CLOSED: "bg-[var(--mist)] text-[var(--success)]",
 };
 
 export default function OrdersPage() {
@@ -46,113 +48,85 @@ export default function OrdersPage() {
   }, []);
 
   return (
-    <div className="pb-6">
-      <div
-        className="relative overflow-hidden px-4 pb-10 pt-6 text-white md:px-8"
-        style={{
-          background: "linear-gradient(135deg, #121a16 0%, #1e3d32 55%, #3d4f2f 100%)",
-        }}
-      >
-        <div
-          className="pointer-events-none absolute inset-0 opacity-30"
-          style={{
-            backgroundImage:
-              "url(https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=1400&q=60)",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            mixBlendMode: "overlay",
-          }}
-        />
-        <div className="relative">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--amber-soft)]">
-            Tracking
-          </p>
-          <h1 className="font-display mt-1 text-3xl font-semibold md:text-4xl">My requests</h1>
-          <p className="mt-2 max-w-lg text-sm text-white/70">
-            Sales requests convert to sales orders. Once converted, you see live order status here.
-          </p>
+    <Container layout="wide" className="pb-28 pt-5">
+      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--amber)]">Tracking</p>
+      <SectionHeader title="My requests" className="mb-2" />
+      <p className="mb-6 -mt-2 max-w-lg text-sm text-[var(--ink-soft)]">
+        Sales requests convert to sales orders. Once converted, you see live order status here.
+      </p>
+
+      {loading ? (
+        <div className="space-y-3">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
         </div>
-      </div>
+      ) : null}
 
-      <div className="relative z-10 -mt-5 px-4 md:px-8">
-        {loading && (
-          <div className="rounded-2xl bg-white py-16 text-center text-sm text-[var(--ink-soft)]/60 shadow-sm">
-            Loading…
-          </div>
-        )}
+      {!loading && rows.length === 0 ? (
+        <div className="rounded-[var(--radius)] border border-[var(--line)] bg-white px-6 py-12 text-center shadow-[var(--shadow-sm)]">
+          <p className="font-display text-xl text-[var(--ink)]">No requests yet</p>
+          <p className="mt-1 text-sm text-[var(--ink-soft)]">Place your first site order from the shop.</p>
+          <Link href="/products" className="mt-5 inline-block">
+            <Button variant="primary">Browse catalog</Button>
+          </Link>
+        </div>
+      ) : null}
 
-        {!loading && rows.length === 0 && (
-          <div className="overflow-hidden rounded-3xl border border-[var(--line)] bg-white shadow-sm">
-            <div
-              className="h-36 bg-cover bg-center"
-              style={{
-                backgroundImage:
-                  "linear-gradient(to top, rgba(18,26,22,0.7), transparent), url(https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=1200&q=80)",
-              }}
-            />
-            <div className="px-6 py-8 text-center">
-              <p className="font-display text-xl text-[var(--ink)]">No requests yet</p>
-              <p className="mt-1 text-sm text-[var(--ink-soft)]">Place your first site order from the shop.</p>
-              <Link href="/products" className="btn-dark mt-5">
-                Browse catalog
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {!loading && rows.length > 0 && (
-          <div className="space-y-3">
-            {rows.map((o) => {
-              const shown = displayRequestStatus(o);
-              const style = STATUS_STYLE[shown] ?? STATUS_STYLE[o.status] ?? "bg-slate-100 text-slate-700";
-              const firstItem = o.items?.[0]?.productName;
-              const title = o.salesOrder?.orderNumber
-                ? `${o.requestNumber} → ${o.salesOrder.orderNumber}`
-                : o.requestNumber;
-              return (
-                <Link
-                  key={o.id}
-                  href={`/orders/${o.id}?type=sreq`}
-                  className="block overflow-hidden rounded-2xl border border-[var(--line)] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  <div className="flex items-stretch">
-                    <div className="w-1.5 bg-[var(--amber)]" />
-                    <div className="flex flex-1 items-center gap-3 p-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--mist)] font-display text-sm font-bold text-[var(--forest)]">
-                        {o.requestNumber.replace(/\D/g, "").slice(-3) || "SR"}
+      {!loading && rows.length > 0 ? (
+        <div className="space-y-3">
+          {rows.map((o) => {
+            const shown = displayRequestStatus(o);
+            const style = STATUS_STYLE[shown] ?? STATUS_STYLE[o.status] ?? STATUS_STYLE.DRAFT;
+            const firstItem = o.items?.[0]?.productName;
+            const title = o.salesOrder?.orderNumber
+              ? `${o.requestNumber} → ${o.salesOrder.orderNumber}`
+              : o.requestNumber;
+            return (
+              <Link
+                key={o.id}
+                href={`/orders/${o.id}?type=sreq`}
+                className="block rounded-[var(--radius)] border border-[var(--line)] bg-white shadow-[var(--shadow-sm)] transition hover:border-[var(--forest-mid)]"
+              >
+                <div className="flex items-stretch">
+                  <div className="w-1.5 shrink-0 bg-[var(--amber)]" aria-hidden />
+                  <div className="flex min-h-[var(--touch-min)] flex-1 items-center gap-3 p-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--mist)] font-display text-sm font-bold text-[var(--forest)]">
+                      {o.requestNumber.replace(/\D/g, "").slice(-3) || "SR"}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-bold text-[var(--ink)]">{title}</span>
+                        <span
+                          className={`inline-flex rounded-[var(--radius-full)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${style}`}
+                        >
+                          {o.status === "OPEN" ? sreqLabel(o.status) : omsLabel(shown)}
+                        </span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-bold text-[var(--ink)]">{title}</span>
-                          <span className={`status-pill ${style}`}>
-                            {o.status === "OPEN" ? sreqLabel(o.status) : omsLabel(shown)}
-                          </span>
-                        </div>
-                        <div className="mt-0.5 truncate text-xs text-[var(--ink-soft)]/70">
-                          {new Date(o.createdAt).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                          {firstItem ? ` · ${firstItem}` : ""}
-                        </div>
+                      <div className="mt-0.5 truncate text-xs text-[var(--ink-soft)]">
+                        {new Date(o.createdAt).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                        {firstItem ? ` · ${firstItem}` : ""}
                       </div>
-                      <div className="text-right">
-                        <div className="font-display text-lg font-semibold text-[var(--ink)]">
-                          ₹{Number(o.total).toLocaleString("en-IN")}
-                        </div>
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--amber)]">
-                          View
-                        </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-display text-lg font-semibold text-[var(--ink)]">
+                        ₹{Number(o.total).toLocaleString("en-IN")}
+                      </div>
+                      <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--amber)]">
+                        View
                       </div>
                     </div>
                   </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      ) : null}
+    </Container>
   );
 }

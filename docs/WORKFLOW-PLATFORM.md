@@ -24,4 +24,8 @@ OMS previously used status-gated hybrid workflows (`fromStatuses`, prep gate). T
 - Admin **Workflows** + **Configuration** (Forms) modules: draft, validate, publish.
 - New SOs with a published template use v5 `startSalesOrderWorkflowV5` with form pin.
 - Claim / renew / release / complete via `/api/workflow-tasks/:id?action=`.
+- **Task API RBAC (frozen P0):** claim/complete/renew/release enforce role (+ lease) in runtime via `assertWorkflowTaskAction` — not UI-only. Wrong role → **403**.
+- **WorkflowEvent audit (frozen P1):** transitions persist to `WorkflowEvent` (audit log / timeline foundation — not an integration bus). Soft-fail on write errors.
 - Designer and runtime share `@erp/workflow` validator and `evaluateReadiness`.
+
+See canonical architecture: `.cursor/plans/workflow_management_map_aaf9d78b.plan.md` (TrustWood Workflow Platform — Frozen).

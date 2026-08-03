@@ -1,6 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import {
+  Button,
+  Container,
+  EmptyState,
+  ProductCard,
+  SectionHeader,
+  Skeleton,
+} from "@erp/ui";
 import { api } from "@/lib/api-client";
 import { categoryImageUrl, heroImageUrl, productImageUrl } from "@/lib/media";
 import { resolveTenantDisplayName } from "@/lib/tenant";
@@ -63,7 +71,7 @@ export default function HomePage() {
 
   return (
     <div className="pb-6">
-      <header className="relative overflow-hidden bg-[#121a16] text-white">
+      <header className="relative overflow-hidden bg-[var(--ink)] text-white">
         {/* Background image + dark scrub so text/buttons always contrast */}
         <div
           className="absolute inset-0 bg-cover bg-center"
@@ -81,7 +89,7 @@ export default function HomePage() {
 
         <div className="relative z-10 px-5 pb-8 pt-6 md:px-10 md:pb-12 md:pt-8">
           <div className="anim-rise max-w-xl">
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#e8c56a]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--amber-soft)]">
               Trade portal
             </p>
             <h1 className="font-display mt-2 text-3xl font-semibold leading-tight text-white md:text-5xl">
@@ -93,32 +101,39 @@ export default function HomePage() {
           </div>
 
           <div className="anim-rise anim-rise-delay-1 mt-8 flex flex-wrap gap-3">
-            <Link
-              href="/products"
-              className="btn-primary"
-            >
-              Shop now
+            <Link href="/products">
+              <Button variant="secondary" size="lg">
+                Shop now
+              </Button>
             </Link>
-            <Link
-              href="/orders"
-              className="inline-flex items-center justify-center rounded-full border-2 border-white bg-transparent px-6 py-3 text-sm font-bold text-white transition hover:bg-white hover:text-[#121a16]"
-            >
-              My orders
+            <Link href="/orders">
+              <Button
+                variant="outline"
+                size="lg"
+                className="border-2 border-white bg-transparent text-white hover:bg-white hover:text-[var(--ink)]"
+              >
+                My orders
+              </Button>
             </Link>
           </div>
         </div>
       </header>
 
       {loading && (
-        <div className="flex items-center justify-center py-20 text-sm text-[var(--ink-soft)]/60">
-          Loading catalog…
-        </div>
+        <Container layout="wide" className="space-y-4 py-10">
+          <Skeleton className="h-40 w-full rounded-[var(--radius)] md:h-52" />
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-[3/4] w-full rounded-[var(--radius)]" />
+            ))}
+          </div>
+        </Container>
       )}
 
       {!loading && (
-        <div className="relative z-10 -mt-5 space-y-8 px-4 md:-mt-8 md:px-8">
+        <Container layout="wide" className="relative z-10 -mt-5 space-y-8 md:-mt-8">
           {banners.length > 0 && (
-            <section className="anim-rise anim-rise-delay-1 overflow-hidden rounded-2xl border border-[var(--line)] bg-white shadow-[var(--shadow)]">
+            <section className="anim-rise anim-rise-delay-1 overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] shadow-[var(--shadow)]">
               <div className="relative h-40 md:h-52">
                 {banners.map((b, i) => (
                   <div
@@ -145,23 +160,21 @@ export default function HomePage() {
 
           {categories.length > 0 && (
             <section className="anim-rise anim-rise-delay-2">
-              <div className="mb-3 flex items-end justify-between">
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--amber)]">
-                    Categories
-                  </p>
-                  <h2 className="font-display text-2xl font-semibold text-[var(--ink)]">Shop by type</h2>
-                </div>
-                <Link href="/products" className="text-sm font-semibold text-[var(--forest-mid)]">
-                  See all
-                </Link>
-              </div>
+              <p className="cx-eyebrow mb-1">Categories</p>
+              <SectionHeader
+                title="Shop by type"
+                action={
+                  <Link href="/products" className="text-sm font-semibold text-[var(--forest-mid)]">
+                    See all
+                  </Link>
+                }
+              />
               <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide md:grid md:grid-cols-4 md:overflow-visible">
                 {categories.map((cat) => (
                   <Link
                     key={cat.id}
                     href={`/products?categoryId=${cat.id}`}
-                    className="group min-w-[8.5rem] overflow-hidden rounded-2xl border border-[var(--line)] bg-white md:min-w-0"
+                    className="group min-w-[8.5rem] overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] md:min-w-0"
                   >
                     <div className="relative h-24 overflow-hidden md:h-28">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -182,51 +195,43 @@ export default function HomePage() {
           )}
 
           <section className="anim-rise anim-rise-delay-3">
-            <div className="mb-3 flex items-end justify-between">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--amber)]">
-                  Catalog
-                </p>
-                <h2 className="font-display text-2xl font-semibold text-[var(--ink)]">
-                  {featured.some((p) => p.isFeatured) ? "Featured stock" : "Popular materials"}
-                </h2>
-              </div>
-              <Link href="/products" className="text-sm font-semibold text-[var(--forest-mid)]">
-                View all
-              </Link>
-            </div>
+            <p className="cx-eyebrow mb-1">Catalog</p>
+            <SectionHeader
+              title={featured.some((p) => p.isFeatured) ? "Featured stock" : "Popular materials"}
+              action={
+                <Link href="/products" className="text-sm font-semibold text-[var(--forest-mid)]">
+                  View all
+                </Link>
+              }
+            />
 
             {featured.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[var(--line)] bg-white/70 px-6 py-12 text-center text-sm text-[var(--ink-soft)]">
-                No products yet — ask your supplier to publish the catalog.
-              </div>
+              <EmptyState
+                className="cx-empty"
+                title="No products yet"
+                subtitle="Ask your supplier to publish the catalog."
+                action={
+                  <Link href="/products">
+                    <Button variant="outline">Browse shop</Button>
+                  </Link>
+                }
+              />
             ) : (
               <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
                 {featured.map((p, i) => (
-                  <Link key={p.id} href={`/products/${p.id}`} className="product-tile">
-                    <div className="relative aspect-[4/3] overflow-hidden bg-[var(--mist)]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={productImageUrl(p, i)}
-                        alt={p.name}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                    <div className="flex flex-1 flex-col p-3">
-                      <div className="line-clamp-2 text-sm font-semibold leading-snug text-[var(--ink)]">
-                        {p.name}
-                      </div>
-                      {p.unit && <div className="mt-0.5 text-xs text-[var(--ink-soft)]/70">{p.unit}</div>}
-                      <div className="mt-auto pt-2 font-display text-lg font-semibold text-[var(--forest)]">
-                        ₹{Number(p.sellPrice).toLocaleString("en-IN")}
-                      </div>
-                    </div>
-                  </Link>
+                  <ProductCard
+                    key={p.id}
+                    href={`/products/${p.id}`}
+                    title={p.name}
+                    subtitle={p.unit}
+                    imageUrl={productImageUrl(p, i)}
+                    priceLabel={`₹${Number(p.sellPrice).toLocaleString("en-IN")}`}
+                  />
                 ))}
               </div>
             )}
           </section>
-        </div>
+        </Container>
       )}
     </div>
   );

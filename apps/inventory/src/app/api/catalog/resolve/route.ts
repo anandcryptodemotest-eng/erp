@@ -1,6 +1,9 @@
+import { createLogger } from "@erp/logger";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { resolveCatalogSelection } from "@/services/catalog.service";
+
+const log = createLogger({ service: "inventory" });
 
 const bodySchema = z.object({
   groupCode: z.string().min(1),
@@ -20,7 +23,7 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
     }
-    console.error("catalog/resolve", error);
+    log.error("catalog_resolve", { err: error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

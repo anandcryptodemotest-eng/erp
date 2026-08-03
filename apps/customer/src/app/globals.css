@@ -1,21 +1,5 @@
 @import "tailwindcss";
-
-:root {
-  --ink: #121a16;
-  --ink-soft: #2a3830;
-  --forest: #1e3d32;
-  --forest-mid: #2d5a4a;
-  --amber: #c8922a;
-  --amber-soft: #e8c56a;
-  --linen: #f0ebe3;
-  --mist: #e7ece9;
-  --paper: #faf8f5;
-  --line: rgba(18, 26, 22, 0.1);
-  --shadow: 0 18px 40px rgba(18, 26, 22, 0.12);
-  --radius: 1.25rem;
-  --font-display: "Fraunces", Georgia, serif;
-  --font-body: "Outfit", system-ui, sans-serif;
-}
+@import "@erp/ui/tokens.css";
 
 * {
   box-sizing: border-box;
@@ -57,7 +41,7 @@ img {
 .portal-shell {
   min-height: 100dvh;
   width: 100%;
-  max-width: 72rem;
+  max-width: var(--layout-wide);
   margin: 0 auto;
   position: relative;
 }
@@ -75,35 +59,10 @@ img {
   }
   .portal-frame {
     min-height: calc(100dvh - 2.5rem);
-    border-radius: 1.75rem;
+    border-radius: var(--radius-lg);
     overflow: hidden;
     border: 1px solid var(--line);
   }
-}
-
-.hero-wash {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  color: white;
-  background: var(--ink);
-}
-
-.hero-wash::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(115deg, rgba(18, 26, 22, 0.88) 18%, rgba(18, 26, 22, 0.45) 58%, rgba(200, 146, 42, 0.25) 100%),
-    var(--hero-image) center/cover no-repeat;
-  z-index: -1;
-  transform: scale(1.04);
-  animation: hero-drift 18s ease-in-out infinite alternate;
-}
-
-@keyframes hero-drift {
-  from { transform: scale(1.02) translate3d(0, 0, 0); }
-  to { transform: scale(1.08) translate3d(-1.5%, -1%, 0); }
 }
 
 @keyframes rise-in {
@@ -117,12 +76,11 @@ img {
 }
 
 .anim-rise {
-  animation: rise-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: rise-in var(--motion-slow) var(--ease-out) both;
 }
 
-.anim-rise-delay-1 { animation-delay: 0.08s; }
-.anim-rise-delay-2 { animation-delay: 0.16s; }
-.anim-rise-delay-3 { animation-delay: 0.24s; }
+.anim-rise-delay-1 { animation-delay: 80ms; }
+.anim-rise-delay-2 { animation-delay: 160ms; }
 
 .scrollbar-hide {
   -ms-overflow-style: none;
@@ -132,95 +90,136 @@ img {
   display: none;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .anim-rise,
+  .hero-wash::before {
+    animation: none !important;
+  }
+}
+
+/* —— Trust Wood utilities (customer portal) —— */
+
+.cx-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+}
+
+.cx-surface {
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
+}
+
+.cx-empty {
+  border-radius: var(--radius);
+  border: 1px dashed var(--line);
+  background: color-mix(in srgb, var(--surface-raised) 70%, transparent);
+}
+
+.btn-dark,
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: var(--touch-min);
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-dark {
+  background: var(--ink);
+  color: var(--ink-inverse);
+}
+.btn-dark:hover {
+  background: var(--ink-soft);
+}
+
+.btn-primary {
+  background: var(--forest);
+  color: white;
+}
+.btn-primary:hover {
+  background: var(--forest-mid);
+}
+
+.btn-dark-block,
+.btn-primary-block {
+  display: flex;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.9rem 1.5rem;
+  font-size: 1rem;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: background 0.15s ease;
+}
+
+.btn-dark-block {
+  background: var(--ink);
+  color: var(--ink-inverse);
+}
+.btn-dark-block:hover {
+  background: var(--ink-soft);
+}
+
+.btn-primary-block {
+  background: var(--forest);
+  color: white;
+}
+.btn-primary-block:hover {
+  background: var(--forest-mid);
+}
+
 .product-tile {
   display: flex;
   flex-direction: column;
-  border-radius: var(--radius);
   overflow: hidden;
-  background: white;
+  border-radius: var(--radius);
   border: 1px solid var(--line);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: var(--surface-raised);
+  transition: transform var(--motion-standard) var(--ease-out),
+    box-shadow var(--motion-standard) var(--ease-out);
 }
-
 .product-tile:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 14px 28px rgba(18, 26, 22, 0.1);
-}
-
-.product-tile:active {
-  transform: scale(0.98);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+  min-height: var(--touch-min);
+  padding: 0 1rem;
+  border-radius: var(--radius-full);
   border: 1px solid var(--line);
   background: white;
-  padding: 0.4rem 0.9rem;
-  font-size: 0.75rem;
-  font-weight: 600;
   color: var(--ink-soft);
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
-
+.chip:hover {
+  border-color: var(--forest-mid);
+}
 .chip-active {
-  background: var(--ink);
   border-color: var(--ink);
+  background: var(--ink);
   color: white;
-}
-
-.bottom-nav {
-  backdrop-filter: blur(16px);
-  background: rgba(250, 248, 245, 0.88);
-  border-top: 1px solid var(--line);
-}
-
-.nav-icon {
-  width: 1.35rem;
-  height: 1.35rem;
-  stroke-width: 1.8;
-}
-
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: #c8922a;
-  color: #121a16;
-  font-weight: 700;
-  font-size: 0.875rem;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  transition: background 0.15s ease;
-}
-.btn-primary:hover {
-  background: #e8c56a;
-}
-
-.btn-dark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: #121a16;
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 0.875rem;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-  transition: background 0.15s ease;
-}
-.btn-dark:hover {
-  background: #2a3830;
-}
-
-.btn-primary-block,
-.btn-dark-block {
-  width: 100%;
-  padding: 0.9rem 1.5rem;
-  font-size: 1rem;
 }

@@ -243,20 +243,20 @@ export default function AdministrationPage() {
   }
 
   if (loading) {
-    return <div className="p-8 text-sm text-slate-500">Loading tenant administration…</div>;
+    return <div className="p-8 text-sm text-[var(--ink-soft)]">Loading tenant administration…</div>;
   }
 
   return (
     <div className="space-y-6 p-4 md:p-8">
       <div>
         <PageHeader title="Administration" />
-        <p className="-mt-4 mb-2 text-sm text-slate-500">
+        <p className="-mt-4 mb-2 text-sm text-[var(--ink-soft)]">
           Tenant configuration — organisation identity, portal, and branches. Module licenses and
           Process Studio are managed by Platform Admin.
           workflows live under Process Studio.
         </p>
         {tenant && (
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-[var(--ink-soft)]">
             {tenant.name} · <span className="font-mono">{tenant.slug}</span> · your role {tenant.role}
           </p>
         )}
@@ -286,27 +286,27 @@ export default function AdministrationPage() {
               }}
               className={`rounded-xl px-3 py-2 text-left text-sm transition ${
                 section === s.id
-                  ? "bg-slate-900 text-white"
-                  : "border border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                  ? "bg-[var(--ink)] text-white"
+                  : "border border-[var(--line)] bg-white text-[var(--ink-soft)] hover:border-[var(--line)]"
               }`}
             >
               <div className="font-medium">{s.label}</div>
-              <div className={`text-[11px] ${section === s.id ? "text-white/70" : "text-slate-400"}`}>
+              <div className={`text-[11px] ${section === s.id ? "text-white/70" : "text-[var(--ink-soft)]"}`}>
                 {s.description}
               </div>
             </button>
           ))}
         </nav>
 
-        <div className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="min-w-0 flex-1 rounded-2xl border border-[var(--line)] bg-white p-5 shadow-sm">
           {section === "general" && (
             <div className="space-y-4">
-              <h2 className="text-sm font-semibold text-slate-900">General</h2>
+              <h2 className="text-sm font-semibold text-[var(--ink)]">General</h2>
               <Input label="Organisation name" value={name} onChange={(e) => setName(e.target.value)} />
-              <label className="block text-xs text-slate-500">
+              <label className="block text-xs text-[var(--ink-soft)]">
                 Plan
                 <select
-                  className="mt-0.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="mt-0.5 w-full rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
                   value={plan}
                   onChange={(e) => setPlan(e.target.value)}
                 >
@@ -317,8 +317,8 @@ export default function AdministrationPage() {
               </label>
               <Input label="Currency" value={currency} onChange={(e) => setCurrency(e.target.value)} />
               <Input label="Timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)} />
-              <p className="text-xs text-slate-400">
-                Slug <span className="font-mono text-slate-600">{tenant?.slug}</span> is fixed after
+              <p className="text-xs text-[var(--ink-soft)]">
+                Slug <span className="font-mono text-[var(--ink-soft)]">{tenant?.slug}</span> is fixed after
                 create (used for membership lookup).
               </p>
               <Button disabled={busy} onClick={() => void saveGeneral()}>
@@ -329,7 +329,7 @@ export default function AdministrationPage() {
 
           {section === "branding" && (
             <div className="space-y-4">
-              <h2 className="text-sm font-semibold text-slate-900">Branding</h2>
+              <h2 className="text-sm font-semibold text-[var(--ink)]">Branding</h2>
               <Input
                 label="Display name"
                 value={brandName}
@@ -341,7 +341,7 @@ export default function AdministrationPage() {
                 onChange={(e) => setBrandAccent(e.target.value)}
               />
               <div
-                className="h-10 rounded-xl border border-slate-200"
+                className="h-10 rounded-xl border border-[var(--line)]"
                 style={{ background: brandAccent }}
               />
               <Button disabled={busy} onClick={() => void saveBranding()}>
@@ -352,12 +352,12 @@ export default function AdministrationPage() {
 
           {section === "modules" && (
             <div className="space-y-4">
-              <h2 className="text-sm font-semibold text-slate-900">Modules</h2>
-              <p className="text-xs text-slate-500">
+              <h2 className="text-sm font-semibold text-[var(--ink)]">Modules</h2>
+              <p className="text-xs text-[var(--ink-soft)]">
                 Licensed modules are managed by Platform Admin. Contact your operator to change
                 entitlements or enable Process Studio.
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[var(--ink-soft)]">
                 Active: {(tenant?.modules ?? []).join(", ") || "none"}
               </p>
               <ul className="space-y-2">
@@ -366,15 +366,15 @@ export default function AdministrationPage() {
                   return (
                     <li
                       key={m.id}
-                      className="flex items-start justify-between gap-3 rounded-xl border border-slate-100 px-3 py-3"
+                      className="flex items-start justify-between gap-3 rounded-xl border border-[var(--line)] px-3 py-3"
                     >
                       <div>
-                        <div className="text-sm font-medium text-slate-800">{m.name}</div>
-                        <div className="text-xs text-slate-500">{m.description}</div>
+                        <div className="text-sm font-medium text-[var(--ink)]">{m.name}</div>
+                        <div className="text-xs text-[var(--ink-soft)]">{m.description}</div>
                       </div>
                       <span
                         className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
-                          on ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
+                          on ? "bg-emerald-50 text-emerald-700" : "bg-[var(--mist)] text-[var(--ink-soft)]"
                         }`}
                       >
                         {on ? "Active" : "Off"}
@@ -388,14 +388,14 @@ export default function AdministrationPage() {
 
           {section === "users" && (
             <div className="space-y-3">
-              <h2 className="text-sm font-semibold text-slate-900">Users</h2>
-              <p className="text-sm text-slate-600">
+              <h2 className="text-sm font-semibold text-[var(--ink)]">Users</h2>
+              <p className="text-sm text-[var(--ink-soft)]">
                 Invite staff and assign permission sets (including Process Owner and Catalog Manager)
                 on the Users page.
               </p>
               <Link
                 href="/users"
-                className="inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+                className="inline-flex rounded-xl bg-[var(--ink)] px-4 py-2 text-sm font-semibold text-white"
               >
                 Open Users →
               </Link>
@@ -404,26 +404,26 @@ export default function AdministrationPage() {
 
           {section === "branches" && (
             <div className="space-y-4">
-              <h2 className="text-sm font-semibold text-slate-900">Branches</h2>
+              <h2 className="text-sm font-semibold text-[var(--ink)]">Branches</h2>
               <ul className="space-y-2">
                 {branches.map((b) => (
-                  <li key={b.id} className="rounded-xl border border-slate-100 px-3 py-2 text-sm">
-                    <span className="font-medium text-slate-800">
+                  <li key={b.id} className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm">
+                    <span className="font-medium text-[var(--ink)]">
                       {b.code} — {b.name}
                     </span>
-                    {b.city ? <span className="text-slate-500"> · {b.city}</span> : null}
+                    {b.city ? <span className="text-[var(--ink-soft)]"> · {b.city}</span> : null}
                     {b.isDefault && (
-                      <span className="ml-2 text-[10px] font-semibold uppercase text-slate-500">
+                      <span className="ml-2 text-[10px] font-semibold uppercase text-[var(--ink-soft)]">
                         Default
                       </span>
                     )}
                   </li>
                 ))}
                 {branches.length === 0 && (
-                  <li className="text-xs text-slate-400">No branches yet.</li>
+                  <li className="text-xs text-[var(--ink-soft)]">No branches yet.</li>
                 )}
               </ul>
-              <form onSubmit={(e) => void createBranch(e)} className="space-y-2 border-t border-slate-100 pt-4">
+              <form onSubmit={(e) => void createBranch(e)} className="space-y-2 border-t border-[var(--line)] pt-4">
                 <Input
                   label="Code"
                   value={branchCode}
@@ -450,13 +450,13 @@ export default function AdministrationPage() {
 
           {section === "security" && (
             <div className="space-y-4">
-              <h2 className="text-sm font-semibold text-slate-900">Security</h2>
+              <h2 className="text-sm font-semibold text-[var(--ink)]">Security</h2>
               <Input
                 label="Session length (hours)"
                 value={sessionTimeout}
                 onChange={(e) => setSessionTimeout(e.target.value)}
               />
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[var(--ink-soft)]">
                 Stored as tenant setting. Token TTL still follows platform JWT defaults until auth
                 reads this key.
               </p>
@@ -468,7 +468,7 @@ export default function AdministrationPage() {
 
           {section === "portal" && (
             <div className="space-y-4">
-              <h2 className="text-sm font-semibold text-slate-900">Customer portal</h2>
+              <h2 className="text-sm font-semibold text-[var(--ink)]">Customer portal</h2>
               <Input
                 label="Portal slug"
                 value={portalSlug}
@@ -479,7 +479,7 @@ export default function AdministrationPage() {
                 value={portalName}
                 onChange={(e) => setPortalName(e.target.value)}
               />
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[var(--ink-soft)]">
                 Customers join with this slug (`?tenant=` / subdomain / env). Align{" "}
                 <span className="font-mono">NEXT_PUBLIC_TENANT_SLUG</span> in the customer app for
                 local deploy.
@@ -492,12 +492,12 @@ export default function AdministrationPage() {
 
           {section === "integrations" && (
             <div className="space-y-3">
-              <h2 className="text-sm font-semibold text-slate-900">Integrations</h2>
-              <p className="text-sm text-slate-600">
+              <h2 className="text-sm font-semibold text-[var(--ink)]">Integrations</h2>
+              <p className="text-sm text-[var(--ink-soft)]">
                 External connectors are not configured yet. This section is reserved under Tenant
                 Configuration per the Tenant Operating Model.
               </p>
-              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-xs text-slate-400">
+              <div className="rounded-xl border border-dashed border-[var(--line)] bg-[var(--mist)] px-4 py-6 text-center text-xs text-[var(--ink-soft)]">
                 Coming soon
               </div>
             </div>

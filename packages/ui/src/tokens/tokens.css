@@ -1,0 +1,266 @@
+/**
+ * Platform UI Foundation v1.0
+ * Foundation-first → Brand themes → Density modes
+ *
+ *   html[data-theme="trustwood|platform|pos|delivery"]
+ *   html[data-density="comfortable|dense|compact|compact-touch"]
+ */
+
+/* ─── FOUNDATION (structure — theme-agnostic) ─── */
+:root {
+  /* Spacing scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* Typography scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Radius */
+  --radius-sm: 0.5rem;
+  --radius: 1.25rem;
+  --radius-lg: 1.75rem;
+  --radius-full: 999px;
+  --border-width: 1px;
+
+  /* Elevation (alpha tinted by theme via --shadow-color) */
+  --shadow-color: 18, 26, 22;
+  --shadow-sm: 0 2px 8px rgba(var(--shadow-color), 0.06);
+  --shadow: 0 18px 40px rgba(var(--shadow-color), 0.12);
+  --shadow-lg: 0 24px 56px rgba(var(--shadow-color), 0.16);
+
+  /* Opacity */
+  --opacity-muted: 0.6;
+  --opacity-disabled: 0.4;
+
+  /* Z-index */
+  --z-base: 0;
+  --z-sticky: 40;
+  --z-nav: 50;
+  --z-modal: 100;
+  --z-toast: 110;
+
+  /* Icons */
+  --icon-sm: 1rem;
+  --icon-md: 1.35rem;
+  --icon-lg: 1.75rem;
+
+  /* Layout widths */
+  --layout-compact: 28rem;
+  --layout-medium: 48rem;
+  --layout-wide: 72rem;
+  --layout-full: 100%;
+
+  /* Breakpoints (reference) */
+  --bp-medium: 768px;
+  --bp-wide: 1024px;
+
+  /* Touch / focus (overridden by density) */
+  --touch-min: 44px;
+  --control-h: 2.75rem;
+  --row-h: 2.75rem;
+  --gap-section: var(--space-8);
+  --pad-surface: var(--space-4);
+
+  /* Motion */
+  --motion-fast: 150ms;
+  --motion-standard: 220ms;
+  --motion-slow: 320ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Type families (apps may override with next/font variables) */
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Outfit", system-ui, sans-serif;
+
+  /* Semantic color aliases — defaults = trustwood; themes override */
+  --ink: #121a16;
+  --ink-soft: #2a3830;
+  --ink-inverse: #faf8f5;
+  --accent: #c8922a;
+  --accent-soft: #e8c56a;
+  --brand: #1e3d32;
+  --brand-mid: #2d5a4a;
+  --surface: #faf8f5;
+  --surface-raised: #ffffff;
+  --canvas: #f0ebe3;
+  --mist: #e7ece9;
+  --line: rgba(18, 26, 22, 0.1);
+  --danger: #b42318;
+  --success: #1e7a4a;
+  --warning: #b45309;
+  --info: #1d4ed8;
+
+  /* Legacy aliases (commerce + existing apps) */
+  --forest: var(--brand);
+  --forest-mid: var(--brand-mid);
+  --amber: var(--accent);
+  --amber-soft: var(--accent-soft);
+  --linen: var(--canvas);
+  --paper: var(--surface);
+
+  /* Shared admin / host page backdrop (TrustWood ERP Platform v1.0) */
+  --page-bg:
+    radial-gradient(1200px 600px at 10% -10%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, color-mix(in srgb, var(--brand-mid) 16%, transparent), transparent 50%),
+    linear-gradient(180deg, var(--mist) 0%, var(--canvas) 45%, var(--canvas) 100%);
+}
+
+/** Use on html/body for admin hosts — one canvas, theme-driven colors */
+.erp-canvas {
+  background: var(--page-bg);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── BRAND THEMES (color / gradient only) ─── */
+[data-theme="trustwood"] {
+  --ink: #121a16;
+  --ink-soft: #2a3830;
+  --ink-inverse: #faf8f5;
+  --accent: #c8922a;
+  --accent-soft: #e8c56a;
+  --brand: #1e3d32;
+  --brand-mid: #2d5a4a;
+  --surface: #faf8f5;
+  --surface-raised: #ffffff;
+  --canvas: #f0ebe3;
+  --mist: #e7ece9;
+  --line: rgba(18, 26, 22, 0.1);
+  --danger: #b42318;
+  --success: #1e7a4a;
+  --warning: #b45309;
+  --info: #1d4ed8;
+  --shadow-color: 18, 26, 22;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Outfit", system-ui, sans-serif;
+}
+
+/* Deprecated for admin hosts (TrustWood ERP Platform v1.0).
+   Platform Admin uses trustwood. Kept for any legacy data-theme="platform" pages. */
+[data-theme="platform"] {
+  --ink: #121a16;
+  --ink-soft: #2a3830;
+  --ink-inverse: #faf8f5;
+  --accent: #c8922a;
+  --accent-soft: #e8c56a;
+  --brand: #1e3d32;
+  --brand-mid: #2d5a4a;
+  --surface: #faf8f5;
+  --surface-raised: #ffffff;
+  --canvas: #f0ebe3;
+  --mist: #e7ece9;
+  --line: rgba(18, 26, 22, 0.1);
+  --danger: #b42318;
+  --success: #1e7a4a;
+  --warning: #b45309;
+  --info: #1d4ed8;
+  --shadow-color: 18, 26, 22;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Outfit", system-ui, sans-serif;
+}
+
+[data-theme="pos"] {
+  --ink: #f1f5f9;
+  --ink-soft: #94a3b8;
+  --ink-inverse: #0f172a;
+  --accent: #c8922a;
+  --accent-soft: #e8c56a;
+  --brand: #1e3d32;
+  --brand-mid: #2d5a4a;
+  --surface: #1e293b;
+  --surface-raised: #334155;
+  --canvas: #0f172a;
+  --mist: #334155;
+  --line: rgba(241, 245, 249, 0.12);
+  --danger: #f87171;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --info: #60a5fa;
+  --shadow-color: 0, 0, 0;
+  --font-display: "Outfit", system-ui, sans-serif;
+  --font-body: "Outfit", system-ui, sans-serif;
+}
+
+[data-theme="delivery"] {
+  --ink: #1c1917;
+  --ink-soft: #57534e;
+  --ink-inverse: #fffbeb;
+  --accent: #ea580c;
+  --accent-soft: #fb923c;
+  --brand: #1e3d32;
+  --brand-mid: #2d5a4a;
+  --surface: #fffbeb;
+  --surface-raised: #ffffff;
+  --canvas: #fff7ed;
+  --mist: #ffedd5;
+  --line: rgba(28, 25, 23, 0.12);
+  --danger: #b42318;
+  --success: #1e7a4a;
+  --warning: #b45309;
+  --info: #1d4ed8;
+  --shadow-color: 28, 25, 23;
+  --font-display: "Outfit", system-ui, sans-serif;
+  --font-body: "Outfit", system-ui, sans-serif;
+}
+
+/* ─── DENSITY MODES (independent of brand) ─── */
+[data-density="comfortable"] {
+  --touch-min: 44px;
+  --control-h: 2.75rem;
+  --row-h: 3rem;
+  --gap-section: var(--space-8);
+  --pad-surface: var(--space-4);
+  --text-ui: var(--text-sm);
+}
+
+[data-density="dense"] {
+  --touch-min: 36px;
+  --control-h: 2.25rem;
+  --row-h: 2.25rem;
+  --gap-section: var(--space-6);
+  --pad-surface: var(--space-3);
+  --text-ui: var(--text-sm);
+  --radius: 0.75rem;
+  --radius-lg: 1rem;
+}
+
+[data-density="compact"],
+[data-density="compact-touch"] {
+  --touch-min: 48px;
+  --control-h: 3rem;
+  --row-h: 3.25rem;
+  --gap-section: var(--space-6);
+  --pad-surface: var(--space-3);
+  --text-ui: var(--text-base);
+}
+
+/* Default density when attribute omitted */
+:root:not([data-density]) {
+  --touch-min: 44px;
+  --control-h: 2.75rem;
+  --row-h: 3rem;
+  --gap-section: var(--space-8);
+  --pad-surface: var(--space-4);
+  --text-ui: var(--text-sm);
+}

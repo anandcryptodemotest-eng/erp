@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { CSSProperties } from "react";
 import { Fraunces, Outfit } from "next/font/google";
+import { PwaRegister } from "@/components/PwaRegister";
 import "./globals.css";
 
 const display = Fraunces({
@@ -20,6 +21,13 @@ export const metadata: Metadata = {
   description: "Order plywood, timber and building materials — track every stage",
   manifest: "/manifest.json",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Trust Wood" },
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export const viewport: Viewport = {
@@ -36,9 +44,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   } as CSSProperties;
 
   return (
-    <html lang="en" className={`${display.variable} ${body.variable}`} data-scroll-behavior="smooth">
+    <html
+      lang="en"
+      className={`${display.variable} ${body.variable}`}
+      data-scroll-behavior="smooth"
+      data-theme="trustwood"
+      data-density="comfortable"
+    >
       <body className="min-h-screen antialiased" style={fontVars}>
         {children}
+        <PwaRegister />
       </body>
     </html>
   );

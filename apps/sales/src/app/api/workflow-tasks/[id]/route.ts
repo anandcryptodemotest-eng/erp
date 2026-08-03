@@ -7,12 +7,13 @@ import {
   renewPlatformTaskLease,
   expireStaleLeases,
 } from "@/lib/workflow-runtime-v5";
+import { WorkflowAuthError } from "@/lib/workflow-task-auth";
 import { recordEvent, withSpan } from "@erp/telemetry";
 
 type Ctx = { params: Promise<{ id: string }> };
 const log = createLogger({ service: "sales" });
 
-/** POST /api/workflow-tasks/:id/claim | renew | release | complete */
+/** POST /api/workflow-tasks/:id?action=claim|renew|release|complete */
 export async function POST(request: Request, { params }: Ctx) {
   const reqCtx = contextFromHeaders(request.headers, {
     service: "sales",
@@ -45,11 +46,19 @@ export async function POST(request: Request, { params }: Ctx) {
         return NextResponse.json({ data });
       }
       if (action === "renew") {
-        const data = await renewPlatformTaskLease({ taskId: id, actorUserId: userId });
+        const data = await renewPlatformTaskLease({
+          taskId: id,
+          actorUserId: userId,
+          actorRole: role,
+        });
         return NextResponse.json({ data });
       }
       if (action === "release") {
-        const data = await releasePlatformTask({ taskId: id, actorUserId: userId });
+        const data = await releasePlatformTask({
+          taskId: id,
+          actorUserId: userId,
+          actorRole: role,
+        });
         log.info("task_released", { taskId: id, tenantId, userId });
         return NextResponse.json({ data });
       }
@@ -82,8 +91,9 @@ export async function POST(request: Request, { params }: Ctx) {
       return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Task action failed";
+      const status = e instanceof WorkflowAuthError ? e.status : 409;
       log.error("task_action_failed", { taskId: id, action, tenantId, userId, err: e });
-      return NextResponse.json({ error: msg }, { status: 409 });
+      return NextResponse.json({ error: msg }, { status });
     }
   });
 }

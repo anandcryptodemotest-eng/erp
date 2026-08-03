@@ -1,25 +1,50 @@
 @import "tailwindcss";
+@import "@erp/ui/tokens.css";
+@import "@erp/ui/admin-shell.css";
+@import "@erp/process-designer/workflow-designer.css";
+@import "@erp/process-forms/form-designer.css";
 
-:root {
-  --bg: #0f1419;
-  --panel: #1a222c;
-  --line: #2a3544;
-  --text: #e8eef5;
-  --muted: #8b9aab;
-  --accent: #3d8bfd;
-  --ok: #3dd68c;
-  --warn: #f0b429;
-  --bad: #f07178;
-  --font: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+/* Scan shared UI package so AdminShell / framework utilities are generated */
+@source "../../../../packages/ui/src";
+@source "../../../../packages/process-designer/src";
+@source "../../../../packages/process-forms/src";
+@source "../../../../packages/admin-ui-host/src";
+
+* {
+  box-sizing: border-box;
 }
 
-* { box-sizing: border-box; }
-html, body {
+html,
+body {
   margin: 0;
   min-height: 100%;
-  background: radial-gradient(1200px 600px at 10% -10%, #1a2a3d 0%, var(--bg) 55%);
-  color: var(--text);
-  font-family: var(--font);
 }
-a { color: inherit; text-decoration: none; }
-button, input, select { font: inherit; }
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+}
+
+/* Legacy aliases used by older Platform pages */
+:root,
+[data-theme="trustwood"] {
+  --bg: var(--canvas);
+  --panel: var(--surface-raised);
+  --text: var(--ink);
+  --muted: var(--ink-soft);
+  --ok: var(--success);
+  --warn: var(--warning);
+  --bad: var(--danger);
+  --font: var(--font-body);
+}

@@ -1,6 +1,9 @@
+import { createLogger } from "@erp/logger";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createProducts } from "@/services/product-creation.engine";
+
+const log = createLogger({ service: "inventory" });
 
 const pricingPolicySchema = z
   .object({
@@ -80,7 +83,7 @@ export async function POST(request: Request) {
     if ((error as { code?: string }).code === "P2002") {
       return NextResponse.json({ error: "Duplicate SKU" }, { status: 409 });
     }
-    console.error("generate", error);
+    log.error("products_generate", { err: error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

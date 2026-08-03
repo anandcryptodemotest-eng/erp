@@ -25,13 +25,13 @@ Admin nav defaults to this journey (CRM hidden). Workflow template: `workflow.om
 
 ---
 
-## B. Sales desk — OMS (`/oms`)
+## B. Sales Desk (`/sales-desk`; `/oms` redirects)
 
 | # | Screen | User does | Result |
 |---|--------|-----------|--------|
-| 1 | Open SREQs | Opens customer requests | Queue of `OPEN` SREQs |
+| 1 | Inbox (open SREQs) | Opens customer requests | Queue of `OPEN` SREQs |
 | 2 | Convert | Confirms commercial intent | Creates **SO-#####** at `CONFIRMED`; SREQ → `CONVERTED`; SO status visible on SREQ |
-| 3 | Parallel prep | Role queues work independently | Tasks: sales review, inventory, pricing, warehouse (+ procurement if shortage) |
+| 3 | My Work (parallel prep) | Role queues work independently | Tasks: sales review, inventory, pricing, warehouse (+ procurement if shortage) |
 | 4 | Prep gate | All required prep complete | SO → `READY_FOR_DISPATCH` |
 | 5 | Dispatch | Assign vehicle / driver | → `DISPATCHED` |
 | 6 | Deliver | Marks delivered | → `DELIVERED` |
@@ -49,7 +49,7 @@ Staff-created DRAFT SO: action **activate** → `CONFIRMED` (same parallel prep)
 
 1. Apply **OMS Trading** template (v3).  
 2. Customer places mobile request → SREQ.  
-3. SE on **OMS → Open SREQs** → **Convert to Sales Order**.  
+3. SE on **Sales Desk → Inbox (open SREQs)** → **Convert to Sales Order**.  
 4. Parallel: review / verify stock / pricing / warehouse ready.  
 5. Dispatch → Deliver → Invoice → Pay → Close.  
 6. Customer sees SO status on the SREQ detail.

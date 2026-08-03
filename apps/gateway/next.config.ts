@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const GATEWAY_URL     = process.env.GATEWAY_SERVICE_URL     ?? "http://localhost:3010";
 const SALES_URL       = process.env.SALES_SERVICE_URL       ?? "http://localhost:3001";
@@ -7,13 +8,26 @@ const ACCOUNTING_URL  = process.env.ACCOUNTING_SERVICE_URL  ?? "http://localhost
 const HR_URL          = process.env.HR_SERVICE_URL          ?? "http://localhost:3004";
 const PROCUREMENT_URL = process.env.PROCUREMENT_SERVICE_URL ?? "http://localhost:3005";
 const DELIVERY_URL    = process.env.DELIVERY_SERVICE_URL    ?? "http://localhost:3006";
+const monorepoRoot = path.join(__dirname, "../..");
 
 const nextConfig: NextConfig = {
   output: "standalone",
   // Served publicly only via nginx at https://host/admin (apps bind to 127.0.0.1).
   basePath: "/admin",
+  turbopack: {
+    root: monorepoRoot,
+    resolveAlias: {
+      "@erp/ui": "./packages/ui/src/index.ts",
+      "@erp/workflow": "./packages/workflow/src/index.ts",
+      "@erp/admin-ui-host": "./packages/admin-ui-host/src/index.ts",
+      "@erp/ui-runtime": "./packages/ui-runtime/src/index.ts",
+      "@erp/extensions": "./packages/extensions/src/index.ts",
+      "@erp/process-forms": "./packages/process-forms/src/index.tsx",
+      "@erp/process-designer": "./packages/process-designer/src/index.tsx",
+    },
+  },
   allowedDevOrigins: ["150.242.201.102", "localhost", "127.0.0.1"],
-  transpilePackages: ["@erp/logger", "@erp/telemetry", "@erp/ui", "@erp/types", "@erp/auth", "@erp/config", "@erp/workflow", "@erp/ui-runtime", "@erp/extensions", "@erp/pricing"],
+  transpilePackages: ["@erp/logger", "@erp/telemetry", "@erp/ui", "@erp/types", "@erp/auth", "@erp/config", "@erp/workflow", "@erp/ui-runtime", "@erp/extensions", "@erp/pricing", "@erp/process-designer", "@erp/process-forms", "@erp/admin-ui-host"],
   async rewrites() {
     return {
       // Local-dev parity for nginx's public `/api/*` → gateway `/admin/api/*` rewrite.

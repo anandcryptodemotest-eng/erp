@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./types": "./src/types/index.ts",
     "./validator": "./src/validator/index.ts",
+    "./validation": "./src/validation/index.ts",
     "./graph": "./src/graph/index.ts",
     "./registry": "./src/registry/index.ts",
     "./conditions": "./src/conditions/index.ts",

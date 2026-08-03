@@ -139,13 +139,13 @@ export default function AdminUsersPage() {
     <div className="space-y-6 max-w-5xl">
       <div>
         <PageHeader title="Users & roles" />
-        <p className="-mt-4 mb-2 text-sm text-slate-500">
+        <p className="-mt-4 mb-2 text-sm text-[var(--ink-soft)]">
           Create team members and assign permission sets. Prefer{" "}
           <code className="text-xs">PROCESS_OWNER</code> (workflows / forms) and{" "}
           <code className="text-xs">CATALOG_MANAGER</code> (products) over giving everyone{" "}
           <code className="text-xs">ADMIN</code>. Operations roles execute tasks only.
         </p>
-        <p className="text-xs text-slate-400 font-mono">Tenant: {tenantId || "—"}</p>
+        <p className="text-xs text-[var(--ink-soft)] font-mono">Tenant: {tenantId || "—"}</p>
       </div>
 
       {error && (
@@ -159,18 +159,18 @@ export default function AdminUsersPage() {
 
       <form
         onSubmit={(e) => void addRole(e)}
-        className="rounded-xl border border-slate-200 bg-white p-4 space-y-3"
+        className="rounded-xl border border-[var(--line)] bg-white p-4 space-y-3"
       >
-        <h2 className="text-sm font-semibold text-slate-900">Add role</h2>
-        <p className="text-xs text-slate-500">
+        <h2 className="text-sm font-semibold text-[var(--ink)]">Add role</h2>
+        <p className="text-xs text-[var(--ink-soft)]">
           Custom roles (UPPER_SNAKE_CASE) can be assigned to users and to workflow tasks. Built-in OMS roles are
           always available.
         </p>
         <div className="flex flex-wrap items-end gap-3">
           <label className="block text-sm flex-1 min-w-[200px]">
-            <span className="text-slate-600">Role code</span>
+            <span className="text-[var(--ink-soft)]">Role code</span>
             <input
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-sm"
+              className="mt-1 w-full rounded-lg border border-[var(--line)] px-3 py-2 font-mono text-sm"
               placeholder="e.g. CREDIT_MANAGER"
               value={newRole}
               onChange={(e) => setNewRole(e.target.value)}
@@ -183,7 +183,7 @@ export default function AdminUsersPage() {
         </div>
         <div className="flex flex-wrap gap-1.5 pt-1">
           {roles.map((r) => (
-            <span key={r} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-medium text-slate-700">
+            <span key={r} className="rounded-full bg-[var(--mist)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--ink-soft)]">
               {r}
             </span>
           ))}
@@ -192,9 +192,9 @@ export default function AdminUsersPage() {
 
       <form
         onSubmit={(e) => void createUser(e)}
-        className="rounded-xl border border-slate-200 bg-white p-4 space-y-3"
+        className="rounded-xl border border-[var(--line)] bg-white p-4 space-y-3"
       >
-        <h2 className="text-sm font-semibold text-slate-900">Create user</h2>
+        <h2 className="text-sm font-semibold text-[var(--ink)]">Create user</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <Input label="Email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
           <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Optional" />
@@ -207,9 +207,9 @@ export default function AdminUsersPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
           <label className="block text-sm">
-            <span className="text-slate-600">Role</span>
+            <span className="text-[var(--ink-soft)]">Role</span>
             <select
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
               value={role}
               onChange={(e) => setRole(e.target.value)}
             >
@@ -226,19 +226,19 @@ export default function AdminUsersPage() {
         </Button>
       </form>
 
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div className="rounded-xl border border-[var(--line)] bg-white overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-[var(--mist)] text-left text-xs uppercase tracking-wide text-[var(--ink-soft)]">
             <tr>
               <th className="px-4 py-3">User</th>
               <th className="px-4 py-3">Role</th>
               <th className="px-4 py-3">Joined</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[var(--line)]">
             {loading && (
               <tr>
-                <td colSpan={3} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={3} className="px-4 py-8 text-center text-[var(--ink-soft)]">
                   Loading…
                 </td>
               </tr>
@@ -247,12 +247,12 @@ export default function AdminUsersPage() {
               members.map((m) => (
                 <tr key={m.id}>
                   <td className="px-4 py-3">
-                    <div className="font-medium text-slate-900">{m.name || "—"}</div>
-                    <div className="text-xs text-slate-400">{m.email}</div>
+                    <div className="font-medium text-[var(--ink)]">{m.name || "—"}</div>
+                    <div className="text-xs text-[var(--ink-soft)]">{m.email}</div>
                   </td>
                   <td className="px-4 py-3">
                     <select
-                      className="rounded border border-slate-200 px-2 py-1 text-xs"
+                      className="rounded border border-[var(--line)] px-2 py-1 text-xs"
                       value={m.role}
                       disabled={busy}
                       onChange={(e) => void changeRole(m.userId, e.target.value)}
@@ -264,7 +264,7 @@ export default function AdminUsersPage() {
                       ))}
                     </select>
                   </td>
-                  <td className="px-4 py-3 text-slate-500">
+                  <td className="px-4 py-3 text-[var(--ink-soft)]">
                     {new Date(m.joinedAt).toLocaleDateString()}
                   </td>
                 </tr>
@@ -273,8 +273,8 @@ export default function AdminUsersPage() {
         </table>
       </div>
 
-      <div className="rounded-lg border border-slate-100 bg-slate-50 p-4 text-xs text-slate-600 space-y-1">
-        <p className="font-semibold text-slate-800">Admin setup checklist</p>
+      <div className="rounded-lg border border-[var(--line)] bg-[var(--mist)] p-4 text-xs text-[var(--ink-soft)] space-y-1">
+        <p className="font-semibold text-[var(--ink)]">Admin setup checklist</p>
         <ol className="list-decimal pl-4 space-y-1">
           <li>
             <strong>Users</strong> — create Pricing / Dispatch / Sales users with matching roles (this page).

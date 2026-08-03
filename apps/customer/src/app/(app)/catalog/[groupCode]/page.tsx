@@ -1,6 +1,16 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Button,
+  Chip,
+  ChipGroup,
+  PriceDisplay,
+  ProductGallery,
+  QuantityStepper,
+  StockBadge,
+  Container,
+} from "@erp/ui";
 import { api } from "@/lib/api-client";
 import { addToCart } from "@/lib/cart-store";
 import { productImageUrl } from "@/lib/media";
@@ -29,6 +39,7 @@ type ResolveResult = {
     baseRate: number | null;
     pricingUom: string | null;
     customAttributes: Record<string, unknown>;
+    imageUrls: string[];
   } | null;
   stock: { available: number } | null;
   hint: string | null;
@@ -37,7 +48,6 @@ type ResolveResult = {
 type QuoteData = {
   unitPrice?: number;
   lineTotal?: number;
-  breakdown?: { label: string; value: number }[];
 };
 
 export default function CatalogGroupPage({ params }: { params: Promise<{ groupCode: string }> }) {
@@ -62,7 +72,6 @@ export default function CatalogGroupPage({ params }: { params: Promise<{ groupCo
       if (!r.error) {
         const g = r.data.data;
         setGroup(g);
-        // Pre-select axes that have only one option (e.g. fixed grade/thickness)
         const initial: Record<string, string> = {};
         for (const a of g.attributes ?? []) {
           if (a.options.length === 1) initial[a.key] = a.options[0];
@@ -119,14 +128,23 @@ export default function CatalogGroupPage({ params }: { params: Promise<{ groupCo
   );
   const unitPrice = quote?.unitPrice ?? resolved?.product?.sellPrice ?? null;
 
-  const img = useMemo(() => {
-    if (!group) return "";
-    return productImageUrl({
-      name: group.groupName,
-      imageUrls: group.imageUrls?.length ? group.imageUrls : undefined,
-      sku: resolved?.product?.sku,
-    });
-  }, [group, resolved?.product?.sku]);
+  const galleryImages = useMemo(() => {
+    if (!group) return [];
+    const urls =
+      resolved?.product != null
+        ? resolved.product.imageUrls ?? []
+        : group.imageUrls ?? [];
+    if (urls.length) return urls;
+    return [
+      productImageUrl({
+        name: resolved?.product?.name ?? group.groupName,
+        imageUrls: urls,
+        sku: resolved?.product?.sku,
+      }),
+    ];
+  }, [group, resolved?.product]);
+
+  const primaryImage = galleryImages[0] ?? "";
 
   function add() {
     if (!canAdd || !resolved?.product || unitPrice == null) return;
@@ -136,99 +154,89 @@ export default function CatalogGroupPage({ params }: { params: Promise<{ groupCo
       name: resolved.product.name,
       price: unitPrice,
       qty,
-      imageUrl: img || undefined,
+      imageUrl: primaryImage || undefined,
       selectedAttributes: selected,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   }
 
-  if (loading) return <div className="p-8 text-gray-400">Loading…</div>;
-  if (!group) return <div className="p-8 text-gray-500">Product group not found.</div>;
+  if (loading) {
+    return (
+      <Container className="py-10 text-sm text-[var(--ink-soft)]">Loading…</Container>
+    );
+  }
+  if (!group) {
+    return (
+      <Container className="py-10 text-[var(--ink-soft)]">Product group not found.</Container>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <button type="button" onClick={() => router.push("/products")} className="text-sm text-gray-500 mb-4">
-        ← Products
+    <Container layout="wide" className="py-4 md:py-8">
+      <button
+        type="button"
+        onClick={() => router.push("/products")}
+        className="mb-4 text-sm font-semibold text-[var(--ink-soft)] hover:text-[var(--ink)]"
+      >
+        ← Shop
       </button>
 
-      <div className="grid md:grid-cols-2 gap-8">
-        <div className="aspect-square bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={img} alt="" className="w-full h-full object-cover" />
-        </div>
+      <div className="grid gap-8 md:grid-cols-2 md:gap-10">
+        <ProductGallery images={galleryImages} alt={group.groupName} />
 
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{group.groupName}</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {[group.brand?.name, group.category?.name].filter(Boolean).join(" · ")}
+        <div className="flex flex-col">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--amber)]">
+            {[group.brand?.name, group.category?.name].filter(Boolean).join(" · ") || "Catalog"}
           </p>
+          <h1 className="font-display mt-2 text-2xl font-semibold text-[var(--ink)] md:text-3xl">
+            {group.groupName}
+          </h1>
 
-          <div className="mt-6 space-y-5">
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <PriceDisplay amount={unitPrice} size="lg" />
+            {resolved?.stock != null ? <StockBadge available={resolved.stock.available} /> : null}
+          </div>
+
+          <div className="mt-8 space-y-5">
             {group.attributes.map((attr) => (
-              <div key={attr.key}>
-                <div className="text-sm font-medium text-gray-800 mb-2">{attr.label}</div>
-                <div className="flex flex-wrap gap-2">
-                  {attr.options.map((opt) => {
-                    const active = selected[attr.key] === opt;
-                    return (
-                      <button
-                        key={opt}
-                        type="button"
-                        onClick={() => setSelected((s) => ({ ...s, [attr.key]: opt }))}
-                        className={`px-3 py-1.5 rounded-lg text-sm border ${
-                          active ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-200"
-                        }`}
-                      >
-                        {opt}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              <ChipGroup key={attr.key} label={attr.label}>
+                {attr.options.map((opt) => (
+                  <Chip
+                    key={opt}
+                    active={selected[attr.key] === opt}
+                    onClick={() => setSelected((s) => ({ ...s, [attr.key]: opt }))}
+                  >
+                    {opt}
+                  </Chip>
+                ))}
+              </ChipGroup>
             ))}
           </div>
 
-          <div className="mt-8 border-t pt-6 space-y-3">
-            {resolved?.hint && !canAdd && (
-              <p className="text-sm text-amber-700">{resolved.hint}</p>
-            )}
-            {canAdd && resolved?.product && (
-              <p className="text-xs text-gray-400 font-mono">SKU {resolved.product.sku}</p>
-            )}
-            <div className="flex items-baseline gap-3">
-              <span className="text-2xl font-bold text-gray-900">
-                {unitPrice != null ? `₹${Number(unitPrice).toLocaleString("en-IN")}` : "—"}
-              </span>
-              {resolved?.stock != null && (
-                <span className="text-sm text-gray-500">
-                  {resolved.stock.available > 0
-                    ? `${resolved.stock.available} available`
-                    : "Out of stock"}
-                </span>
-              )}
-            </div>
+          <div className="mt-8 space-y-4 border-t border-[var(--line)] pt-6">
+            {resolved?.hint && !canAdd ? (
+              <p className="text-sm text-amber-800">{resolved.hint}</p>
+            ) : null}
+            {canAdd && resolved?.product ? (
+              <p className="font-mono text-xs text-[var(--ink-soft)]">SKU {resolved.product.sku}</p>
+            ) : null}
 
-            <div className="flex items-center gap-3">
-              <input
-                type="number"
-                min={1}
-                value={qty}
-                onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-20 border rounded-lg px-2 py-2 text-sm"
-              />
-              <button
-                type="button"
+            <div className="flex flex-wrap items-center gap-4">
+              <QuantityStepper value={qty} onChange={setQty} />
+              <Button
+                variant="primary"
+                size="block"
+                className="min-w-[12rem] flex-1"
                 disabled={!canAdd}
                 onClick={add}
-                className="flex-1 bg-gray-900 text-white py-2.5 rounded-lg text-sm font-semibold disabled:opacity-40"
               >
                 {added ? "Added ✓" : "Add to Cart"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </Container>
   );
 }

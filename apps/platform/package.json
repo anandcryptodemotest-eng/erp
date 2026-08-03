@@ -9,10 +9,15 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@erp/admin-ui-host": "workspace:^",
+    "@erp/extensions": "workspace:^",
     "@erp/platform-core": "workspace:*",
     "@erp/process-designer": "workspace:*",
     "@erp/process-forms": "workspace:*",
     "@erp/ui": "workspace:*",
+    "@erp/ui-runtime": "workspace:^",
+    "@erp/workflow": "workspace:^",
+    "@xyflow/react": "^12.6.0",
     "lucide-react": "^1.16.0",
     "next": "^15.1.0",
     "react": "^19.0.0",

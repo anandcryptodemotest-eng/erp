@@ -33,13 +33,13 @@ export default function PlatformFormsPage() {
         <WorkflowFormsPanel
           api={apiFn}
           detailHref={(id) => `/process/forms/${id}`}
+          onOpenForm={(id) => router.push(`/process/forms/${id}`)}
           LinkComponent={({ href, children, className }) => (
             <Link href={href} className={className}>
               {children}
             </Link>
           )}
-        />
-      </div>
+        />      </div>
     </Shell>
   );
 }

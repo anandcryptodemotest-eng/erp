@@ -24,15 +24,15 @@ interface Opportunity {
 const STAGE_ORDER: OpportunityStage[] = ["PROSPECTING", "QUALIFICATION", "PROPOSAL", "NEGOTIATION", "CLOSED"];
 
 const STAGE_COLORS: Record<OpportunityStage, string> = {
-  PROSPECTING: "bg-slate-100 text-slate-700",
-  QUALIFICATION: "bg-blue-100 text-blue-700",
-  PROPOSAL: "bg-indigo-100 text-indigo-700",
+  PROSPECTING: "bg-[var(--mist)] text-[var(--ink-soft)]",
+  QUALIFICATION: "bg-blue-100 text-[var(--brand)]",
+  PROPOSAL: "bg-[var(--mist)] text-[var(--brand)]",
   NEGOTIATION: "bg-amber-100 text-amber-700",
   CLOSED: "bg-emerald-100 text-emerald-700",
 };
 
 const STATUS_COLORS: Record<OpportunityStatus, string> = {
-  OPEN: "bg-sky-100 text-sky-700",
+  OPEN: "bg-sky-100 text-[var(--brand)]",
   WON: "bg-emerald-100 text-emerald-700",
   LOST: "bg-rose-100 text-rose-700",
 };
@@ -101,10 +101,10 @@ export default function OpportunitiesPage() {
 
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Opportunities</h1>
-          <p className="text-sm text-gray-500">Manage stage progression and close deals with clear lifecycle actions.</p>
+          <h1 className="text-2xl font-bold text-[var(--ink)]">Opportunities</h1>
+          <p className="text-sm text-[var(--ink-soft)]">Manage stage progression and close deals with clear lifecycle actions.</p>
         </div>
-        <Link href="/leads" className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+        <Link href="/leads" className="rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink-soft)] hover:bg-[var(--mist)]">
           + Convert from Leads
         </Link>
       </div>
@@ -122,13 +122,13 @@ export default function OpportunitiesPage() {
             <button
               key={stage}
               onClick={() => setStageFilter(active ? "" : stage)}
-              className={`rounded-lg border p-3 text-left transition ${active ? "border-indigo-300 bg-indigo-50" : "border-gray-200 bg-white hover:bg-gray-50"}`}
+              className={`rounded-lg border p-3 text-left transition ${active ? "border-[var(--line)] bg-[var(--mist)]" : "border-[var(--line)] bg-white hover:bg-[var(--mist)]"}`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-gray-700">{stage}</span>
+                <span className="text-xs font-semibold text-[var(--ink-soft)]">{stage}</span>
                 <span className={`rounded-full px-2 py-0.5 text-xs ${STAGE_COLORS[stage]}`}>{stageCounts[stage]}</span>
               </div>
-              <p className="mt-1 text-[11px] text-gray-500">{stage === "CLOSED" ? "Terminal stage" : `Move next: ${nextStage(stage)}`}</p>
+              <p className="mt-1 text-[11px] text-[var(--ink-soft)]">{stage === "CLOSED" ? "Terminal stage" : `Move next: ${nextStage(stage)}`}</p>
             </button>
           );
         })}
@@ -136,22 +136,22 @@ export default function OpportunitiesPage() {
 
       <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
         {loading ? (
-          <div className="p-8 text-center text-sm text-gray-400">Loading...</div>
+          <div className="p-8 text-center text-sm text-[var(--ink-soft)]">Loading...</div>
         ) : items.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-500">
+          <div className="p-8 text-center text-sm text-[var(--ink-soft)]">
             No opportunities found. Convert a QUALIFIED lead from the Leads page.
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="border-b bg-gray-50">
+            <thead className="border-b bg-[var(--mist)]">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Title</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Lead</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Customer</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500">Value</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Stage</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--ink-soft)]">Title</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--ink-soft)]">Lead</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--ink-soft)]">Customer</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-[var(--ink-soft)]">Value</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--ink-soft)]">Stage</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--ink-soft)]">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--ink-soft)]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -159,10 +159,10 @@ export default function OpportunitiesPage() {
                 const next = nextStage(op.stage);
                 const canCreateQuote = op.status === "OPEN" && (op.stage === "PROPOSAL" || op.stage === "NEGOTIATION" || op.stage === "CLOSED") && !!op.customer;
                 return (
-                  <tr key={op.id} className="hover:bg-gray-50" onClick={() => setSelected(op)}>
-                    <td className="px-4 py-3 font-medium text-gray-900">{op.title}</td>
-                    <td className="px-4 py-3 text-gray-600">{op.lead?.name ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-600">{op.customer?.name ?? "—"}</td>
+                  <tr key={op.id} className="hover:bg-[var(--mist)]" onClick={() => setSelected(op)}>
+                    <td className="px-4 py-3 font-medium text-[var(--ink)]">{op.title}</td>
+                    <td className="px-4 py-3 text-[var(--ink-soft)]">{op.lead?.name ?? "—"}</td>
+                    <td className="px-4 py-3 text-[var(--ink-soft)]">{op.customer?.name ?? "—"}</td>
                     <td className="px-4 py-3 text-right font-medium">₹{Number(op.value).toLocaleString()}</td>
                     <td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-medium ${STAGE_COLORS[op.stage]}`}>{op.stage}</span></td>
                     <td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[op.status]}`}>{op.status}</span></td>
@@ -171,7 +171,7 @@ export default function OpportunitiesPage() {
                         {next && op.status === "OPEN" && (
                           <button
                             onClick={() => patchOpportunity(op, { stage: next })}
-                            className="rounded border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs text-indigo-700 hover:bg-indigo-100"
+                            className="rounded border border-[var(--line)] bg-[var(--mist)] px-2 py-1 text-xs text-[var(--brand)] hover:bg-[var(--mist)]"
                           >
                             Move to {next}
                           </button>
@@ -211,21 +211,21 @@ export default function OpportunitiesPage() {
         <div className="fixed inset-0 z-50 flex justify-end bg-black/40" onClick={() => setSelected(null)}>
           <div className="h-full w-[420px] overflow-y-auto bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">{selected.title}</h2>
-              <button className="text-xl text-gray-400 hover:text-gray-700" onClick={() => setSelected(null)}>×</button>
+              <h2 className="text-lg font-bold text-[var(--ink)]">{selected.title}</h2>
+              <button className="text-xl text-[var(--ink-soft)] hover:text-[var(--ink-soft)]" onClick={() => setSelected(null)}>×</button>
             </div>
 
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">Lead</span><span>{selected.lead?.name ?? "—"}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Customer</span><span>{selected.customer?.name ?? "—"}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Value</span><span>₹{Number(selected.value).toLocaleString()}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Probability</span><span>{selected.probability}%</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Stage</span><span className={`rounded-full px-2 py-0.5 text-xs ${STAGE_COLORS[selected.stage]}`}>{selected.stage}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Status</span><span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_COLORS[selected.status]}`}>{selected.status}</span></div>
-              {selected.notes && <p className="mt-3 rounded border bg-gray-50 p-2 text-xs text-gray-600">{selected.notes}</p>}
+              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Lead</span><span>{selected.lead?.name ?? "—"}</span></div>
+              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Customer</span><span>{selected.customer?.name ?? "—"}</span></div>
+              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Value</span><span>₹{Number(selected.value).toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Probability</span><span>{selected.probability}%</span></div>
+              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Stage</span><span className={`rounded-full px-2 py-0.5 text-xs ${STAGE_COLORS[selected.stage]}`}>{selected.stage}</span></div>
+              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Status</span><span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_COLORS[selected.status]}`}>{selected.status}</span></div>
+              {selected.notes && <p className="mt-3 rounded border bg-[var(--mist)] p-2 text-xs text-[var(--ink-soft)]">{selected.notes}</p>}
             </div>
 
-            <div className="mt-5 rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-800">
+            <div className="mt-5 rounded-lg border border-[var(--line)] bg-[var(--mist)] p-3 text-xs text-[var(--brand)]">
               Lifecycle rule: only forward stage transitions are allowed, and status can move from OPEN to WON/LOST once.
             </div>
           </div>

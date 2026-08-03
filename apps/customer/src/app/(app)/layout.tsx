@@ -2,17 +2,10 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { BottomNav } from "@erp/ui";
 import { isAuthenticated } from "@/lib/api-client";
 import { cartCount, subscribeCart } from "@/lib/cart-store";
 import { IconCart, IconHome, IconOrders, IconProfile, IconShop } from "@/components/nav-icons";
-
-const NAV = [
-  { href: "/", label: "Home", Icon: IconHome },
-  { href: "/products", label: "Shop", Icon: IconShop },
-  { href: "/cart", label: "Cart", Icon: IconCart },
-  { href: "/orders", label: "Orders", Icon: IconOrders },
-  { href: "/profile", label: "Profile", Icon: IconProfile },
-];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -45,45 +38,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const navItems = [
+    { href: "/", label: "Home", icon: <IconHome className="nav-icon h-[var(--icon-md)] w-[var(--icon-md)]" /> },
+    { href: "/products", label: "Shop", icon: <IconShop className="nav-icon h-[var(--icon-md)] w-[var(--icon-md)]" /> },
+    {
+      href: "/cart",
+      label: "Cart",
+      icon: <IconCart className="nav-icon h-[var(--icon-md)] w-[var(--icon-md)]" />,
+      badge: count,
+    },
+    { href: "/orders", label: "Orders", icon: <IconOrders className="nav-icon h-[var(--icon-md)] w-[var(--icon-md)]" /> },
+    { href: "/profile", label: "Profile", icon: <IconProfile className="nav-icon h-[var(--icon-md)] w-[var(--icon-md)]" /> },
+  ];
+
   return (
     <div className="portal-shell">
       <div className="portal-frame relative flex flex-col">
-        <main className="flex-1 overflow-y-auto pb-4">{children}</main>
-
-        <nav
-          className="bottom-nav sticky bottom-0 z-50 mt-auto"
-          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-        >
-          <div className="flex px-1">
-            {NAV.map((item) => {
-              const active =
-                pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
-              const Icon = item.Icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`relative flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] font-semibold tracking-wide transition-colors ${
-                    active ? "text-[var(--forest-mid)]" : "text-[var(--ink-soft)]/55 hover:text-[var(--ink)]"
-                  }`}
-                >
-                  {active && (
-                    <span className="absolute top-0 h-0.5 w-8 rounded-full bg-[var(--amber)]" />
-                  )}
-                  <span className="relative">
-                    <Icon />
-                    {item.label === "Cart" && count > 0 && (
-                      <span className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--amber)] px-1 text-[9px] font-bold text-[var(--ink)]">
-                        {count > 9 ? "9+" : count}
-                      </span>
-                    )}
-                  </span>
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
+        <main className="flex-1 overflow-y-auto pb-2">{children}</main>
+        <BottomNav items={navItems} pathname={pathname} linkComponent={Link} />
       </div>
     </div>
   );

@@ -2,9 +2,18 @@
   "name": "@erp/process-forms",
   "version": "1.0.0",
   "private": true,
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./src/index.tsx",
+  "types": "./src/index.tsx",
+  "exports": {
+    ".": "./src/index.tsx",
+    "./form-designer.css": "./src/form-designer.css"
+  },
+  "dependencies": {
+    "@erp/ui": "workspace:*",
+    "@erp/workflow": "workspace:*"
+  },
   "peerDependencies": {
+    "@erp/ui": "workspace:*",
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0"
   },

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FormDefinition } from "@erp/workflow";
+import { Button, CartSummary, Container, PriceDisplay, SectionHeader, Skeleton } from "@erp/ui";
 import { api } from "@/lib/api-client";
 import { getCart, clearCart, saveCart, type CartItem } from "@/lib/cart-store";
 import { productImageUrl } from "@/lib/media";
@@ -221,25 +222,30 @@ export default function CheckoutPage() {
   );
 
   if (!ready) {
-    return <div className="flex justify-center py-16 text-sm text-[var(--ink-soft)]">Preparing checkout…</div>;
+    return (
+      <Container layout="wide" className="space-y-4 py-10">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-24 w-full" />
+        <p className="text-center text-sm text-[var(--ink-soft)]">Preparing checkout…</p>
+      </Container>
+    );
   }
 
   if (items.length === 0) return null;
 
   return (
-    <div className="pb-16">
-      <div className="px-4 py-4 md:px-8">
-        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--amber)]">Checkout</p>
-        <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">Place order</h1>
-        {profile && <p className="mt-1 text-sm text-[var(--ink-soft)]">Ordering as {profile.name}</p>}
-      </div>
+    <Container layout="wide" className="pb-28 pt-5">
+      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--amber)]">Checkout</p>
+      <SectionHeader title="Place order" className="mb-2" />
+      {profile ? <p className="mb-6 -mt-2 text-sm text-[var(--ink-soft)]">Ordering as {profile.name}</p> : null}
 
-      <section className="mb-4 px-4 md:px-8">
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-[var(--ink-soft)]">Items</h2>
-        <div className="space-y-2 rounded-2xl border border-[var(--line)] bg-white p-3">
+      <section className="mb-5">
+        <h2 className="mb-2 text-sm font-semibold text-[var(--ink)]">Items</h2>
+        <div className="space-y-2 rounded-[var(--radius)] border border-[var(--line)] bg-white p-3 shadow-[var(--shadow-sm)]">
           {items.map((i, idx) => (
             <div key={`${i.productId}-${i.variantId ?? ""}`} className="flex items-center gap-3 text-sm">
-              <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-[var(--mist)]">
+              <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[var(--radius-sm)] bg-[var(--mist)]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={i.imageUrl || productImageUrl({ id: i.productId, name: i.name }, idx)}
@@ -248,37 +254,33 @@ export default function CheckoutPage() {
                 />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="font-medium text-[var(--ink)] line-clamp-2">{i.name}</div>
+                <div className="line-clamp-2 font-medium text-[var(--ink)]">{i.name}</div>
                 <div className="text-xs text-[var(--ink-soft)]">
-                  Qty {i.qty} · ₹{Number(i.price).toLocaleString("en-IN")}
+                  Qty {i.qty} · <PriceDisplay amount={i.price} size="sm" className="inline" />
                 </div>
               </div>
-              <span className="font-semibold text-[var(--ink)]">
-                ₹{(i.price * i.qty).toLocaleString("en-IN")}
-              </span>
+              <PriceDisplay amount={i.price * i.qty} size="sm" />
             </div>
           ))}
         </div>
       </section>
 
-      <div className="mx-4 mb-4 rounded-2xl bg-[#f3efe6] p-4 text-sm md:mx-8">
-        <div className="flex justify-between text-[var(--ink-soft)]">
-          <span>Items ({items.length}) excl. GST</span>
-          <span>₹{subtotal.toLocaleString("en-IN")}</span>
-        </div>
-        <p className="mt-2 text-xs text-[var(--ink-soft)]">
-          GST is applied from each product’s tax rate when the order is created. Sales may adjust pricing later.
-        </p>
-      </div>
+      <CartSummary
+        itemCount={items.length}
+        totalLabel={`₹${subtotal.toLocaleString("en-IN")}`}
+        className="mb-2"
+      />
+      <p className="mb-5 text-xs text-[var(--ink-soft)]">
+        GST applies from each product’s tax rate when the order is created. Sales may adjust pricing later.
+      </p>
 
-      <section className="mb-4 px-4 md:px-8">
+      <section className="mb-5">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
-            Delivery address
-          </h2>
-          {!showNewAddr && (
-            <button
-              type="button"
+          <h2 className="text-sm font-semibold text-[var(--ink)]">Delivery address</h2>
+          {!showNewAddr ? (
+            <Button
+              variant="link"
+              size="sm"
               onClick={() => {
                 setAddressFields({
                   label: "Site",
@@ -290,32 +292,31 @@ export default function CheckoutPage() {
                 });
                 setShowNewAddr(true);
               }}
-              className="text-xs font-bold text-[var(--forest-mid)]"
             >
               + Add new
-            </button>
-          )}
+            </Button>
+          ) : null}
         </div>
 
-        {addresses.length > 0 && !showNewAddr && (
+        {addresses.length > 0 && !showNewAddr ? (
           <div className="space-y-2">
             {addresses.map((a) => (
               <button
                 key={a.id}
                 type="button"
                 onClick={() => setSelectedAddr(a.id)}
-                className={`w-full rounded-xl border p-3 text-left ${
+                className={`min-h-[var(--touch-min)] w-full rounded-[var(--radius)] border p-3 text-left transition-colors ${
                   selectedAddr === a.id
-                    ? "border-[#121a16] bg-[#f3efe6]"
+                    ? "border-[var(--ink)] bg-[var(--paper)]"
                     : "border-[var(--line)] bg-white"
                 }`}
               >
                 <span className="text-sm font-semibold text-[var(--ink)]">{a.label}</span>
-                {a.isDefault && (
+                {a.isDefault ? (
                   <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
                     Default
                   </span>
-                )}
+                ) : null}
                 <div className="mt-0.5 text-xs text-[var(--ink-soft)]">
                   {a.line1}, {a.city}
                   {a.state ? `, ${a.state}` : ""} – {a.pincode}
@@ -323,23 +324,19 @@ export default function CheckoutPage() {
               </button>
             ))}
           </div>
-        )}
+        ) : null}
 
-        {(showNewAddr || addresses.length === 0) && addressScreen && profile && (
-          <div className="mb-2 space-y-2 rounded-2xl border border-[var(--line)] bg-white p-4">
+        {(showNewAddr || addresses.length === 0) && addressScreen && profile ? (
+          <div className="mb-2 space-y-2 rounded-[var(--radius)] border border-[var(--line)] bg-white p-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-[var(--ink)]">
                 {addresses.length === 0 ? "Add delivery address" : "New address"}
               </p>
-              {addresses.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setShowNewAddr(false)}
-                  className="text-xs font-medium text-[var(--ink-soft)]"
-                >
+              {addresses.length > 0 ? (
+                <Button variant="ghost" size="sm" onClick={() => setShowNewAddr(false)}>
                   Cancel
-                </button>
-              )}
+                </Button>
+              ) : null}
             </div>
             <CustomerScreenController
               host={host}
@@ -367,36 +364,34 @@ export default function CheckoutPage() {
               }}
             />
           </div>
-        )}
+        ) : null}
       </section>
 
-      {error && (
-        <div className="mx-4 mb-3 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600 md:mx-8">{error}</div>
-      )}
-
-      {!showNewAddr && selectedAddr && (
-        <div className="px-4 md:px-8">
-          {screen && (
-            <CustomerScreenController
-              host={host}
-              screen={screen}
-              order={{
-                id: "checkout",
-                status: "DRAFT",
-                totalAmount: subtotal,
-              }}
-              customer={profile ? { id: profile.id, name: profile.name } : null}
-              fieldValues={fieldValues}
-              setFieldValue={(key, value) => setFieldValues((prev) => ({ ...prev, [key]: value }))}
-              busy={placing}
-              submitContext={{
-                onBusy: setPlacing,
-                onCheckoutSubmit: submitCheckout,
-              }}
-            />
-          )}
+      {error ? (
+        <div className="mb-3 rounded-[var(--radius)] bg-red-50 px-4 py-2.5 text-sm text-[var(--danger)]">
+          {error}
         </div>
-      )}
-    </div>
+      ) : null}
+
+      {!showNewAddr && selectedAddr && screen ? (
+        <CustomerScreenController
+          host={host}
+          screen={screen}
+          order={{
+            id: "checkout",
+            status: "DRAFT",
+            totalAmount: subtotal,
+          }}
+          customer={profile ? { id: profile.id, name: profile.name } : null}
+          fieldValues={fieldValues}
+          setFieldValue={(key, value) => setFieldValues((prev) => ({ ...prev, [key]: value }))}
+          busy={placing}
+          submitContext={{
+            onBusy: setPlacing,
+            onCheckoutSubmit: submitCheckout,
+          }}
+        />
+      ) : null}
+    </Container>
   );
 }

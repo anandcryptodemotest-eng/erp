@@ -1,6 +1,8 @@
 "use client";
+
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button, Chip, ChipGroup, Input } from "@erp/ui";
 import { saveAuth } from "@/lib/api-client";
 import { heroImageUrl } from "@/lib/media";
 import { resolveTenantDisplayName, resolveTenantSlug } from "@/lib/tenant";
@@ -67,8 +69,8 @@ export default function LoginPage() {
           backgroundPosition: "center",
         }}
       />
-      <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/15 bg-[color-mix(in_srgb,var(--paper)_94%,white)] shadow-[var(--shadow)]">
-        <div className="bg-[#121a16] px-6 py-7 text-white">
+      <div className="relative w-full max-w-md overflow-hidden rounded-[var(--radius)] border border-white/15 bg-[color-mix(in_srgb,var(--paper)_94%,white)] shadow-[var(--shadow)]">
+        <div className="bg-[var(--ink)] px-6 py-7 text-white">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--amber-soft)]">
             Customer portal
           </p>
@@ -77,55 +79,70 @@ export default function LoginPage() {
         </div>
 
         <div className="p-6">
-          <div className="mb-5 flex rounded-xl bg-[var(--mist)] p-1 text-sm font-semibold">
-            <button
-              type="button"
-              onClick={() => setMode("login")}
-              className={`flex-1 rounded-lg py-2.5 ${mode === "login" ? "bg-white text-[var(--ink)] shadow-sm" : "text-[var(--ink-soft)]/60"}`}
-            >
+          <ChipGroup className="mb-5">
+            <Chip active={mode === "login"} onClick={() => setMode("login")} className="flex-1 justify-center">
               Sign in
-            </button>
-            <button
-              type="button"
+            </Chip>
+            <Chip
+              active={mode === "register"}
               onClick={() => {
                 setMode("register");
                 setForm({ name: "", email: "", password: "", phone: "", companyName: "" });
                 setError("");
               }}
-              className={`flex-1 rounded-lg py-2.5 ${mode === "register" ? "bg-white text-[var(--ink)] shadow-sm" : "text-[var(--ink-soft)]/60"}`}
+              className="flex-1 justify-center"
             >
               Register
-            </button>
-          </div>
+            </Chip>
+          </ChipGroup>
 
           <form onSubmit={handleSubmit} className="space-y-3.5">
-            {mode === "register" && (
+            {mode === "register" ? (
               <>
-                <Field label="Your name" value={form.name} onChange={(v) => setForm((f) => ({ ...f, name: v }))} required />
-                <Field label="Company (optional)" value={form.companyName} onChange={(v) => setForm((f) => ({ ...f, companyName: v }))} />
-                <Field label="Phone" value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} />
+                <Field
+                  label="Your name"
+                  value={form.name}
+                  onChange={(v) => setForm((f) => ({ ...f, name: v }))}
+                  required
+                />
+                <Field
+                  label="Company (optional)"
+                  value={form.companyName}
+                  onChange={(v) => setForm((f) => ({ ...f, companyName: v }))}
+                />
+                <Field
+                  label="Phone"
+                  value={form.phone}
+                  onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+                />
               </>
-            )}
-            <Field label="Email" type="email" value={form.email} onChange={(v) => setForm((f) => ({ ...f, email: v }))} required />
-            <Field label="Password" type="password" value={form.password} onChange={(v) => setForm((f) => ({ ...f, password: v }))} required />
-            {error && <div className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600">{error}</div>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-dark btn-dark-block disabled:opacity-60"
-            >
-              {loading
-                ? mode === "login"
-                  ? "Signing in…"
-                  : "Creating account…"
-                : mode === "login"
-                  ? "Sign In"
-                  : "Create account"}
-            </button>
+            ) : null}
+            <Field
+              label="Email"
+              type="email"
+              value={form.email}
+              onChange={(v) => setForm((f) => ({ ...f, email: v }))}
+              required
+            />
+            <Field
+              label="Password"
+              type="password"
+              value={form.password}
+              onChange={(v) => setForm((f) => ({ ...f, password: v }))}
+              required
+            />
+            {error ? (
+              <div className="rounded-[var(--radius)] bg-red-50 px-4 py-2.5 text-sm text-[var(--danger)]">
+                {error}
+              </div>
+            ) : null}
+            <Button type="submit" size="block" loading={loading} disabled={loading}>
+              {mode === "login" ? "Sign in" : "Create account"}
+            </Button>
           </form>
-          <p className="mt-4 text-center text-xs text-[var(--ink-soft)]/55">
-          Need help signing in? Contact Trust Wood sales.
-        </p>
+          <p className="mt-4 text-center text-xs text-[var(--ink-soft)]">
+            Need help signing in? Contact Trust Wood sales.
+          </p>
         </div>
       </div>
     </div>
@@ -148,12 +165,12 @@ function Field({
   return (
     <div>
       <label className="mb-1 block text-xs font-semibold text-[var(--ink-soft)]">{label}</label>
-      <input
+      <Input
         type={type}
         required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[var(--amber)]/35"
+        className="min-h-[var(--touch-min)] rounded-[var(--radius)] border-[var(--line)] focus-visible:ring-[var(--forest)]"
       />
     </div>
   );

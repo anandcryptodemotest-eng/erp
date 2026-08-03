@@ -44,25 +44,31 @@ What the tenant manages under Catalog / Products:
 Admin **Products** → **+ New Product** opens one **Create Product** editor organized by **business domains**:
 
 ```text
-Identity → Commercial → Configuration → Pricing → Inventory → [Optional Settings] → Preview → Create
+Identity → Configuration → Commercial → Pricing → Inventory → [Optional Settings] → Preview → Create
 ```
 
 | Section | Contents |
 |---------|----------|
-| **Identity** | Category, Brand, Product Name |
-| **Commercial** | **Media** (gallery), Display Name, Description, Display Group |
+| **Identity** | Category, Brand, Product Name, Display Name, Display Group, Short Description |
 | **Configuration** | Category attribute options (not labeled “Attributes”) |
-| **Pricing** | Basis, price/rate, Price Variation |
+| **Commercial** | **Media** (gallery); variation by configuration when 2+ option values exist |
+| **Pricing** | Basis, price/rate, Price Variation (by configuration when applicable) |
 | **Inventory** | Cost, Opening Stock, Reorder (same values for every product in the batch) |
 | **Optional Settings** | Name/SKU/Barcode templates (collapsed) |
 | **Preview** | Primary media + Display Name + product checklist |
 
+Media and per-configuration pricing unlock after Configuration selections.
+
 - **Product Name** auto-suggests progressively (brand + category + single-valued configuration); multi-valued dimensions are omitted from the family title. Manual edit → touch-guard.
 - **Display Name** (`groupName`) tracks Product Name by default; shown in Customer Portal.
 - **Display Group** (`groupCode`) auto-slug; editable under Commercial.
-- **Media** uses shared `ProductMediaGallery` (Create + Edit). API body: `media: { images: string[] }` → persisted as `Product.imageUrls` on **every** SKU in the batch (v1 denormalization; commercial concern, not warehouse identity).
-- Helper: “These images will be shared by all products created here.”
-- **Preview** anchors on the primary image. CTA always **Create**.
+- **Media** uses shared `ProductMediaGallery` (Create + Edit). API: `media: { images, variation? }` → `Product.imageUrls` (always `string[]`).
+  - **Same:** one gallery copied to every SKU in the batch.
+  - **Vary by configuration:** `variation.attributes` (ordered) + `values` map → per-SKU images; missing value falls back to `media.images`.
+- Edit Product Media updates **only that SKU**; siblings are not regenerated.
+- Customer portal: group cards use aggregate images; configure uses **resolved SKU** `imageUrls` when `resolved.product != null`, else group; cart snapshots the configure image.
+- Resolve API: `ResolvedProduct.imageUrls: string[]` required (default `[]`).
+- Helper: “These images will be shared by all products created here.” (SAME mode)
 
 ### API
 

@@ -30,27 +30,27 @@ export default function EmployeesPage() {
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Employees</h1>
+        <h1 className="text-2xl font-bold text-[var(--ink)]">Employees</h1>
         <button onClick={() => setShowForm(true)} className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700">+ New Employee</button>
       </div>
       {msg && <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">{msg}</div>}
-      {loading ? <p className="text-gray-400">Loading…</p> : (
+      {loading ? <p className="text-[var(--ink-soft)]">Loading…</p> : (
         <div className="bg-white rounded-xl border overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
-              <tr>{["ID","Name","Position","Department","Salary"].map(h => <th key={h} className="px-4 py-3 text-left font-medium text-gray-600">{h}</th>)}</tr>
+            <thead className="bg-[var(--mist)] border-b">
+              <tr>{["ID","Name","Position","Department","Salary"].map(h => <th key={h} className="px-4 py-3 text-left font-medium text-[var(--ink-soft)]">{h}</th>)}</tr>
             </thead>
             <tbody className="divide-y">
               {employees.map(emp => (
-                <tr key={emp.id} className="hover:bg-gray-50">
+                <tr key={emp.id} className="hover:bg-[var(--mist)]">
                   <td className="px-4 py-3 font-mono text-xs">{emp.employeeId}</td>
                   <td className="px-4 py-3 font-medium">{emp.firstName} {emp.lastName}</td>
-                  <td className="px-4 py-3 text-gray-500">{emp.position}</td>
-                  <td className="px-4 py-3 text-gray-500">{emp.department}</td>
+                  <td className="px-4 py-3 text-[var(--ink-soft)]">{emp.position}</td>
+                  <td className="px-4 py-3 text-[var(--ink-soft)]">{emp.department}</td>
                   <td className="px-4 py-3 font-semibold">₹{emp.salary?.toLocaleString()}</td>
                 </tr>
               ))}
-              {employees.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">No employees yet</td></tr>}
+              {employees.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-[var(--ink-soft)]">No employees yet</td></tr>}
             </tbody>
           </table>
         </div>
@@ -59,7 +59,7 @@ export default function EmployeesPage() {
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 overflow-y-auto py-8">
           <div className="bg-white rounded-xl shadow-xl p-6 w-96">
-            <h2 className="font-bold text-gray-900 mb-4">New Employee</h2>
+            <h2 className="font-bold text-[var(--ink)] mb-4">New Employee</h2>
             <form onSubmit={create} className="space-y-3">
               {[
                 ["Employee ID","text","employeeId"],["First Name","text","firstName"],["Last Name","text","lastName"],
@@ -68,7 +68,7 @@ export default function EmployeesPage() {
                 ["Salary","number","salary"],["Hire Date","date","hireDate"],
               ].map(([label,type,key]) => (
                 <div key={key}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                  <label className="block text-sm font-medium text-[var(--ink-soft)] mb-1">{label}</label>
                   <input type={type} required={["employeeId","firstName","lastName","email","position","department","hireDate"].includes(key)}
                     value={(form as Record<string, string>)[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
                     className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
@@ -76,7 +76,7 @@ export default function EmployeesPage() {
               ))}
               <div className="flex gap-2 pt-2">
                 <button type="submit" className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-green-700">Create</button>
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg text-sm hover:bg-gray-200">Cancel</button>
+                <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-[var(--mist)] text-[var(--ink-soft)] py-2 rounded-lg text-sm hover:bg-gray-200">Cancel</button>
               </div>
             </form>
           </div>

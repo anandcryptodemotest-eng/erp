@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { verifyToken, extractToken } from "@erp/auth";
+import { verifyToken, verifyPlatformToken, extractToken } from "@erp/auth";
+import { canManageProcess } from "@erp/platform-core";
 
 const BUILTIN_ROLES = [
   "ADMIN",
@@ -20,6 +21,32 @@ const BUILTIN_ROLES = [
 const ROLES_KEY = "oms.roles";
 
 type Params = { params: Promise<{ id: string }> };
+
+/** Platform manageProcess or tenant membership may read roles. */
+async function requireRolesReader(request: Request, tenantId: string) {
+  const token = extractToken(request.headers.get("authorization"));
+  if (!token) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+
+  const platform = await verifyPlatformToken(token);
+  if (platform) {
+    if (!canManageProcess(platform.role)) {
+      return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+    }
+    const tenant = await prisma.tenant.findFirst({ where: { id: tenantId, isActive: true } });
+    if (!tenant) return { error: NextResponse.json({ error: "Tenant not found" }, { status: 404 }) };
+    return { scope: "platform" as const };
+  }
+
+  const auth = await verifyToken(token);
+  if (!auth) return { error: NextResponse.json({ error: "Invalid token" }, { status: 401 }) };
+  const caller = await prisma.tenantUser.findUnique({
+    where: { tenantId_userId: { tenantId, userId: auth.userId } },
+  });
+  if (!caller?.isActive) {
+    return { error: NextResponse.json({ error: "Tenant not found" }, { status: 404 }) };
+  }
+  return { scope: "tenant" as const, auth, caller };
+}
 
 async function requireMember(request: Request, tenantId: string) {
   const token = extractToken(request.headers.get("authorization"));
@@ -51,10 +78,10 @@ async function loadRoles(tenantId: string): Promise<string[]> {
   return [...new Set([...BUILTIN_ROLES, ...custom])];
 }
 
-/** GET /api/tenants/:id/roles */
+/** GET /api/tenants/:id/roles — tenant members or platform manageProcess */
 export async function GET(request: Request, { params }: Params) {
   const { id } = await params;
-  const gate = await requireMember(request, id);
+  const gate = await requireRolesReader(request, id);
   if ("error" in gate && gate.error) return gate.error;
 
   const roles = await loadRoles(id);

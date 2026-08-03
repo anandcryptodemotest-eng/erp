@@ -15,13 +15,13 @@ export interface KpiCardProps {
 }
 
 const COLOR_CLASSES: Record<NonNullable<KpiCardProps["color"]>, string> = {
-  indigo: "bg-indigo-50 text-indigo-600",
-  emerald: "bg-emerald-50 text-emerald-600",
-  amber: "bg-amber-50 text-amber-600",
-  red: "bg-red-50 text-red-600",
-  blue: "bg-blue-50 text-blue-600",
-  violet: "bg-violet-50 text-violet-600",
-  slate: "bg-slate-100 text-slate-600",
+  indigo: "bg-[var(--mist)] text-[var(--brand)]",
+  emerald: "bg-[color-mix(in_srgb,var(--success)_18%,transparent)] text-[var(--success)]",
+  amber: "bg-[color-mix(in_srgb,var(--accent)_22%,transparent)] text-[var(--accent)]",
+  red: "bg-[color-mix(in_srgb,var(--danger)_18%,transparent)] text-[var(--danger)]",
+  blue: "bg-[color-mix(in_srgb,var(--info)_18%,transparent)] text-[var(--info)]",
+  violet: "bg-[var(--mist)] text-[var(--brand-mid)]",
+  slate: "bg-[var(--mist)] text-[var(--ink-soft)]",
 };
 
 export function KpiCard({
@@ -40,23 +40,26 @@ export function KpiCard({
   const content = (
     <div
       className={cn(
-        "rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow",
-        clickable && "cursor-pointer hover:border-slate-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600",
-        !clickable && "hover:shadow-md",
+        "rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] p-5 shadow-[var(--shadow-sm)] transition-shadow",
+        clickable &&
+          "cursor-pointer hover:shadow-[var(--shadow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]",
+        !clickable && "hover:shadow-[var(--shadow)]",
         className
       )}
     >
       <div className="flex items-center justify-between">
         {Icon && (
           <span className={cn("inline-flex h-9 w-9 items-center justify-center rounded-full", COLOR_CLASSES[color])}>
-            <Icon className="h-4.5 w-4.5" />
+            <Icon className="h-4 w-4" />
           </span>
         )}
         {typeof trend === "number" && (
           <span
             className={cn(
               "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium",
-              trend >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+              trend >= 0
+                ? "bg-[color-mix(in_srgb,var(--success)_18%,transparent)] text-[var(--success)]"
+                : "bg-[color-mix(in_srgb,var(--danger)_18%,transparent)] text-[var(--danger)]"
             )}
           >
             {trend >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
@@ -64,11 +67,11 @@ export function KpiCard({
           </span>
         )}
       </div>
-      <div className="mt-3 text-sm text-slate-500">{label}</div>
-      <div className="text-2xl font-semibold text-slate-900 mt-0.5">{value}</div>
-      {subtext && <div className="text-xs text-slate-400 mt-1">{subtext}</div>}
+      <div className="mt-3 text-sm text-[var(--ink-soft)]">{label}</div>
+      <div className="mt-0.5 text-2xl font-semibold text-[var(--ink)]">{value}</div>
+      {subtext && <div className="mt-1 text-xs text-[var(--ink-soft)] opacity-80">{subtext}</div>}
       {clickable && !subtext && (
-        <div className="text-xs font-medium text-emerald-700 mt-2">View list →</div>
+        <div className="mt-2 text-xs font-medium text-[var(--brand-mid)]">View list →</div>
       )}
     </div>
   );

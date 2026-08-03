@@ -2,6 +2,8 @@
 
 > Modern SaaS ERP UI. Covers all 6 modules, 11 use cases, and 13 workflow diagrams.
 > Stack: Next.js 15 App Router + Tailwind CSS + @erp/ui shared components.
+>
+> **Customer / multi-app UI:** see [guides/design-system.md](./guides/design-system.md), [guides/themes.md](./guides/themes.md), and [guides/app-guidelines.md](./guides/app-guidelines.md). Admin indigo Inter palette below is legacy reference — live apps use foundation tokens.
 
 ---
 

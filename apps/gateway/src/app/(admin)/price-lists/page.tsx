@@ -1,6 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
+import { ActionGroup, Button, Trash2 } from "@erp/ui";
 import { api } from "@/lib/admin-api";
+
+const iconSm = { width: "var(--icon-sm)", height: "var(--icon-sm)" } as const;
+const deleteIconBtn =
+  "text-[var(--ink-soft)] hover:text-[var(--danger)] focus-visible:text-[var(--danger)]";
 
 interface PriceList {
   id: string;
@@ -47,12 +52,23 @@ export default function PriceListsPage() {
     }
   }
 
+  async function remove(list: PriceList) {
+    if (!confirm(`Delete price list "${list.name}"? It will be deactivated (soft delete).`)) return;
+    try {
+      await api(`/api/price-lists/${list.id}`, { method: "DELETE" });
+      setMsg(`Price list "${list.name}" deleted`);
+      load();
+    } catch (err: unknown) {
+      setMsg(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Price Lists</h1>
-          <p className="text-sm text-gray-500 mt-1">Operational list prices — quotes still run through @erp/pricing.</p>
+          <h1 className="text-2xl font-bold text-[var(--ink)]">Price Lists</h1>
+          <p className="text-sm text-[var(--ink-soft)] mt-1">Operational list prices — quotes still run through @erp/pricing.</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
@@ -63,14 +79,14 @@ export default function PriceListsPage() {
       </div>
       {msg && <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">{msg}</div>}
       {loading ? (
-        <p className="text-gray-400">Loading…</p>
+        <p className="text-[var(--ink-soft)]">Loading…</p>
       ) : (
         <div className="bg-white rounded-xl border overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-[var(--mist)] border-b">
               <tr>
-                {["Name", "Currency", "Default", "Active"].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left font-medium text-gray-600">
+                {["Name", "Currency", "Default", "Active", ""].map((h) => (
+                  <th key={h || "actions"} className="px-3 py-2.5 text-left font-medium text-[var(--ink-soft)]">
                     {h}
                   </th>
                 ))}
@@ -78,16 +94,31 @@ export default function PriceListsPage() {
             </thead>
             <tbody className="divide-y">
               {lists.map((l) => (
-                <tr key={l.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{l.name}</td>
-                  <td className="px-4 py-3 text-gray-500">{l.currency}</td>
-                  <td className="px-4 py-3">{l.isDefault ? "Yes" : "—"}</td>
-                  <td className="px-4 py-3">{l.isActive ? "Active" : "Inactive"}</td>
+                <tr key={l.id} className="hover:bg-[var(--mist)]">
+                  <td className="px-3 py-2.5 font-medium">{l.name}</td>
+                  <td className="px-3 py-2.5 text-[var(--ink-soft)]">{l.currency}</td>
+                  <td className="px-3 py-2.5">{l.isDefault ? "Yes" : "—"}</td>
+                  <td className="px-3 py-2.5">{l.isActive ? "Active" : "Inactive"}</td>
+                  <td className="px-3 py-2.5 text-right">
+                    <ActionGroup aria-label="Row actions">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className={deleteIconBtn}
+                        aria-label={`Delete price list ${l.name}`}
+                        title="Delete price list"
+                        onClick={() => void remove(l)}
+                      >
+                        <Trash2 style={iconSm} aria-hidden />
+                      </Button>
+                    </ActionGroup>
+                  </td>
                 </tr>
               ))}
               {lists.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={5} className="px-3 py-8 text-center text-[var(--ink-soft)]">
                     No price lists yet
                   </td>
                 </tr>
@@ -132,7 +163,7 @@ export default function PriceListsPage() {
               <button type="submit" className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-semibold">
                 Create
               </button>
-              <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-gray-100 py-2 rounded-lg text-sm">
+              <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-[var(--mist)] py-2 rounded-lg text-sm">
                 Cancel
               </button>
             </div>

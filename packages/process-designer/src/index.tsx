@@ -169,3 +169,9 @@ export function ProcessStudioHub(props: {
     </div>
   );
 }
+
+export {
+  WorkflowDesigner,
+  type WorkflowDesignerProps,
+  type WorkflowDesignerApi,
+} from "./WorkflowDesigner";

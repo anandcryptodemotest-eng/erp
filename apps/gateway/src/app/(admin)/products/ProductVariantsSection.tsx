@@ -1,6 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ActionGroup, Button, Trash2 } from "@erp/ui";
+
+const iconSm = { width: "var(--icon-sm)", height: "var(--icon-sm)" } as const;
+const deleteIconBtn =
+  "text-[var(--ink-soft)] hover:text-[var(--danger)] focus-visible:text-[var(--danger)]";
 
 type VariantRow = {
   id: string;
@@ -137,7 +142,7 @@ export function ProductVariantsSection({
   }
 
   async function deactivate(vid: string) {
-    if (!productId || !confirm("Deactivate this variant?")) return;
+    if (!productId || !confirm("Delete this variant? It will be hidden (soft delete).")) return;
     setBusy(true);
     try {
       await api(`/api/products/${productId}/variants/${vid}`, { method: "DELETE" });
@@ -152,7 +157,7 @@ export function ProductVariantsSection({
   return (
     <section className="pe-section">
       <h3 className="pe-section-title">Product structure & variants</h3>
-      <p className="text-xs text-gray-500 mb-3">
+      <p className="text-xs text-[var(--ink-soft)] mb-3">
         SIMPLE = one stockable identity. VARIANT = physical SKUs by axis (size, color…). Stock and OMS use variantId.
       </p>
 
@@ -180,10 +185,10 @@ export function ProductVariantsSection({
       {productStructure === "VARIANT" && (
         <>
           <div className="mb-3">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Variant axes</label>
+            <label className="block text-sm font-medium text-[var(--ink-soft)] mb-1">Variant axes</label>
             <div className="flex flex-wrap gap-2">
               {axisDefs.length === 0 && (
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-[var(--ink-soft)]">
                   Mark attributes as variant axes in Fields, or type keys below after selecting size/color defs.
                 </p>
               )}
@@ -194,7 +199,7 @@ export function ProductVariantsSection({
                     key={d.key}
                     type="button"
                     className={`rounded-lg border px-2.5 py-1 text-xs ${
-                      on ? "border-gray-800 bg-gray-900 text-white" : "border-gray-200 bg-white text-gray-700"
+                      on ? "border-gray-800 bg-[var(--ink)] text-white" : "border-[var(--line)] bg-[var(--surface-raised)] text-[var(--ink-soft)]"
                     }`}
                     onClick={() =>
                       onAxesChange(
@@ -213,11 +218,11 @@ export function ProductVariantsSection({
             const def = axisDefs.find((d) => d.key === key);
             return (
               <div key={key} className="mb-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1">
+                <label className="block text-xs font-medium text-[var(--ink-soft)] mb-1">
                   {def?.label ?? key} values (comma-separated)
                 </label>
                 <input
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
                   value={axisValues[key] ?? ""}
                   onChange={(e) => setAxisValues((v) => ({ ...v, [key]: e.target.value }))}
                   placeholder={def?.options?.length ? def.options.join(", ") : "8x4, 7x3"}
@@ -227,7 +232,7 @@ export function ProductVariantsSection({
           })}
 
           {!productId && (
-            <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 mb-3">
+            <p className="text-xs text-[var(--warning)] bg-amber-50 rounded-lg px-3 py-2 mb-3">
               Save the product first, then generate SKUs. Suggested prefix: {productSku || "(SKU)"}
             </p>
           )}
@@ -238,7 +243,7 @@ export function ProductVariantsSection({
                 type="button"
                 disabled={busy || !variantAxes.length}
                 onClick={() => void generateFromAxes()}
-                className="rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+                className="rounded-lg bg-[var(--ink)] px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
               >
                 Generate SKUs from axes
               </button>
@@ -248,19 +253,19 @@ export function ProductVariantsSection({
           {productId && (
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-4">
               <input
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
                 placeholder="SKU"
                 value={manualSku}
                 onChange={(e) => setManualSku(e.target.value)}
               />
               <input
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
                 placeholder="Name"
                 value={manualName}
                 onChange={(e) => setManualName(e.target.value)}
               />
               <input
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
                 placeholder="Cost (optional)"
                 value={manualCost}
                 onChange={(e) => setManualCost(e.target.value)}
@@ -269,7 +274,7 @@ export function ProductVariantsSection({
                 type="button"
                 disabled={busy}
                 onClick={() => void addManual()}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium"
+                className="rounded-lg border border-[var(--line)] px-3 py-2 text-xs font-medium"
               >
                 Add variant
               </button>
@@ -277,12 +282,12 @@ export function ProductVariantsSection({
           )}
 
           {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
-          {loading && <p className="text-xs text-gray-400">Loading variants…</p>}
+          {loading && <p className="text-xs text-[var(--ink-soft)]">Loading variants…</p>}
 
           {variants.length > 0 && (
-            <div className="overflow-x-auto rounded-lg border border-gray-100">
+            <div className="overflow-x-auto rounded-lg border border-[var(--line)]">
               <table className="min-w-full text-left text-xs">
-                <thead className="bg-gray-50 text-gray-500">
+                <thead className="bg-[var(--mist)] text-[var(--ink-soft)]">
                   <tr>
                     <th className="px-3 py-2 font-medium">SKU</th>
                     <th className="px-3 py-2 font-medium">Name</th>
@@ -294,10 +299,10 @@ export function ProductVariantsSection({
                 </thead>
                 <tbody>
                   {variants.map((v) => (
-                    <tr key={v.id} className="border-t border-gray-100">
+                    <tr key={v.id} className="border-t border-[var(--line)]">
                       <td className="px-3 py-2 font-mono">{v.sku}</td>
                       <td className="px-3 py-2">{v.name}</td>
-                      <td className="px-3 py-2 text-gray-600">
+                      <td className="px-3 py-2 text-[var(--ink-soft)]">
                         {Object.entries(v.attributes ?? {})
                           .map(([k, val]) => `${k}=${val}`)
                           .join(", ")}
@@ -306,14 +311,20 @@ export function ProductVariantsSection({
                       <td className="px-3 py-2">
                         {(v.stocks ?? []).reduce((s, r) => s + (r.quantity ?? 0), 0)}
                       </td>
-                      <td className="px-3 py-2 text-right">
-                        <button
-                          type="button"
-                          className="text-red-600 hover:underline"
-                          onClick={() => void deactivate(v.id)}
-                        >
-                          Deactivate
-                        </button>
+                      <td className="px-3 py-2.5 text-right">
+                        <ActionGroup aria-label="Row actions">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className={deleteIconBtn}
+                            aria-label={`Delete variant ${v.name}`}
+                            title="Delete variant"
+                            onClick={() => void deactivate(v.id)}
+                          >
+                            <Trash2 style={iconSm} aria-hidden />
+                          </Button>
+                        </ActionGroup>
                       </td>
                     </tr>
                   ))}

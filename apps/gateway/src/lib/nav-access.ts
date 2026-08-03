@@ -204,13 +204,13 @@ export function canAccessModule(
   return allowed.has(moduleKey);
 }
 
-/** First landing path for a role after login — OMS desk for trading journey. */
+/** First landing path for a role after login — Sales Desk for trading journey. */
 export function defaultHomePath(allowed: Set<NavModuleKey>): string {
   if (allowed.has("oms") && !allowed.has("sales_flow")) {
-    return "/oms";
+    return "/sales-desk";
   }
   if (allowed.has("dashboard")) return "/dashboard";
-  if (allowed.has("oms")) return "/oms";
+  if (allowed.has("oms")) return "/sales-desk";
   const first = ALL_NAV_MODULES.find((m) => allowed.has(m));
   const hrefByKey: Partial<Record<NavModuleKey, string>> = {
     dashboard: "/dashboard",
@@ -221,7 +221,7 @@ export function defaultHomePath(allowed: Set<NavModuleKey>): string {
     quotes: "/quotes",
     orders: "/orders",
     products: "/products",
-    oms: "/oms",
+    oms: "/sales-desk",
     workflows: "/workflows",
     configuration: "/configuration",
     administration: "/administration",
@@ -244,7 +244,7 @@ export function pathToModuleKey(pathname: string): NavModuleKey | null {
   if (pathname.startsWith("/quotes")) return "quotes";
   if (pathname.startsWith("/orders")) return "orders";
   if (pathname.startsWith("/products") || pathname.startsWith("/attributes") || pathname.startsWith("/categories") || pathname.startsWith("/brands") || pathname.startsWith("/price-lists")) return "products";
-  if (pathname.startsWith("/oms")) return "oms";
+  if (pathname.startsWith("/sales-desk") || pathname.startsWith("/oms")) return "oms";
   if (pathname.startsWith("/workflows")) return "workflows";
   if (pathname.startsWith("/configuration") || pathname.startsWith("/forms")) return "configuration";
   if (pathname.startsWith("/administration")) return "administration";

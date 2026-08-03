@@ -34,8 +34,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   } as CSSProperties;
 
   return (
-    <html lang="en" className={`${display.variable} ${body.variable}`} data-scroll-behavior="smooth">
-      <body className="min-h-screen antialiased" style={fontVars}>
+    <html
+      lang="en"
+      className={`${display.variable} ${body.variable}`}
+      data-scroll-behavior="smooth"
+      data-theme="trustwood"
+      data-density="dense"
+    >
+      <body className="min-h-screen antialiased erp-canvas" style={fontVars}>
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>

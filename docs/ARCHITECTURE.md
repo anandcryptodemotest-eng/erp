@@ -1,7 +1,7 @@
 ﻿# ERP System — Full Architecture & Design Document
 
 > **Status:** Living document. Update UC implementation status as each use case is completed.
-> **Last updated:** May 2026 — v2 adds Sales Return / Credit Note, Purchase Return / Debit Note, partial shipment, partial PO receipt, TDS slabs, credit limit enforcement, payment terms, AuditLog, Notification, BankAccount, Activity, JWT refresh, password reset, multi-tenant switching.
+> **Last updated:** Aug 2026 — TrustWood ERP Platform v1.0 (ADR 0015–0017). Gateway is identity + tenant admin UI host + BFF rewrites (port **3010**, not 3000). Domain services remain DB-per-service. Prefer **migrate-when-touched** over rewrites (ADR 0016). UI: one TrustWood brand, shared AdminShell, Process Designer package (ADR 0015).
 
 ---
 
@@ -23,13 +23,14 @@
 
 ## 1. System Overview
 
-A **multi-tenant SaaS ERP** built as a Turborepo monorepo of independent Next.js App Router services. Each service owns its own PostgreSQL database and business domain. A single API Gateway authenticates users and proxies all requests to downstream services.
+A **multi-tenant SaaS ERP** built as a Turborepo monorepo of independent Next.js App Router services. Each domain service owns its own PostgreSQL database. The **gateway** authenticates users, hosts Tenant Admin UI, and **rewrites** browser `/api/*` to domain services (BFF). Platform Admin is a separate UI host (`:3011`) calling gateway platform APIs.
 
 ```
                          +------------------------------------------+
-  Browser / API Client ->  Gateway  :3000                           |
+  Browser / nginx     ->  Gateway  :3010                            |
                          |  Auth . Tenants . Licensing              |
-                         |  Notifications . Audit Trail             |
+                         |  Tenant Admin UI . BFF rewrites          |
+                         |  Platform APIs . Audit                   |
                          +--------------------+---------------------+
                                               |  JWT  +  x-service-key
              +--------------------------------+----------------------------+
@@ -84,7 +85,7 @@ all services -> gateway     JWT verified locally (no HTTP call)
 
 | Service     | Port | Owns                                                                              | Calls                       |
 |-------------|------|-----------------------------------------------------------------------------------|-----------------------------|
-| gateway     | 3000 | Users, Tenants, Licenses, Settings, Invitations, Notifications, AuditLog         | --                          |
+| gateway     | 3010 | Users, Tenants, Licenses, Settings, Invitations, Notifications, AuditLog, Tenant Admin UI, BFF rewrites | Platform UI :3011 |
 | sales       | 3001 | Leads, Opportunities, Activities, Quotes, Orders, SalesReturns, Customers        | inventory, accounting       |
 | inventory   | 3002 | Categories, Products, Variants, PriceLists, Warehouses, Stock, BOM               | --                          |
 | accounting  | 3003 | CoA, Journals, Invoices, CreditNotes, DebitNotes, Payments, Tax, Assets, FX      | --                          |

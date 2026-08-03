@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@erp/types"],
+  transpilePackages: ["@erp/types", "@erp/ui"],
 };
 
 export default nextConfig;

@@ -187,6 +187,7 @@ export async function getCatalogGroup(tenantId: string, groupCode: string) {
       pricingBasis: p.pricingBasis,
       baseRate: p.baseRate,
       pricingUom: p.pricingUom,
+      imageUrls: Array.isArray(p.imageUrls) ? (p.imageUrls as string[]).filter(Boolean) : [],
       available: p.stocks.reduce((s, st) => s + (st.quantity - st.reservedQty), 0),
     })),
   };
@@ -238,6 +239,7 @@ export async function resolveCatalogSelection(
   }
 
   const p = matching[0];
+  const imageUrls = Array.isArray(p.imageUrls) ? (p.imageUrls as string[]).filter(Boolean) : [];
   return {
     completeness: { complete: true, missing: [], unique: true, candidates: 1 },
     product: {
@@ -249,6 +251,8 @@ export async function resolveCatalogSelection(
       baseRate: p.baseRate,
       pricingUom: p.pricingUom,
       customAttributes: p.customAttributes,
+      /** Required contract: always string[]; never omit / undefined */
+      imageUrls,
     },
     stock: { available: p.available },
     hint: null,

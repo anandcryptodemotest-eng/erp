@@ -123,7 +123,7 @@ export default function FormsCatalogPage() {
   return (
     <div className="space-y-6">
       <div>
-        <div className="mb-1 text-xs text-slate-500">
+        <div className="mb-1 text-xs text-[var(--ink-soft)]">
           <Link href="/configuration" className="hover:underline">
             Configuration
           </Link>
@@ -131,9 +131,9 @@ export default function FormsCatalogPage() {
           Forms
         </div>
         <PageHeader title="Form catalog" />
-        <p className="-mt-4 mb-6 text-sm text-slate-500">
+        <p className="-mt-4 mb-6 text-sm text-[var(--ink-soft)]">
           Independently versioned FORM assets. Workflows reference them with{" "}
-          <code className="rounded bg-slate-100 px-1 text-xs">assetRef</code>. Published versions are immutable —
+          <code className="rounded bg-[var(--mist)] px-1 text-xs">assetRef</code>. Published versions are immutable —
           clone to draft to edit. Catalog starts empty — build your own, or restore starter forms if you want a
           reference.
         </p>
@@ -143,11 +143,11 @@ export default function FormsCatalogPage() {
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>
       )}
 
-      <div className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-white p-4">
-        <label className="block text-xs text-slate-500">
+      <div className="flex flex-wrap items-end gap-2 rounded-xl border border-[var(--line)] bg-white p-4">
+        <label className="block text-xs text-[var(--ink-soft)]">
           New form id
           <input
-            className="mt-0.5 block w-56 rounded border border-slate-200 px-2 py-1.5 text-sm"
+            className="mt-0.5 block w-56 rounded border border-[var(--line)] px-2 py-1.5 text-sm"
             placeholder="my-custom-form"
             value={newId}
             onChange={(e) => setNewId(e.target.value)}
@@ -165,7 +165,7 @@ export default function FormsCatalogPage() {
           type="button"
           disabled={busy === "seed"}
           onClick={() => void restoreStarters()}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--ink-soft)] hover:bg-[var(--mist)] disabled:opacity-50"
           title="Loads published SO_STANDARD starter forms only if missing for each form id"
         >
           Restore starter forms
@@ -173,9 +173,9 @@ export default function FormsCatalogPage() {
       </div>
 
       {!loading && latestByForm.length === 0 && (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/80 px-6 py-10 text-center space-y-3">
-          <p className="text-sm font-medium text-slate-800">No forms yet — blank slate</p>
-          <p className="text-sm text-slate-500 max-w-lg mx-auto">
+        <div className="rounded-xl border border-dashed border-[var(--line)] bg-[var(--mist)]/80 px-6 py-10 text-center space-y-3">
+          <p className="text-sm font-medium text-[var(--ink)]">No forms yet — blank slate</p>
+          <p className="text-sm text-[var(--ink-soft)] max-w-lg mx-auto">
             Create a draft, add widgets in the designer, and use the live task simulation on the right to see how
             the OMS task screen will look. When you are ready, I can review your form layout and fields.
           </p>
@@ -192,7 +192,7 @@ export default function FormsCatalogPage() {
               type="button"
               disabled={busy === "seed"}
               onClick={() => void restoreStarters()}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              className="rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm font-medium text-[var(--ink-soft)] hover:bg-[var(--mist)] disabled:opacity-50"
             >
               Restore starter forms
             </button>
@@ -201,9 +201,9 @@ export default function FormsCatalogPage() {
       )}
 
       {(loading || latestByForm.length > 0) && (
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div className="rounded-xl border border-[var(--line)] bg-white overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-[var(--mist)] text-left text-xs uppercase tracking-wide text-[var(--ink-soft)]">
             <tr>
               <th className="px-4 py-3">Form</th>
               <th className="px-4 py-3">Latest</th>
@@ -212,25 +212,25 @@ export default function FormsCatalogPage() {
               <th className="px-4 py-3" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[var(--line)]">
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={5} className="px-4 py-8 text-center text-[var(--ink-soft)]">
                   Loading…
                 </td>
               </tr>
             ) : (
               latestByForm.map((row) => (
-                <tr key={row.formId} className="hover:bg-slate-50/80">
+                <tr key={row.formId} className="hover:bg-[var(--mist)]/80">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-slate-900">{row.name ?? row.formId}</div>
-                    <div className="text-xs text-slate-400">{row.formId}</div>
+                    <div className="font-medium text-[var(--ink)]">{row.name ?? row.formId}</div>
+                    <div className="text-xs text-[var(--ink-soft)]">{row.formId}</div>
                   </td>
                   <td className="px-4 py-3">v{row.version}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={row.lifecycle} />
                   </td>
-                  <td className="px-4 py-3 text-slate-500">
+                  <td className="px-4 py-3 text-[var(--ink-soft)]">
                     {new Date(row.updatedAt).toLocaleString()}
                   </td>
                   <td className="px-4 py-3 text-right space-x-2">
@@ -244,7 +244,7 @@ export default function FormsCatalogPage() {
                       type="button"
                       disabled={busy === row.id}
                       onClick={() => void clone(row.id)}
-                      className="text-slate-600 hover:underline disabled:opacity-50"
+                      className="text-[var(--ink-soft)] hover:underline disabled:opacity-50"
                     >
                       Clone draft
                     </button>

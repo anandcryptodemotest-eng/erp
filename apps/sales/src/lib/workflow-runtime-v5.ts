@@ -20,6 +20,11 @@ import { bootstrapSalesWorkflowPlatform } from "@/workflow-adapter";
 import { defaultAdapterRegistry } from "@erp/workflow";
 import { resolveAndValidateWorkflowForms } from "@/lib/form-catalog";
 import { withSpan, recordEvent } from "@erp/telemetry";
+import { writeWorkflowAudit } from "@/lib/workflow-audit";
+import {
+  activityPermissionsFromSnapshot,
+  assertWorkflowTaskAction,
+} from "@/lib/workflow-task-auth";
 
 const LEASE_MS = 15 * 60 * 1000;
 
@@ -177,9 +182,27 @@ async function startSalesOrderWorkflowV5Inner(input: {
         phase: "FULFILL",
       },
     });
+    await writeWorkflowAudit({
+      tenantId: input.tenantId,
+      workflowInstanceId: instance.id,
+      salesOrderId: input.salesOrderId,
+      type: "TASK_CREATED",
+      stepKey: a.key,
+      action: actionForType(a.type),
+      toStatus: "WAITING",
+      payload: { taskType: a.type, kind: a.kind, assignedRole: roleForActivity(a) },
+    });
   }
 
   await syncTaskReadiness(instance.id);
+  await writeWorkflowAudit({
+    tenantId: input.tenantId,
+    workflowInstanceId: instance.id,
+    salesOrderId: input.salesOrderId,
+    type: "WORKFLOW_STARTED",
+    toStatus: "RUNNING",
+    payload: { template: snapshot.template, version: snapshot.version },
+  });
   await defaultEventBus.publish(
     createEvent({
       type: "WORKFLOW_STARTED",
@@ -224,11 +247,22 @@ export async function syncTaskReadiness(instanceId: string) {
   for (const key of result.skippedKeys) {
     const task = instance.tasks.find((t) => t.stepKey === key);
     if (task && !["COMPLETED", "SKIPPED", "CANCELLED"].includes(task.status)) {
+      const fromStatus = task.status;
       await prisma.workflowTask.update({
         where: { id: task.id },
         data: { status: "SKIPPED", completedAt: new Date() },
       });
       terminal[key] = "SKIPPED";
+      await writeWorkflowAudit({
+        tenantId: instance.tenantId,
+        workflowInstanceId: instance.id,
+        salesOrderId: instance.salesOrderId,
+        type: "TASK_SKIPPED",
+        stepKey: task.stepKey,
+        action: task.action,
+        fromStatus,
+        toStatus: "SKIPPED",
+      });
     }
   }
 
@@ -241,9 +275,20 @@ export async function syncTaskReadiness(instanceId: string) {
     }
     if (result2.readyKeys.includes(t.stepKey)) {
       if (t.status !== "READY") {
+        const fromStatus = t.status;
         await prisma.workflowTask.update({
           where: { id: t.id },
           data: { status: "READY" },
+        });
+        await writeWorkflowAudit({
+          tenantId: instance.tenantId,
+          workflowInstanceId: instance.id,
+          salesOrderId: instance.salesOrderId,
+          type: "TASK_READY",
+          stepKey: t.stepKey,
+          action: t.action,
+          fromStatus,
+          toStatus: "READY",
         });
         await defaultEventBus.publish(
           createEvent({
@@ -297,6 +342,16 @@ export async function claimPlatformTask(input: {
     }
   }
 
+  const instance = await prisma.workflowInstance.findFirst({ where: { id: task.workflowInstanceId } });
+  assertWorkflowTaskAction({
+    task,
+    action: "claim",
+    role: input.actorRole,
+    userId: input.actorUserId,
+    permissions: activityPermissionsFromSnapshot(instance?.snapshot, task.stepKey),
+  });
+
+  const fromStatus = task.status;
   const updated = await prisma.workflowTask.update({
     where: { id: task.id },
     data: {
@@ -308,8 +363,19 @@ export async function claimPlatformTask(input: {
     },
   });
 
-  const instance = await prisma.workflowInstance.findFirst({ where: { id: task.workflowInstanceId } });
   if (instance) {
+    await writeWorkflowAudit({
+      tenantId: task.tenantId,
+      workflowInstanceId: instance.id,
+      salesOrderId: task.salesOrderId,
+      type: "TASK_CLAIMED",
+      stepKey: task.stepKey,
+      action: task.action,
+      fromStatus,
+      toStatus: "CLAIMED",
+      actorUserId: input.actorUserId,
+      actorRole: input.actorRole,
+    });
     await defaultEventBus.publish(
       createEvent({
         type: "TASK_CLAIMED",
@@ -327,25 +393,43 @@ export async function claimPlatformTask(input: {
   return updated;
 }
 
-export async function renewPlatformTaskLease(input: { taskId: string; actorUserId: string }) {
+export async function renewPlatformTaskLease(input: {
+  taskId: string;
+  actorUserId: string;
+  actorRole?: string | null;
+}) {
   const task = await prisma.workflowTask.findFirst({ where: { id: input.taskId } });
   if (!task) throw new Error("Task not found");
-  if (task.status !== "CLAIMED" || task.assignedUserId !== input.actorUserId) {
-    throw new Error("Only the claim holder can renew the lease");
+  if (task.status !== "CLAIMED") {
+    throw new Error("Only claimed tasks can renew a lease");
   }
+  assertWorkflowTaskAction({
+    task,
+    action: "renew",
+    role: input.actorRole,
+    userId: input.actorUserId,
+  });
   return prisma.workflowTask.update({
     where: { id: task.id },
     data: { leaseExpiresAt: new Date(Date.now() + LEASE_MS), rowVersion: { increment: 1 } },
   });
 }
 
-export async function releasePlatformTask(input: { taskId: string; actorUserId: string }) {
+export async function releasePlatformTask(input: {
+  taskId: string;
+  actorUserId: string;
+  actorRole?: string | null;
+}) {
   const task = await prisma.workflowTask.findFirst({ where: { id: input.taskId } });
   if (!task) throw new Error("Task not found");
-  if (task.assignedUserId && task.assignedUserId !== input.actorUserId) {
-    throw new Error("Only the claim holder can release");
-  }
-  return prisma.workflowTask.update({
+  assertWorkflowTaskAction({
+    task,
+    action: "release",
+    role: input.actorRole,
+    userId: input.actorUserId,
+  });
+  const fromStatus = task.status;
+  const updated = await prisma.workflowTask.update({
     where: { id: task.id },
     data: {
       status: "READY",
@@ -355,6 +439,19 @@ export async function releasePlatformTask(input: { taskId: string; actorUserId: 
       rowVersion: { increment: 1 },
     },
   });
+  await writeWorkflowAudit({
+    tenantId: task.tenantId,
+    workflowInstanceId: task.workflowInstanceId,
+    salesOrderId: task.salesOrderId,
+    type: "TASK_RELEASED",
+    stepKey: task.stepKey,
+    action: task.action,
+    fromStatus,
+    toStatus: "READY",
+    actorUserId: input.actorUserId,
+    actorRole: input.actorRole,
+  });
+  return updated;
 }
 
 export async function completePlatformTask(input: {
@@ -387,6 +484,14 @@ async function completePlatformTaskInner(input: {
     where: { id: task.workflowInstanceId },
   });
   if (!instance?.snapshot) throw new Error("Workflow instance missing snapshot");
+
+  assertWorkflowTaskAction({
+    task,
+    action: "complete",
+    role: input.actorRole,
+    userId: input.actorUserId,
+    permissions: activityPermissionsFromSnapshot(instance.snapshot, task.stepKey),
+  });
 
   const def = instance.snapshot as unknown as WorkflowDefinition;
   const activity = def.activities.find((a) => a.key === task.stepKey);
@@ -434,6 +539,7 @@ async function completePlatformTaskInner(input: {
   const nextVars = mergeVariables(variables, result.variablesPatch);
   const projection = await adapter.project(ctx.task, { ...ctx, variables: nextVars });
   const statusHint = result.projectionStatus ?? projection.status ?? activity?.projectionStatus;
+  const fromStatus = task.status;
 
   await prisma.workflowTask.update({
     where: { id: task.id },
@@ -460,7 +566,32 @@ async function completePlatformTaskInner(input: {
       where: { id: instance.salesOrderId },
       data: { status: statusHint },
     });
+    await writeWorkflowAudit({
+      tenantId: instance.tenantId,
+      workflowInstanceId: instance.id,
+      salesOrderId: instance.salesOrderId,
+      type: "STATUS_SYNC",
+      stepKey: task.stepKey,
+      action: task.action,
+      toStatus: statusHint,
+      actorUserId: input.actorUserId,
+      actorRole: input.actorRole,
+    });
   }
+
+  await writeWorkflowAudit({
+    tenantId: instance.tenantId,
+    workflowInstanceId: instance.id,
+    salesOrderId: instance.salesOrderId,
+    type: "TASK_COMPLETED",
+    stepKey: task.stepKey,
+    action: task.action,
+    fromStatus,
+    toStatus: "COMPLETED",
+    actorUserId: input.actorUserId,
+    actorRole: input.actorRole,
+    payload: { projectionStatus: statusHint },
+  });
 
   await defaultEventBus.publish(
     createEvent({
@@ -484,7 +615,6 @@ async function completePlatformTaskInner(input: {
 
   await syncTaskReadiness(instance.id);
 
-  // Mark workflow complete if all terminal
   const left = await prisma.workflowTask.count({
     where: {
       workflowInstanceId: instance.id,
@@ -495,6 +625,15 @@ async function completePlatformTaskInner(input: {
     await prisma.workflowInstance.update({
       where: { id: instance.id },
       data: { instanceStatus: "COMPLETED", completedAt: new Date() },
+    });
+    await writeWorkflowAudit({
+      tenantId: instance.tenantId,
+      workflowInstanceId: instance.id,
+      salesOrderId: instance.salesOrderId,
+      type: "WORKFLOW_COMPLETED",
+      toStatus: "COMPLETED",
+      actorUserId: input.actorUserId,
+      actorRole: input.actorRole,
     });
     await defaultEventBus.publish(
       createEvent({

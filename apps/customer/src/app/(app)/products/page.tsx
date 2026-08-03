@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Chip, ProductCard, SearchBar, SectionHeader, Skeleton, Container } from "@erp/ui";
 import { api } from "@/lib/api-client";
 import { productImageUrl } from "@/lib/media";
 
@@ -55,56 +56,46 @@ function ShopContent() {
     if (g.pricingBasis && g.pricingBasis !== "PER_EACH" && g.baseRate != null) {
       return `From ₹${g.baseRate}/${g.pricingUom || "unit"}`;
     }
-    if (g.startingSellPrice != null) return `From ₹${g.startingSellPrice}`;
+    if (g.startingSellPrice != null) return `From ₹${Number(g.startingSellPrice).toLocaleString("en-IN")}`;
     return "Configure for price";
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="flex items-end justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Products</h1>
-        <Link href="/products/all" className="text-sm text-gray-500 underline shrink-0">
-          Browse all SKUs
-        </Link>
-      </div>
+    <Container layout="wide" className="py-6 md:py-8">
+      <SectionHeader
+        title="Shop"
+        action={
+          <Link href="/products/all" className="text-sm font-semibold text-[var(--forest-mid)] underline-offset-2 hover:underline">
+            All SKUs
+          </Link>
+        }
+      />
 
-      <div className="flex flex-wrap gap-3 mb-6">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search…"
-          className="border rounded-lg px-3 py-2 text-sm flex-1 min-w-[180px]"
-        />
+      <div className="mb-6 space-y-3">
+        <SearchBar value={search} onChange={setSearch} placeholder="Search products…" />
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setCategoryId("")}
-            className={`px-3 py-1.5 rounded-full text-sm ${!categoryId ? "bg-gray-900 text-white" : "bg-gray-100"}`}
-          >
+          <Chip active={!categoryId} onClick={() => setCategoryId("")}>
             All
-          </button>
+          </Chip>
           {categories.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => setCategoryId(c.id)}
-              className={`px-3 py-1.5 rounded-full text-sm ${
-                categoryId === c.id ? "bg-gray-900 text-white" : "bg-gray-100"
-              }`}
-            >
+            <Chip key={c.id} active={categoryId === c.id} onClick={() => setCategoryId(c.id)}>
               {c.name}
-            </button>
+            </Chip>
           ))}
         </div>
       </div>
 
       {loading ? (
-        <p className="text-gray-400">Loading…</p>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 md:gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="aspect-[3/4] w-full rounded-[var(--radius)]" />
+          ))}
+        </div>
       ) : groups.length === 0 ? (
-        <div className="text-center py-16 text-gray-500">
-          <p>No product groups yet.</p>
-          <p className="text-sm mt-2">
-            Admin: create Multiple Products with a Group code, or browse{" "}
+        <div className="rounded-[var(--radius)] border border-dashed border-[var(--line)] bg-white/60 px-4 py-16 text-center text-[var(--ink-soft)]">
+          <p className="font-semibold text-[var(--ink)]">No products yet</p>
+          <p className="mt-2 text-sm">
+            Check back soon, or browse{" "}
             <Link href="/products/all" className="underline">
               all SKUs
             </Link>
@@ -112,42 +103,37 @@ function ShopContent() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {groups.map((g) => {
-            const img = productImageUrl({
-              name: g.groupName,
-              imageUrls: g.imageUrls.length ? g.imageUrls : undefined,
-            });
-            return (
-              <Link
-                key={g.groupCode}
-                href={`/catalog/${encodeURIComponent(g.groupCode)}`}
-                className="border rounded-xl overflow-hidden bg-white hover:shadow-md transition-shadow"
-              >
-                <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img} alt="" className="w-full h-full object-cover" />
-                </div>
-                <div className="p-3">
-                  <div className="font-medium text-gray-900 text-sm line-clamp-2">{g.groupName}</div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {[g.brandName, g.categoryName].filter(Boolean).join(" · ")}
-                  </div>
-                  <div className="text-sm font-semibold text-gray-800 mt-2">{priceLabel(g)}</div>
-                  <div className="text-xs text-gray-400 mt-1">{g.productCount} options</div>
-                </div>
-              </Link>
-            );
-          })}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 md:gap-4">
+          {groups.map((g) => (
+            <ProductCard
+              key={g.groupCode}
+              href={`/catalog/${encodeURIComponent(g.groupCode)}`}
+              title={g.groupName}
+              subtitle={[g.brandName, g.categoryName].filter(Boolean).join(" · ")}
+              imageUrl={productImageUrl({
+                name: g.groupName,
+                imageUrls: g.imageUrls.length ? g.imageUrls : undefined,
+              })}
+              priceLabel={priceLabel(g)}
+              meta={`${g.productCount} option${g.productCount === 1 ? "" : "s"}`}
+            />
+          ))}
         </div>
       )}
-    </div>
+    </Container>
   );
 }
 
 export default function ProductsPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-gray-400">Loading…</div>}>
+    <Suspense
+      fallback={
+        <Container className="py-8">
+          <Skeleton className="mb-4 h-8 w-40" />
+          <Skeleton className="h-11 w-full rounded-[var(--radius-full)]" />
+        </Container>
+      }
+    >
       <ShopContent />
     </Suspense>
   );

@@ -2,6 +2,16 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import {
+  Button,
+  Chip,
+  Container,
+  EmptyState,
+  ProductCard,
+  SearchBar,
+  SectionHeader,
+  Skeleton,
+} from "@erp/ui";
 import { api } from "@/lib/api-client";
 import { productImageUrl } from "@/lib/media";
 
@@ -83,119 +93,125 @@ function ShopContent() {
   const filterableSelects = attrDefs.filter((d) => optionList(d.options).length > 0);
 
   return (
-    <div className="pb-6">
-      <div className="sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--paper)]/95 px-4 py-4 backdrop-blur md:px-8">
-        <div className="mb-3">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--amber)]">
-            <Link href="/products" className="hover:underline">
-              Catalog
-            </Link>
-            {" · "}All SKUs
-          </p>
-          <h1 className="font-display text-2xl font-semibold text-[var(--ink)] md:text-3xl">Browse all SKUs</h1>
-        </div>
-        <div className="relative">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && load()}
-            placeholder="Search plywood, size, SKU…"
-            className="w-full rounded-2xl border border-[var(--line)] bg-white py-3 pl-4 pr-24 text-sm outline-none ring-[var(--amber)]/30 placeholder:text-[var(--ink-soft)]/45 focus:ring-2"
-          />
-          <button
-            type="button"
-            onClick={() => load()}
-            className="absolute right-1.5 top-1.5 rounded-xl bg-[#121a16] px-4 py-2 text-xs font-bold text-white"
-          >
-            Search
-          </button>
-        </div>
-
-        {filterableSelects.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {filterableSelects.map((def) => (
-              <select
-                key={def.key}
-                value={attrFilters[def.key] ?? ""}
-                onChange={(e) => setAttrFilters((prev) => ({ ...prev, [def.key]: e.target.value }))}
-                className="rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--ink-soft)]"
-              >
-                <option value="">{def.label}: Any</option>
-                {optionList(def.options).map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            ))}
-          </div>
-        )}
+    <Container layout="wide" className="py-6 md:py-8">
+      <div className="mb-4">
+        <p className="cx-eyebrow">
+          <Link href="/products" className="hover:underline">
+            Catalog
+          </Link>
+          {" · "}All SKUs
+        </p>
+        <SectionHeader title="Browse all SKUs" className="mb-0 mt-1" />
       </div>
 
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder="Search plywood, size, SKU…"
+          className="flex-1"
+        />
+        <Button variant="primary" size="md" onClick={() => void load()} className="shrink-0">
+          Search
+        </Button>
+      </div>
+
+      {filterableSelects.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {filterableSelects.map((def) => (
+            <select
+              key={def.key}
+              value={attrFilters[def.key] ?? ""}
+              onChange={(e) => setAttrFilters((prev) => ({ ...prev, [def.key]: e.target.value }))}
+              className="rounded-[var(--radius-full)] border border-[var(--line)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--ink-soft)]"
+            >
+              <option value="">{def.label}: Any</option>
+              {optionList(def.options).map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          ))}
+        </div>
+      )}
+
       {categories.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto px-4 py-3 scrollbar-hide md:px-8">
-          <button
-            type="button"
-            onClick={() => setCategoryId("")}
-            className={`chip ${categoryId === "" ? "chip-active" : ""}`}
-          >
+        <div className="mb-6 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          <Chip active={categoryId === ""} onClick={() => setCategoryId("")}>
             All
-          </button>
+          </Chip>
           {categories.map((c) => (
-            <button
+            <Chip
               key={c.id}
-              type="button"
+              active={categoryId === c.id}
               onClick={() => setCategoryId(c.id)}
-              className={`chip whitespace-nowrap ${categoryId === c.id ? "chip-active" : ""}`}
+              className="whitespace-nowrap"
             >
               {c.name}
-            </button>
+            </Chip>
           ))}
         </div>
       )}
 
       {loading && (
-        <div className="flex items-center justify-center py-16 text-sm text-[var(--ink-soft)]/60">
-          Loading products…
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="aspect-[3/4] w-full rounded-[var(--radius)]" />
+          ))}
         </div>
       )}
 
       {!loading && products.length === 0 && (
-        <div className="mx-4 mt-8 rounded-2xl border border-dashed border-[var(--line)] bg-white/80 px-6 py-16 text-center md:mx-8">
-          <p className="font-display text-xl text-[var(--ink)]">No matches</p>
-          <p className="mt-1 text-sm text-[var(--ink-soft)]">Try another category or clear filters.</p>
-        </div>
+        <EmptyState
+          className="cx-empty"
+          title="No matches"
+          subtitle="Try another category or clear filters."
+          action={
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCategoryId("");
+                setSearch("");
+                setAttrFilters({});
+              }}
+            >
+              Clear filters
+            </Button>
+          }
+        />
       )}
 
       {!loading && products.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 px-4 pb-4 md:grid-cols-3 md:px-8 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4">
           {products.map((p, i) => (
-            <Link key={p.id} href={`/products/${p.id}`} className="product-tile anim-rise">
-              <div className="relative aspect-[4/3] overflow-hidden bg-[var(--mist)]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={productImageUrl(p, i)} alt={p.name} className="h-full w-full object-cover" />
-                <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold text-[var(--ink-soft)] backdrop-blur">
-                  {p.sku}
-                </span>
-              </div>
-              <div className="flex flex-1 flex-col p-3">
-                <div className="line-clamp-2 text-sm font-semibold leading-snug text-[var(--ink)]">{p.name}</div>
-                {p.unit && <div className="mt-0.5 text-xs text-[var(--ink-soft)]/70">Per {p.unit}</div>}
-                <div className="mt-auto pt-2 font-display text-lg font-semibold text-[var(--forest)]">
-                  ₹{Number(p.sellPrice).toLocaleString("en-IN")}
-                </div>
-              </div>
-            </Link>
+            <ProductCard
+              key={p.id}
+              href={`/products/${p.id}`}
+              title={p.name}
+              subtitle={p.unit ? `Per ${p.unit}` : undefined}
+              imageUrl={productImageUrl(p, i)}
+              priceLabel={`₹${Number(p.sellPrice).toLocaleString("en-IN")}`}
+              meta={p.sku}
+              className="anim-rise"
+            />
           ))}
         </div>
       )}
-    </div>
+    </Container>
   );
 }
 
 export default function ProductsPage() {
   return (
-    <Suspense fallback={<div className="py-16 text-center text-sm text-[var(--ink-soft)]">Loading shop…</div>}>
+    <Suspense
+      fallback={
+        <Container className="py-8">
+          <Skeleton className="mb-4 h-8 w-48" />
+          <Skeleton className="h-11 w-full rounded-[var(--radius-full)]" />
+        </Container>
+      }
+    >
       <ShopContent />
     </Suspense>
   );

@@ -7,21 +7,19 @@ import { prisma } from "@/lib/prisma";
 import { resolveStepUiFromSnapshot } from "@/lib/form-ui";
 import { syncTaskReadiness } from "@/lib/workflow-runtime-v5";
 import type { Prisma } from "@/generated/prisma";
+import {
+  WorkflowAuthError,
+  activityPermissionsFromSnapshot,
+  assertWorkflowTaskAction,
+  rolesMatch,
+} from "@/lib/workflow-task-auth";
 
-const ADMIN_OVERRIDE_ROLES = new Set([
-  "ADMIN",
-  "MANAGER",
-  "ORG_ADMIN",
-  "SUPER_ADMIN",
-  "BRANCH_ADMIN",
-]);
-
-export function rolesMatch(taskRole: string, callerRole: string | null): boolean {
-  if (!callerRole) return false;
-  if (taskRole === callerRole) return true;
-  const sales = new Set(["SALES_EXECUTIVE", "SALES_REP"]);
-  return sales.has(taskRole) && sales.has(callerRole);
-}
+export {
+  WorkflowAuthError,
+  activityPermissionsFromSnapshot,
+  assertWorkflowTaskAction,
+  rolesMatch,
+} from "@/lib/workflow-task-auth";
 
 export async function assertTaskPermission(opts: {
   tenantId: string;
@@ -30,13 +28,9 @@ export async function assertTaskPermission(opts: {
   role: string | null;
   userId: string;
 }) {
-  if (opts.role && ADMIN_OVERRIDE_ROLES.has(opts.role)) {
-    return { ok: true as const };
-  }
-
   const order = await prisma.salesOrder.findFirst({
     where: { id: opts.orderId, tenantId: opts.tenantId },
-    select: { workflowInstance: { select: { id: true } } },
+    select: { workflowInstance: { select: { id: true, snapshot: true } } },
   });
   if (!order?.workflowInstance?.id) return { ok: true as const };
 
@@ -50,13 +44,19 @@ export async function assertTaskPermission(opts: {
   });
 
   if (!task) return { ok: true as const };
-  if (task.assignedUserId && task.assignedUserId !== opts.userId) {
-    return { ok: false as const, error: "Task is assigned to another user" };
+  try {
+    assertWorkflowTaskAction({
+      task,
+      action: "complete",
+      role: opts.role,
+      userId: opts.userId,
+      permissions: activityPermissionsFromSnapshot(order.workflowInstance.snapshot, task.stepKey),
+    });
+    return { ok: true as const };
+  } catch (e) {
+    if (e instanceof WorkflowAuthError) return { ok: false as const, error: e.message };
+    throw e;
   }
-  if (opts.role && !rolesMatch(task.assignedRole, opts.role)) {
-    return { ok: false as const, error: `This task belongs to ${task.assignedRole}` };
-  }
-  return { ok: true as const };
 }
 
 function parseDependsOn(raw: unknown): string[] {
@@ -105,7 +105,12 @@ export async function getWorkbenchForRole(input: {
   if (input.mineOnly && input.userId) {
     where.assignedUserId = input.userId;
   } else {
-    where.assignedRole = input.role;
+    // Include sales alias roles so SALES_REP sees SALES_EXECUTIVE tasks
+    if (rolesMatch("SALES_EXECUTIVE", input.role) || rolesMatch("SALES_REP", input.role)) {
+      where.assignedRole = { in: ["SALES_EXECUTIVE", "SALES_REP"] };
+    } else {
+      where.assignedRole = input.role;
+    }
   }
 
   const tasks = await prisma.workflowTask.findMany({
@@ -125,7 +130,6 @@ export async function getWorkbenchForRole(input: {
     orderBy: [{ dueAt: "asc" }, { createdAt: "asc" }],
   });
 
-  // Only surface snapshot-backed tasks
   const snapshotTasks = tasks.filter((t) => Boolean(t.workflowInstance?.snapshot));
 
   const orderIds = [...new Set(snapshotTasks.map((t) => t.salesOrderId))];

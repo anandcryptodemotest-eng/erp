@@ -2,10 +2,16 @@
   "name": "@erp/process-designer",
   "version": "1.0.0",
   "private": true,
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./src/index.tsx",
+  "types": "./src/index.tsx",
+  "exports": {
+    ".": "./src/index.tsx",
+    "./workflow-designer.css": "./src/workflow-designer.css"
+  },
   "dependencies": {
-    "@erp/platform-core": "workspace:*"
+    "@erp/platform-core": "workspace:*",
+    "@erp/workflow": "workspace:*",
+    "@xyflow/react": "^12.6.0"
   },
   "peerDependencies": {
     "next": ">=15.0.0",

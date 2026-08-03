@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { FormDefinition } from "@erp/workflow";
 import type { WorkflowTimelineEvent } from "@erp/ui-runtime";
+import { Button, Container, PriceDisplay, SectionHeader, Skeleton } from "@erp/ui";
 import { api } from "@/lib/api-client";
 import { addToCart, clearCart } from "@/lib/cart-store";
 import {
@@ -204,8 +205,22 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
   const timeline = useMemo(() => (row ? buildTimeline(row) : []), [row]);
 
-  if (loading) return <div className="flex items-center justify-center py-16 text-gray-400">Loading…</div>;
-  if (!row) return <div className="flex items-center justify-center py-16 text-gray-400">Request not found</div>;
+  if (loading) {
+    return (
+      <Container layout="wide" className="space-y-4 py-10">
+        <Skeleton className="h-8 w-56" />
+        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-24 w-full" />
+      </Container>
+    );
+  }
+  if (!row) {
+    return (
+      <Container layout="wide" className="py-16 text-center text-sm text-[var(--ink-soft)]">
+        Request not found
+      </Container>
+    );
+  }
 
   const soStatus = row.salesOrder?.status ?? row.soStatus;
   const soNumber = row.salesOrder?.orderNumber ?? row.soNumber;
@@ -213,24 +228,24 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const displayStatus = soStatus ? omsLabel(soStatus) : sreqLabel(row.status);
 
   return (
-    <div className="pb-8">
-      <div className="bg-slate-900 px-4 py-5 text-white">
-        {justPlaced && (
-          <div className="mb-2 w-fit rounded-full bg-white/20 px-3 py-1 text-xs font-medium">
-            Sales request submitted — awaiting convert to order
-          </div>
-        )}
-        <div className="text-xs opacity-80">Sales request</div>
-        <div className="text-xl font-bold">{row.requestNumber}</div>
-        {soNumber && (
-          <div className="mt-1 text-sm text-emerald-200">
-            Sales order {soNumber} · {omsLabel(soStatus!)}
-          </div>
-        )}
-        <div className="mt-0.5 text-xs opacity-70">{new Date(row.createdAt).toLocaleString("en-IN")}</div>
-      </div>
+    <Container layout="wide" className="pb-28 pt-5">
+      {justPlaced ? (
+        <div className="mb-4 w-fit rounded-[var(--radius-full)] bg-[var(--mist)] px-3 py-1.5 text-xs font-semibold text-[var(--forest)]">
+          Sales request submitted — awaiting convert to order
+        </div>
+      ) : null}
+      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--amber)]">Sales request</p>
+      <SectionHeader title={row.requestNumber} className="mb-1" />
+      {soNumber ? (
+        <p className="mb-1 text-sm font-medium text-[var(--forest)]">
+          Sales order {soNumber} · {omsLabel(soStatus!)}
+        </p>
+      ) : null}
+      <p className="mb-6 text-xs text-[var(--ink-soft)]">
+        {new Date(row.createdAt).toLocaleString("en-IN")}
+      </p>
 
-      <div className="space-y-4 px-4 pt-4">
+      <div className="space-y-4">
         {screen ? (
           <CustomerScreenController
             host={host}
@@ -255,53 +270,53 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           />
         ) : null}
 
-        {row.deliveryAddressText && (
-          <div className="rounded-xl bg-gray-50 p-4">
-            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Delivering to</div>
-            <div className="text-sm text-gray-800">{row.deliveryAddressText}</div>
+        {row.deliveryAddressText ? (
+          <div className="rounded-[var(--radius)] border border-[var(--line)] bg-white p-4 shadow-[var(--shadow-sm)]">
+            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
+              Delivering to
+            </div>
+            <div className="text-sm text-[var(--ink)]">{row.deliveryAddressText}</div>
           </div>
-        )}
+        ) : null}
 
-        {row.notes && (
-          <div className="rounded-xl border border-gray-100 p-4">
-            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Notes</div>
-            <p className="whitespace-pre-wrap text-sm text-gray-700">{row.notes}</p>
+        {row.notes ? (
+          <div className="rounded-[var(--radius)] border border-[var(--line)] bg-white p-4">
+            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--ink-soft)]">Notes</div>
+            <p className="whitespace-pre-wrap text-sm text-[var(--ink)]">{row.notes}</p>
           </div>
-        )}
+        ) : null}
 
-        <div className="space-y-2 rounded-xl bg-gray-50 p-4 text-sm">
-          <div className="flex justify-between text-gray-600">
+        <div className="space-y-2 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--paper)] p-4 text-sm">
+          <div className="flex justify-between text-[var(--ink-soft)]">
             <span>Subtotal</span>
-            <span>₹{Number(row.subtotal).toLocaleString("en-IN")}</span>
+            <PriceDisplay amount={row.subtotal} size="sm" className="text-[var(--ink-soft)]" />
           </div>
-          <div className="flex justify-between border-t border-gray-200 pt-2 text-base font-bold text-gray-900">
-            <span>Total</span>
-            <span>₹{Number(row.total).toLocaleString("en-IN")}</span>
+          <div className="flex justify-between border-t border-[var(--line)] pt-2 text-base">
+            <span className="font-bold text-[var(--ink)]">Total</span>
+            <PriceDisplay amount={row.total} />
           </div>
         </div>
 
-        {msg && <div className="text-sm text-red-600">{msg}</div>}
+        {msg ? <div className="text-sm text-[var(--danger)]">{msg}</div> : null}
 
-        <div className="mb-6 flex gap-2 pb-2">
-          <button
-            type="button"
-            onClick={reorder}
-            className="flex-1 rounded-full border border-slate-300 bg-white py-3.5 text-sm font-semibold text-slate-800 shadow-sm"
-          >
+        <div className="flex gap-2 pb-2">
+          <Button variant="outline" size="block" className="flex-1" onClick={reorder}>
             Reorder
-          </button>
-          {canCancel && (
-            <button
-              type="button"
+          </Button>
+          {canCancel ? (
+            <Button
+              variant="outline"
+              size="block"
+              className="flex-1 border-red-200 text-[var(--danger)]"
               disabled={busy}
+              loading={busy}
               onClick={() => void cancelRequest()}
-              className="flex-1 rounded-full border border-red-200 bg-white py-3.5 text-sm font-semibold text-red-600 shadow-sm disabled:opacity-60"
             >
-              {busy ? "Cancelling…" : "Cancel request"}
-            </button>
-          )}
+              Cancel request
+            </Button>
+          ) : null}
         </div>
       </div>
-    </div>
+    </Container>
   );
 }

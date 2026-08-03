@@ -15,15 +15,15 @@ export interface FormFieldProps {
 export function FormField({ label, htmlFor, required, error, hint, children, className }: FormFieldProps) {
   return (
     <div className={cn("space-y-1", className)}>
-      <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-700">
+      <label htmlFor={htmlFor} className="block text-sm font-medium text-[var(--ink)]">
         {label}
-        {required && <span className="text-red-500"> *</span>}
+        {required && <span className="text-[var(--danger)]"> *</span>}
       </label>
       {children}
       {error ? (
-        <p className="text-sm text-red-600">{error}</p>
+        <p className="text-sm text-[var(--danger)]">{error}</p>
       ) : hint ? (
-        <p className="text-xs text-slate-500">{hint}</p>
+        <p className="text-xs text-[var(--ink-soft)]">{hint}</p>
       ) : null}
     </div>
   );

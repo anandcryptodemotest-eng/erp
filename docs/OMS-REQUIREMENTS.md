@@ -22,7 +22,7 @@ SO status stays **coarse**. Mid-funnel work is **tasks**, not statuses like `PEN
 | Sales Request (SREQ) entity + convert | Done | `apps/sales` — `/api/sales-requests`, `/convert` |
 | Checkout → SREQ (not SO) | Done | `apps/customer` checkout |
 | Parallel prep task sync | Done | `workflow-runtime` + `oms_trading` v3 |
-| OMS desk: SREQ queue + convert | Done | Gateway `/oms` |
+| Sales Desk: SREQ queue + convert | Done | Gateway `/sales-desk` (`/oms` redirect) |
 | Hybrid attributes schema + validation | Done | `apps/inventory` |
 | Industry templates (plywood/steel/apparel) | Done | `GET/POST /api/attribute-templates` |
 | ProductVendor + WhatsApp RFQ | Done | `apps/procurement` |

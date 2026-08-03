@@ -77,8 +77,8 @@ export function DataTable<T>({
       {filters && <div className="flex items-center gap-3">{filters}</div>}
 
       {selectable && selectedRows.length > 0 && bulkActions && bulkActions.length > 0 && (
-        <div className="flex items-center gap-3 rounded-lg bg-indigo-50 border border-indigo-100 px-4 py-2">
-          <span className="text-sm text-indigo-700 font-medium">{selectedRows.length} selected</span>
+        <div className="flex items-center gap-3 rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] border border-[color-mix(in_srgb,var(--brand)_20%,transparent)] px-4 py-2">
+          <span className="text-sm text-[var(--brand-mid)] font-medium">{selectedRows.length} selected</span>
           <div className="flex items-center gap-2 ml-auto">
             {bulkActions.map((ba) => (
               <button
@@ -86,8 +86,10 @@ export function DataTable<T>({
                 type="button"
                 onClick={() => ba.action(Array.from(selected), selectedRows)}
                 className={cn(
-                  "text-sm font-medium px-3 py-1 rounded-md",
-                  ba.variant === "danger" ? "text-red-600 hover:bg-red-50" : "text-indigo-600 hover:bg-indigo-100"
+                  "text-sm font-medium px-3 py-1 rounded-[var(--radius-sm)]",
+                  ba.variant === "danger"
+                    ? "text-[var(--danger)] hover:bg-[color-mix(in_srgb,var(--danger)_10%,transparent)]"
+                    : "text-[var(--brand)] hover:bg-[color-mix(in_srgb,var(--brand)_15%,transparent)]"
                 )}
               >
                 {ba.label}
@@ -97,9 +99,9 @@ export function DataTable<T>({
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50">
+      <div className="overflow-x-auto rounded-[var(--radius)] border border-[var(--line)]">
+        <table className="min-w-full divide-y divide-[var(--line)]">
+          <thead className="bg-[var(--mist)]">
             <tr>
               {selectable && (
                 <th className="w-10 px-4 py-3">
@@ -107,7 +109,7 @@ export function DataTable<T>({
                     type="checkbox"
                     checked={allSelected}
                     onChange={toggleAll}
-                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-[var(--line)] text-[var(--brand)] focus:ring-[var(--brand)]"
                   />
                 </th>
               )}
@@ -115,21 +117,24 @@ export function DataTable<T>({
                 <th
                   key={col.key}
                   style={col.width ? { width: col.width } : undefined}
-                  className={cn("px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500", col.className)}
+                  className={cn(
+                    "px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--ink-soft)]",
+                    col.className
+                  )}
                 >
                   {col.header}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200 bg-white">
+          <tbody className="divide-y divide-[var(--line)] bg-[var(--surface-raised)]">
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={`skeleton-${i}`}>
                   {selectable && <td className="px-4 py-4" />}
                   {columns.map((col) => (
                     <td key={col.key} className="px-6 py-4">
-                      <div className="h-4 bg-slate-100 rounded animate-pulse" />
+                      <div className="h-4 bg-[var(--mist)] rounded-[var(--radius-sm)] animate-pulse" />
                     </td>
                   ))}
                 </tr>
@@ -147,7 +152,7 @@ export function DataTable<T>({
                   <tr
                     key={key}
                     onClick={() => onRowClick?.(item)}
-                    className={cn("hover:bg-slate-50", onRowClick && "cursor-pointer")}
+                    className={cn("hover:bg-[var(--mist)]", onRowClick && "cursor-pointer")}
                   >
                     {selectable && (
                       <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
@@ -155,12 +160,12 @@ export function DataTable<T>({
                           type="checkbox"
                           checked={selected.has(key)}
                           onChange={() => toggleRow(key)}
-                          className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                          className="rounded border-[var(--line)] text-[var(--brand)] focus:ring-[var(--brand)]"
                         />
                       </td>
                     )}
                     {columns.map((col) => (
-                      <td key={col.key} className={cn("px-6 py-4 text-sm text-slate-900", col.className)}>
+                      <td key={col.key} className={cn("px-6 py-4 text-sm text-[var(--ink)]", col.className)}>
                         {col.render ? col.render(item) : String((item as Record<string, unknown>)[col.key] ?? "")}
                       </td>
                     ))}
@@ -173,7 +178,7 @@ export function DataTable<T>({
       </div>
 
       {pagination && pagination.pages > 1 && (
-        <div className="flex items-center justify-between text-sm text-slate-500">
+        <div className="flex items-center justify-between text-sm text-[var(--ink-soft)]">
           <span>
             Page {pagination.page} of {pagination.pages} &middot; {pagination.total} total
           </span>
@@ -182,7 +187,7 @@ export function DataTable<T>({
               type="button"
               disabled={pagination.page <= 1}
               onClick={() => onPageChange?.(pagination.page - 1)}
-              className="px-3 py-1.5 rounded-md border border-slate-300 disabled:opacity-40 hover:bg-slate-50"
+              className="px-3 py-1.5 rounded-[var(--radius-sm)] border border-[var(--line)] disabled:opacity-[var(--opacity-disabled)] hover:bg-[var(--mist)]"
             >
               Previous
             </button>
@@ -190,7 +195,7 @@ export function DataTable<T>({
               type="button"
               disabled={pagination.page >= pagination.pages}
               onClick={() => onPageChange?.(pagination.page + 1)}
-              className="px-3 py-1.5 rounded-md border border-slate-300 disabled:opacity-40 hover:bg-slate-50"
+              className="px-3 py-1.5 rounded-[var(--radius-sm)] border border-[var(--line)] disabled:opacity-[var(--opacity-disabled)] hover:bg-[var(--mist)]"
             >
               Next
             </button>

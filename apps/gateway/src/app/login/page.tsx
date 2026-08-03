@@ -177,7 +177,7 @@ function LoginForm() {
                     <button
                       type="button"
                       disabled={loading}
-                      className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-left text-sm hover:bg-slate-50 disabled:opacity-60"
+                      className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-left text-sm hover:bg-[var(--mist)] disabled:opacity-60"
                       onClick={() => void completeLogin(t.slug)}
                     >
                       <span className="font-semibold text-[var(--ink)]">{t.name}</span>
@@ -211,7 +211,7 @@ function LoginForm() {
                 />
               )}
               {fromUrl && resolved && (
-                <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-[var(--ink-soft)]">
+                <p className="rounded-xl bg-[var(--mist)] px-3 py-2 text-xs text-[var(--ink-soft)]">
                   Organization · <span className="font-mono font-semibold">{resolved.slug}</span>
                 </p>
               )}
@@ -259,7 +259,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-dvh items-center justify-center text-sm text-slate-500">
+        <div className="flex min-h-dvh items-center justify-center text-sm text-[var(--ink-soft)]">
           Loading…
         </div>
       }

@@ -2,64 +2,85 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  AdminShell,
+  Activity,
+  Building2,
+  GitBranch,
+  LayoutDashboard,
+  ScrollText,
+  Server,
+  Settings,
+} from "@erp/ui";
 import { clearPlatformAuth, getOperator } from "@/lib/api";
 
-const NAV = [
-  { href: "/", label: "Dashboard" },
-  { href: "/tenants", label: "Tenants" },
-  { href: "/process", label: "Process Studio" },
-  { href: "/services", label: "Services" },
-  { href: "/infrastructure", label: "Infrastructure", soon: true },
-  { href: "/audit", label: "Audit Logs" },
-  { href: "/settings", label: "Settings", soon: true },
+function formatRole(role?: string) {
+  if (!role) return undefined;
+  return role
+    .replace(/^PLATFORM_/, "")
+    .split("_")
+    .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
+const NAV_GROUPS = [
+  {
+    key: "platform",
+    title: "Platform",
+    items: [
+      { href: "/", label: "Dashboard", icon: <LayoutDashboard /> },
+      { href: "/tenants", label: "Tenants", icon: <Building2 /> },
+      { href: "/process", label: "Process Studio", icon: <GitBranch /> },
+      { href: "/services", label: "Services", icon: <Activity /> },
+    ],
+  },
+  {
+    key: "system",
+    title: "System",
+    items: [
+      { href: "/infrastructure", label: "Infrastructure", icon: <Server />, soon: true },
+      { href: "/audit", label: "Audit Logs", icon: <ScrollText /> },
+      { href: "/settings", label: "Settings", icon: <Settings />, soon: true },
+    ],
+  },
 ];
 
 export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const op = typeof window !== "undefined" ? getOperator() : null;
+  /** Avoid SSR/client mismatch — localStorage only after mount */
+  const [op, setOp] = useState<ReturnType<typeof getOperator>>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setOp(getOperator());
+    setReady(true);
+  }, []);
 
   return (
-    <div className="min-h-screen grid" style={{ gridTemplateColumns: "220px 1fr" }}>
-      <aside className="border-r border-[var(--line)] bg-[var(--panel)] p-4 flex flex-col gap-6">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-[var(--muted)]">ERP</p>
-          <h1 className="text-lg font-semibold">Platform Admin</h1>
-        </div>
-        <nav className="flex flex-col gap-1">
-          {NAV.map((item) => {
-            const active = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`rounded-md px-3 py-2 text-sm ${
-                  active ? "bg-[var(--accent)] text-white" : "text-[var(--muted)] hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                {item.label}
-                {item.soon ? <span className="ml-2 text-[10px] opacity-70">Soon</span> : null}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="mt-auto text-xs text-[var(--muted)] space-y-2">
-          <p>{op?.email ?? "—"}</p>
-          <p className="font-mono text-[10px]">{op?.role ?? ""}</p>
-          <button
-            type="button"
-            className="text-[var(--accent)]"
-            onClick={() => {
-              clearPlatformAuth();
-              router.push("/login");
-            }}
-          >
-            Sign out
-          </button>
-        </div>
-      </aside>
-      <main className="p-6 md:p-8 overflow-auto">{children}</main>
-    </div>
+    <AdminShell
+      brandEyebrow="TrustWood"
+      brandTitle="Platform Admin"
+      brandContext={ready ? formatRole(op?.role) : undefined}
+      groups={NAV_GROUPS}
+      pathname={pathname}
+      LinkComponent={({ href, children: c, className, title }) => (
+        <Link href={href} className={className} title={title}>
+          {c}
+        </Link>
+      )}
+      user={{
+        name: ready ? (op?.email ?? "Operator") : "Operator",
+        subtitle: ready ? formatRole(op?.role) : undefined,
+        onSignOut: () => {
+          clearPlatformAuth();
+          router.push("/login");
+        },
+      }}
+      defaultOpenGroups={{ platform: true, system: true }}
+    >
+      <div className="p-6 md:p-8">{children}</div>
+    </AdminShell>
   );
 }

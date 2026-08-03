@@ -29,7 +29,9 @@ export function productImageUrl(
   },
   index = 0
 ): string {
-  const fromList = Array.isArray(product.imageUrls) ? product.imageUrls[0] : null;
+  const fromList = Array.isArray(product.imageUrls)
+    ? product.imageUrls.find((u) => typeof u === "string" && u.trim())
+    : null;
   if (typeof fromList === "string" && fromList.trim()) {
     // Prefer same-origin paths when seed stored absolute localhost URLs
     if (fromList.includes("/products/")) {

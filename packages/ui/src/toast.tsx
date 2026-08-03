@@ -38,17 +38,20 @@ const ICONS: Record<ToastType, typeof CheckCircle2> = {
 };
 
 const STYLES: Record<ToastType, string> = {
-  success: "bg-emerald-50 border-emerald-200 text-emerald-800",
-  error: "bg-red-50 border-red-200 text-red-800",
-  warning: "bg-amber-50 border-amber-200 text-amber-800",
-  info: "bg-blue-50 border-blue-200 text-blue-800",
+  success:
+    "bg-[color-mix(in_srgb,var(--success)_12%,transparent)] border-[color-mix(in_srgb,var(--success)_30%,transparent)] text-[var(--success)]",
+  error:
+    "bg-[color-mix(in_srgb,var(--danger)_12%,transparent)] border-[color-mix(in_srgb,var(--danger)_30%,transparent)] text-[var(--danger)]",
+  warning:
+    "bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] border-[color-mix(in_srgb,var(--warning)_30%,transparent)] text-[var(--warning)]",
+  info: "bg-[color-mix(in_srgb,var(--info)_12%,transparent)] border-[color-mix(in_srgb,var(--info)_30%,transparent)] text-[var(--info)]",
 };
 
 const ICON_COLOR: Record<ToastType, string> = {
-  success: "text-emerald-500",
-  error: "text-red-500",
-  warning: "text-amber-500",
-  info: "text-blue-500",
+  success: "text-[var(--success)]",
+  error: "text-[var(--danger)]",
+  warning: "text-[var(--warning)]",
+  info: "text-[var(--info)]",
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -104,7 +107,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 <div
                   key={t.id}
                   className={cn(
-                    "pointer-events-auto flex items-start gap-3 rounded-lg border px-4 py-3 shadow-lg animate-in slide-in-from-right",
+                    "pointer-events-auto flex items-start gap-3 rounded-[var(--radius)] border px-4 py-3 shadow-[var(--shadow-sm)] animate-in slide-in-from-right",
                     STYLES[t.type]
                   )}
                   role="alert"

@@ -1,6 +1,9 @@
+import { createLogger } from "@erp/logger";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { previewProductCreation } from "@/services/product-creation.engine";
+
+const log = createLogger({ service: "inventory" });
 
 const pricingPolicySchema = z
   .object({
@@ -16,6 +19,14 @@ const pricingPolicySchema = z
 const mediaSchema = z
   .object({
     images: z.array(z.string().min(1)).max(4).optional().default([]),
+    variation: z
+      .object({
+        type: z.literal("CONFIGURATION"),
+        attributes: z.array(z.string().min(1)).min(1),
+        values: z.record(z.array(z.string().min(1)).max(4)),
+      })
+      .optional()
+      .nullable(),
   })
   .optional()
   .nullable();
@@ -72,7 +83,7 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
     }
-    console.error("products/preview", error);
+    log.error("products_preview", { err: error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

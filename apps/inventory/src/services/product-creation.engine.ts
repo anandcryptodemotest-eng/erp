@@ -38,7 +38,7 @@ export type ProductCreationRequest = {
   /** Customer-facing commercial description (copied to every SKU in v1). */
   description?: string | null;
   /** Commercial media wrapper — maps to Product.imageUrls on persist. */
-  media?: { images: string[] } | null;
+  media?: import("@/lib/commercial-media").CommercialMedia | null;
   costPrice?: number | null;
   reorderLevel?: number | null;
   /** Opening qty applied after create (caller or engine stock receive). */
@@ -89,6 +89,16 @@ function toGenerateRequest(req: ProductCreationRequest, policy: PricingPolicy): 
       : (req.baseRate ?? null);
 
   const images = (req.media?.images ?? []).filter((u) => typeof u === "string" && u.trim());
+  const variation = req.media?.variation;
+  const media =
+    images.length || variation
+      ? {
+          images,
+          ...(variation?.type === "CONFIGURATION" && variation.attributes?.length
+            ? { variation }
+            : {}),
+        }
+      : null;
   return {
     categoryId: req.categoryId,
     brandId: req.brandId ?? null,
@@ -99,7 +109,7 @@ function toGenerateRequest(req: ProductCreationRequest, policy: PricingPolicy): 
     groupCode: req.groupCode?.trim() || null,
     groupName: req.groupName?.trim() || req.productName?.trim() || null,
     description: req.description?.trim() || null,
-    media: images.length ? { images } : null,
+    media,
     costPrice: req.costPrice ?? null,
     reorderLevel: req.reorderLevel ?? null,
     pricingBasis,

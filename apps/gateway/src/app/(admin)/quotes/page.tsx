@@ -42,8 +42,8 @@ interface SOLine {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-600",
-  SENT: "bg-blue-100 text-blue-700",
+  DRAFT: "bg-[var(--mist)] text-[var(--ink-soft)]",
+  SENT: "bg-blue-100 text-[var(--brand)]",
   ACCEPTED: "bg-green-100 text-green-700",
   REJECTED: "bg-red-100 text-red-600",
   EXPIRED: "bg-orange-100 text-orange-700",
@@ -286,8 +286,8 @@ export default function QuotesPage() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quotes</h1>
-          <p className="text-sm text-gray-500">{total} total quotes</p>
+          <h1 className="text-2xl font-bold text-[var(--ink)]">Quotes</h1>
+          <p className="text-sm text-[var(--ink-soft)]">{total} total quotes</p>
         </div>
         <button onClick={() => setShowForm(true)}
           className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition">
@@ -308,13 +308,13 @@ export default function QuotesPage() {
             <button
               key={status}
               onClick={() => setStatusFilter(active ? "" : status)}
-              className={`rounded-lg border p-3 text-left transition ${active ? "border-indigo-300 bg-indigo-50" : "border-gray-200 bg-white hover:bg-gray-50"}`}
+              className={`rounded-lg border p-3 text-left transition ${active ? "border-[var(--line)] bg-[var(--mist)]" : "border-[var(--line)] bg-white hover:bg-[var(--mist)]"}`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-gray-700">{status}</span>
+                <span className="text-xs font-semibold text-[var(--ink-soft)]">{status}</span>
                 <span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_COLORS[status]}`}>{statusCounts[status]}</span>
               </div>
-              <p className="mt-1 text-[11px] text-gray-500">{QUOTE_HINT[status]}</p>
+              <p className="mt-1 text-[11px] text-[var(--ink-soft)]">{QUOTE_HINT[status]}</p>
             </button>
           );
         })}
@@ -324,7 +324,7 @@ export default function QuotesPage() {
       <div className="flex gap-2 mb-4">
         {["", "DRAFT", "SENT", "ACCEPTED", "REJECTED", "EXPIRED"].map(s => (
           <button key={s} onClick={() => setStatusFilter(s)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${statusFilter === s ? "bg-gray-800 text-white border-gray-800" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"}`}>
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${statusFilter === s ? "bg-[var(--brand)] text-white border-gray-800" : "bg-white text-[var(--ink-soft)] border-[var(--line)] hover:border-gray-400"}`}>
             {s || "All"}
           </button>
         ))}
@@ -333,22 +333,22 @@ export default function QuotesPage() {
       {/* Create form */}
       {showForm && (
         <div className="bg-white border rounded-xl p-5 mb-5 shadow-sm">
-          <h2 className="font-semibold text-gray-800 mb-4">New Quote</h2>
+          <h2 className="font-semibold text-[var(--ink)] mb-4">New Quote</h2>
           <div className="grid grid-cols-3 gap-3 mb-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Customer *</label>
+              <label className="block text-xs text-[var(--ink-soft)] mb-1">Customer *</label>
               <select value={customerId} onChange={e => setCustomerId(e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
                 {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Quote Date *</label>
+              <label className="block text-xs text-[var(--ink-soft)] mb-1">Quote Date *</label>
               <input type="date" value={date} onChange={e => setDate(e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Valid Until *</label>
+              <label className="block text-xs text-[var(--ink-soft)] mb-1">Valid Until *</label>
               <input type="date" value={validUntil} onChange={e => setValidUntil(e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
@@ -356,7 +356,7 @@ export default function QuotesPage() {
 
           {/* Product search */}
           <div className="mb-3 relative">
-            <label className="block text-xs text-gray-500 mb-1">Add Products</label>
+            <label className="block text-xs text-[var(--ink-soft)] mb-1">Add Products</label>
             <input value={productSearch} onChange={e => setProductSearch(e.target.value)}
               placeholder="Search product by name or SKU..."
               className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
@@ -364,9 +364,9 @@ export default function QuotesPage() {
               <div className="absolute z-10 bg-white border rounded-lg shadow-lg w-full mt-1">
                 {suggestions.map(p => (
                   <button key={p.id} onClick={() => addLine(p)}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex justify-between">
-                    <span>{p.name} <span className="text-gray-400 text-xs">({p.sku})</span></span>
-                    <span className="text-gray-500">₹{p.sellPrice}/{p.unit}</span>
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--mist)] flex justify-between">
+                    <span>{p.name} <span className="text-[var(--ink-soft)] text-xs">({p.sku})</span></span>
+                    <span className="text-[var(--ink-soft)]">₹{p.sellPrice}/{p.unit}</span>
                   </button>
                 ))}
               </div>
@@ -377,20 +377,20 @@ export default function QuotesPage() {
           {lines.length > 0 && (
             <div className="border rounded-lg overflow-hidden mb-3">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50">
+                <thead className="bg-[var(--mist)]">
                   <tr>
-                    <th className="text-left px-3 py-2 text-xs text-gray-500">Product</th>
-                    <th className="text-left px-3 py-2 text-xs text-gray-500 w-20">Qty</th>
-                    <th className="text-left px-3 py-2 text-xs text-gray-500 w-28">Unit Price</th>
-                    <th className="text-left px-3 py-2 text-xs text-gray-500 w-20">Disc %</th>
-                    <th className="text-right px-3 py-2 text-xs text-gray-500 w-24">Total</th>
+                    <th className="text-left px-3 py-2 text-xs text-[var(--ink-soft)]">Product</th>
+                    <th className="text-left px-3 py-2 text-xs text-[var(--ink-soft)] w-20">Qty</th>
+                    <th className="text-left px-3 py-2 text-xs text-[var(--ink-soft)] w-28">Unit Price</th>
+                    <th className="text-left px-3 py-2 text-xs text-[var(--ink-soft)] w-20">Disc %</th>
+                    <th className="text-right px-3 py-2 text-xs text-[var(--ink-soft)] w-24">Total</th>
                     <th className="w-8"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {lines.map((l, i) => (
                     <tr key={i}>
-                      <td className="px-3 py-2 font-medium text-gray-800">{l.productName}</td>
+                      <td className="px-3 py-2 font-medium text-[var(--ink)]">{l.productName}</td>
                       <td className="px-3 py-2">
                         <input value={l.qty} onChange={e => setLines(ls => ls.map((x, j) => j === i ? { ...x, qty: e.target.value } : x))}
                           className="w-full border rounded px-2 py-1 text-xs text-center" />
@@ -409,18 +409,18 @@ export default function QuotesPage() {
                       </td>
                     </tr>
                   ))}
-                  <tr className="bg-gray-50">
-                    <td colSpan={4} className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Subtotal</td>
+                  <tr className="bg-[var(--mist)]">
+                    <td colSpan={4} className="px-3 py-2 text-right text-xs font-semibold text-[var(--ink-soft)]">Subtotal</td>
                     <td className="px-3 py-2 text-right font-semibold">₹{subtotal.toFixed(2)}</td>
                     <td></td>
                   </tr>
-                  <tr className="bg-gray-50">
-                    <td colSpan={4} className="px-3 py-2 text-right text-xs text-gray-500">Tax (5%)</td>
-                    <td className="px-3 py-2 text-right text-gray-600">₹{tax.toFixed(2)}</td>
+                  <tr className="bg-[var(--mist)]">
+                    <td colSpan={4} className="px-3 py-2 text-right text-xs text-[var(--ink-soft)]">Tax (5%)</td>
+                    <td className="px-3 py-2 text-right text-[var(--ink-soft)]">₹{tax.toFixed(2)}</td>
                     <td></td>
                   </tr>
                   <tr className="bg-green-50">
-                    <td colSpan={4} className="px-3 py-2 text-right text-sm font-bold text-gray-800">Total</td>
+                    <td colSpan={4} className="px-3 py-2 text-right text-sm font-bold text-[var(--ink)]">Total</td>
                     <td className="px-3 py-2 text-right font-bold text-green-700">₹{(subtotal + tax).toFixed(2)}</td>
                     <td></td>
                   </tr>
@@ -430,12 +430,12 @@ export default function QuotesPage() {
           )}
 
           <div className="mb-3">
-            <label className="block text-xs text-gray-500 mb-1">Notes</label>
+            <label className="block text-xs text-[var(--ink-soft)] mb-1">Notes</label>
             <input value={formNotes} onChange={e => setFormNotes(e.target.value)} placeholder="Optional notes"
               className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           <div className="flex gap-2 justify-end">
-            <button onClick={() => { setShowForm(false); setLines([]); }} className="px-4 py-2 text-sm text-gray-600 border rounded-lg hover:bg-gray-50">Cancel</button>
+            <button onClick={() => { setShowForm(false); setLines([]); }} className="px-4 py-2 text-sm text-[var(--ink-soft)] border rounded-lg hover:bg-[var(--mist)]">Cancel</button>
             <button onClick={createQuote} disabled={saving}
               className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
               {saving ? "Saving..." : "Create Quote"}
@@ -447,32 +447,32 @@ export default function QuotesPage() {
       {/* Quotes table */}
       <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
         {loading ? (
-          <div className="p-8 text-center text-gray-400 text-sm">Loading...</div>
+          <div className="p-8 text-center text-[var(--ink-soft)] text-sm">Loading...</div>
         ) : quotes.length === 0 ? (
-          <div className="p-8 text-center text-gray-400 text-sm">No quotes yet. Create your first quote above.</div>
+          <div className="p-8 text-center text-[var(--ink-soft)] text-sm">No quotes yet. Create your first quote above.</div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-[var(--mist)] border-b">
               <tr>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Quote #</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Customer</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Date</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Valid Until</th>
-                <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Total</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Status</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ink-soft)]">Quote #</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ink-soft)]">Customer</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ink-soft)]">Date</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ink-soft)]">Valid Until</th>
+                <th className="text-right px-4 py-3 text-xs font-medium text-[var(--ink-soft)]">Total</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ink-soft)]">Status</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {quotes.map(quote => (
-                <tr key={quote.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => openDetail(quote)}>
-                  <td className="px-4 py-3 font-medium text-gray-900">{quote.quoteNumber}</td>
-                  <td className="px-4 py-3 text-gray-700">{quote.customer?.name ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{new Date(quote.date).toLocaleDateString()}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{new Date(quote.validUntil).toLocaleDateString()}</td>
+                <tr key={quote.id} className="hover:bg-[var(--mist)] cursor-pointer" onClick={() => openDetail(quote)}>
+                  <td className="px-4 py-3 font-medium text-[var(--ink)]">{quote.quoteNumber}</td>
+                  <td className="px-4 py-3 text-[var(--ink-soft)]">{quote.customer?.name ?? "—"}</td>
+                  <td className="px-4 py-3 text-[var(--ink-soft)] text-xs">{new Date(quote.date).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 text-[var(--ink-soft)] text-xs">{new Date(quote.validUntil).toLocaleDateString()}</td>
                   <td className="px-4 py-3 text-right font-medium">₹{Number(quote.total).toLocaleString()}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[quote.status] ?? "bg-gray-100 text-gray-600"}`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[quote.status] ?? "bg-[var(--mist)] text-[var(--ink-soft)]"}`}>
                       {quote.status}
                     </span>
                   </td>
@@ -484,7 +484,7 @@ export default function QuotesPage() {
                           onClick={() => changeStatus(quote, nextStatus)}
                           className={`text-xs px-2 py-1 rounded border hover:brightness-95 ${
                             nextStatus === "SENT"
-                              ? "bg-blue-50 text-blue-700 border-blue-200"
+                              ? "bg-[var(--mist)] text-[var(--brand)] border-[var(--line)]"
                               : nextStatus === "ACCEPTED"
                                 ? "bg-green-50 text-green-700 border-green-200"
                                 : "bg-red-50 text-red-700 border-red-200"
@@ -508,27 +508,27 @@ export default function QuotesPage() {
           <div className="w-[480px] bg-white h-full shadow-2xl overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">{selected.quoteNumber}</h2>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[selected.status] ?? "bg-gray-100 text-gray-600"}`}>{selected.status}</span>
+                <h2 className="text-lg font-bold text-[var(--ink)]">{selected.quoteNumber}</h2>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[selected.status] ?? "bg-[var(--mist)] text-[var(--ink-soft)]"}`}>{selected.status}</span>
               </div>
-              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-700 text-xl">✕</button>
+              <button onClick={() => setSelected(null)} className="text-[var(--ink-soft)] hover:text-[var(--ink-soft)] text-xl">✕</button>
             </div>
 
             <div className="space-y-2 text-sm mb-5">
-              <div className="flex justify-between"><span className="text-gray-500">Customer</span><span className="font-medium">{selected.customer?.name}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Date</span><span>{new Date(selected.date).toLocaleDateString()}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Valid Until</span><span>{new Date(selected.validUntil).toLocaleDateString()}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>₹{Number(selected.subtotal).toLocaleString()}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Tax</span><span>₹{Number(selected.tax).toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Customer</span><span className="font-medium">{selected.customer?.name}</span></div>
+              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Date</span><span>{new Date(selected.date).toLocaleDateString()}</span></div>
+              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Valid Until</span><span>{new Date(selected.validUntil).toLocaleDateString()}</span></div>
+              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Subtotal</span><span>₹{Number(selected.subtotal).toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Tax</span><span>₹{Number(selected.tax).toLocaleString()}</span></div>
               <div className="flex justify-between font-semibold text-green-700"><span>Total</span><span>₹{Number(selected.total).toLocaleString()}</span></div>
             </div>
 
             {selected.items && selected.items.length > 0 && (
               <div className="mb-5">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">Line Items</h3>
+                <h3 className="text-xs font-semibold text-[var(--ink-soft)] uppercase mb-2">Line Items</h3>
                 <div className="border rounded-lg overflow-hidden">
                   <table className="w-full text-xs">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-[var(--mist)]">
                       <tr>
                         <th className="text-left px-3 py-2">Product</th>
                         <th className="text-right px-3 py-2">Qty</th>
@@ -559,7 +559,7 @@ export default function QuotesPage() {
                   onClick={() => changeStatus(selected, nextStatus)}
                   className={`w-full py-2.5 rounded-lg text-sm font-medium ${
                     nextStatus === "SENT"
-                      ? "bg-blue-600 text-white hover:bg-blue-700"
+                      ? "bg-[var(--brand)] text-white hover:bg-[var(--brand-mid)]"
                       : nextStatus === "ACCEPTED"
                         ? "bg-green-600 text-white hover:bg-green-700"
                         : "border border-red-300 text-red-600 hover:bg-red-50"

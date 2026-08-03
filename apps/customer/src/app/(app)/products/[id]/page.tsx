@@ -1,6 +1,17 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Button,
+  Chip,
+  ChipGroup,
+  Container,
+  PriceDisplay,
+  ProductGallery,
+  QuantityStepper,
+  Skeleton,
+  StockBadge,
+} from "@erp/ui";
 import { api } from "@/lib/api-client";
 import { addToCart } from "@/lib/cart-store";
 import { productImageUrl } from "@/lib/media";
@@ -105,6 +116,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     (d) => optionList(d.options).length > 0 || d.isVariantAxis
   );
 
+  const galleryImages = useMemo(() => {
+    if (!product) return [];
+    const urls = (product.imageUrls ?? []).filter((u): u is string => typeof u === "string" && !!u.trim());
+    if (urls.length) return urls;
+    return [productImageUrl(product)];
+  }, [product]);
+
   function handleAddToCart() {
     if (!product) return;
     setError("");
@@ -136,124 +154,126 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     }
   }
 
-  if (loading) return <div className="flex items-center justify-center py-16 text-gray-400">Loading…</div>;
-  if (!product) return <div className="flex items-center justify-center py-16 text-gray-400">Product not found</div>;
+  if (loading) {
+    return (
+      <Container layout="wide" className="space-y-4 py-8">
+        <Skeleton className="h-8 w-24" />
+        <Skeleton className="aspect-square w-full rounded-[var(--radius)]" />
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-6 w-32" />
+      </Container>
+    );
+  }
 
-  const img = productImageUrl(product);
+  if (!product) {
+    return (
+      <Container layout="wide" className="py-16 text-center text-sm text-[var(--ink-soft)]">
+        Product not found
+      </Container>
+    );
+  }
 
   return (
     <div className="pb-28">
-      <button type="button" onClick={() => router.back()} className="flex items-center gap-1 px-4 py-3 text-sm text-gray-600">
-        ← Back
-      </button>
-
-      <div className="mx-3 flex h-52 items-center justify-center overflow-hidden rounded-2xl bg-[var(--mist)]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={img} alt={product.name} className="h-full w-full object-contain" />
-      </div>
-
-      <div className="px-4 mt-4">
-        {product.brand && (
-          <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">{product.brand.name}</div>
-        )}
-        <h1 className="mt-1 text-xl font-bold text-gray-900">{product.name}</h1>
-        {product.unit && <div className="text-sm text-gray-500 mt-0.5">{product.unit}</div>}
-        {product.category && <div className="text-xs text-gray-400 mt-0.5">{product.category.name}</div>}
-
-        <div className="mt-3 flex items-baseline gap-2">
-          <span className="text-2xl font-bold text-slate-900">₹{Number(unitPrice).toLocaleString("en-IN")}</span>
-          {product.unit && <span className="text-sm text-gray-500">/ {product.unit}</span>}
-        </div>
-
-        {available <= 5 && available > 0 && (
-          <div className="mt-1 text-xs font-medium text-orange-500">Only {available} left in stock</div>
-        )}
-        {available === 0 && <div className="mt-1 text-xs font-medium text-red-500">Out of stock</div>}
-
-        {product.description && (
-          <p className="mt-3 text-sm text-gray-600 leading-relaxed">{product.description}</p>
-        )}
-
-        {selectableDefs.length > 0 && (
-          <div className="mt-5 space-y-3">
-            {selectableDefs.map((def) => {
-              const opts = optionList(def.options);
-              return (
-                <div key={def.key}>
-                  <div className="mb-1.5 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                    {def.label}
-                    {def.unit ? ` (${def.unit})` : ""}
-                    {def.isRequired ? " *" : ""}
-                  </div>
-                  {opts.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {opts.map((opt) => (
-                        <button
-                          key={opt}
-                          type="button"
-                          onClick={() => setSelected((s) => ({ ...s, [def.key]: opt }))}
-                          className={`rounded-full border px-3 py-1.5 text-sm ${
-                            selected[def.key] === opt
-                              ? "border-slate-900 bg-slate-900 text-white"
-                              : "border-gray-200 bg-white text-gray-700"
-                          }`}
-                        >
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <input
-                      value={selected[def.key] ?? ""}
-                      onChange={(e) => setSelected((s) => ({ ...s, [def.key]: e.target.value }))}
-                      className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm"
-                      placeholder={def.label}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        <div className="mt-6 flex items-center gap-3">
-          <div className="flex items-center rounded-full border border-gray-200">
-            <button
-              type="button"
-              onClick={() => setQty(Math.max(1, qty - 1))}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-lg font-bold text-gray-600"
-            >
-              −
-            </button>
-            <span className="w-10 text-center text-base font-semibold">{qty}</span>
-            <button
-              type="button"
-              onClick={() => setQty(Math.min(available || 99, qty + 1))}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-lg font-bold text-gray-600"
-            >
-              +
-            </button>
-          </div>
-          <span className="text-sm text-gray-500">= ₹{(Number(unitPrice) * qty).toLocaleString("en-IN")}</span>
-        </div>
-        {error && <div className="mt-3 text-sm text-red-600">{error}</div>}
-      </div>
-
-      <div className="sticky bottom-0 border-t border-[var(--line)] bg-[var(--paper)]/95 px-4 py-3 backdrop-blur">
+      <Container layout="wide" className="py-4 md:py-8">
         <button
           type="button"
-          onClick={handleAddToCart}
-          disabled={available === 0}
-          className={`btn-primary-block ${
-            added
-              ? "btn-dark"
-              : available === 0
-                ? "rounded-full bg-gray-200 py-3.5 text-base font-semibold text-gray-400"
-                : "btn-primary"
-          }`}
+          onClick={() => router.back()}
+          className="mb-4 text-sm font-semibold text-[var(--ink-soft)] hover:text-[var(--ink)]"
         >
-          {added ? "✓ Added to cart" : available === 0 ? "Out of stock" : "Add to Cart"}
+          ← Back
         </button>
+
+        <div className="grid gap-8 md:grid-cols-2 md:gap-10">
+          <ProductGallery images={galleryImages} alt={product.name} />
+
+          <div className="flex flex-col">
+            {product.brand && (
+              <p className="cx-eyebrow">{product.brand.name}</p>
+            )}
+            <h1 className="font-display mt-2 text-2xl font-semibold text-[var(--ink)] md:text-3xl">
+              {product.name}
+            </h1>
+            {product.unit && (
+              <p className="mt-1 text-sm text-[var(--ink-soft)]">{product.unit}</p>
+            )}
+            {product.category && (
+              <p className="mt-0.5 text-xs text-[var(--ink-soft)]/70">{product.category.name}</p>
+            )}
+
+            <div className="mt-4 flex flex-wrap items-baseline gap-2">
+              <PriceDisplay amount={Number(unitPrice)} size="lg" />
+              {product.unit && (
+                <span className="text-sm text-[var(--ink-soft)]">/ {product.unit}</span>
+              )}
+            </div>
+
+            <div className="mt-2">
+              <StockBadge available={available} />
+            </div>
+
+            {product.description && (
+              <p className="mt-4 text-sm leading-relaxed text-[var(--ink-soft)]">{product.description}</p>
+            )}
+
+            {selectableDefs.length > 0 && (
+              <div className="mt-6 space-y-5">
+                {selectableDefs.map((def) => {
+                  const opts = optionList(def.options);
+                  const label = `${def.label}${def.unit ? ` (${def.unit})` : ""}${def.isRequired ? " *" : ""}`;
+                  return opts.length > 0 ? (
+                    <ChipGroup key={def.key} label={label}>
+                      {opts.map((opt) => (
+                        <Chip
+                          key={opt}
+                          active={selected[def.key] === opt}
+                          onClick={() => setSelected((s) => ({ ...s, [def.key]: opt }))}
+                        >
+                          {opt}
+                        </Chip>
+                      ))}
+                    </ChipGroup>
+                  ) : (
+                    <div key={def.key} className="space-y-2">
+                      <div className="text-sm font-semibold text-[var(--ink)]">{label}</div>
+                      <input
+                        value={selected[def.key] ?? ""}
+                        onChange={(e) => setSelected((s) => ({ ...s, [def.key]: e.target.value }))}
+                        className="min-h-[var(--touch-min)] w-full rounded-[var(--radius)] border border-[var(--line)] bg-white px-3 text-sm text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forest)]"
+                        placeholder={def.label}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <QuantityStepper
+                value={qty}
+                onChange={setQty}
+                max={available || 99}
+              />
+              <span className="text-sm text-[var(--ink-soft)]">
+                = <PriceDisplay amount={Number(unitPrice) * qty} size="sm" />
+              </span>
+            </div>
+            {error && <div className="mt-3 text-sm text-[var(--danger)]">{error}</div>}
+          </div>
+        </div>
+      </Container>
+
+      <div className="sticky bottom-0 z-10 border-t border-[var(--line)] bg-[color-mix(in_srgb,var(--paper)_92%,white)] px-4 py-3 backdrop-blur md:px-6">
+        <div className="mx-auto w-full max-w-[var(--layout-wide)]">
+          <Button
+            variant={added ? "secondary" : "primary"}
+            size="block"
+            onClick={handleAddToCart}
+            disabled={available === 0}
+          >
+            {added ? "✓ Added to cart" : available === 0 ? "Out of stock" : "Add to Cart"}
+          </Button>
+        </div>
       </div>
     </div>
   );

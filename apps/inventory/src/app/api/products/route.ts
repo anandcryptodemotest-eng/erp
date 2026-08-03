@@ -1,3 +1,4 @@
+import { createLogger } from "@erp/logger";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveTaxRate, suggestTaxFromHsn } from "@/lib/tax-resolution";
@@ -8,6 +9,8 @@ import {
 } from "@/lib/attributes";
 import { createProducts, isEngineCreateBody } from "@/services/product-creation.engine";
 import { z } from "zod";
+
+const log = createLogger({ service: "inventory" });
 
 const createProductSchema = z.object({
   sku: z.string().min(1),
@@ -63,6 +66,14 @@ const pricingPolicySchema = z
 const mediaSchema = z
   .object({
     images: z.array(z.string().min(1)).max(4).optional().default([]),
+    variation: z
+      .object({
+        type: z.literal("CONFIGURATION"),
+        attributes: z.array(z.string().min(1)).min(1),
+        values: z.record(z.array(z.string().min(1)).max(4)),
+      })
+      .optional()
+      .nullable(),
   })
   .optional()
   .nullable();
@@ -351,7 +362,7 @@ export async function POST(request: Request) {
     if ((error as { code?: string }).code === "P2002") {
       return NextResponse.json({ error: "SKU already exists" }, { status: 409 });
     }
-    console.error("products POST", error);
+    log.error("products_post", { err: error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

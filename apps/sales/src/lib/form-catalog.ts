@@ -9,6 +9,7 @@
 import {
   assetKey,
   withFormId,
+  validateFormDefinition as validateFormDefinitionShared,
   type AssetRef,
   type FormDefinition,
   type WorkflowDefinition,
@@ -114,22 +115,12 @@ export function validateFormDefinition(def: FormDefinition): {
   errors: string[];
   warnings: string[];
 } {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-  if (!def.key?.trim() && !def.id?.trim()) {
-    errors.push("form key or id is required");
-  }
-  if (def.renderer === "custom" && !def.component?.trim()) {
-    errors.push("custom renderer requires component id");
-  }
-  for (const f of def.fields ?? []) {
-    if (!f.key?.trim()) errors.push("field key is required");
-    if (!f.label?.trim()) errors.push(`field "${f.key}" needs a label`);
-    if (f.required && f.type === "readonly") {
-      warnings.push(`field "${f.key}" is required but readonly`);
-    }
-  }
-  return { ok: errors.length === 0, errors, warnings };
+  const r = validateFormDefinitionShared(def, "save");
+  return {
+    ok: r.canSave,
+    errors: r.errors.map((e) => e.message),
+    warnings: r.warnings.map((w) => w.message),
+  };
 }
 
 /** Resolve each activity assetRef to a concrete published form; refuse missing. */

@@ -103,10 +103,10 @@ export default function CustomersPage() {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-[var(--ink)]">
             {isSalesLookup ? "Customer lookup" : "Customers"}
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-[var(--ink-soft)] mt-1">
             {isSalesLookup
               ? "Find buyers, credit and recent orders while reviewing sales requests."
               : "Customer master data for trading and portal accounts."}
@@ -134,14 +134,14 @@ export default function CustomersPage() {
             className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
           />
           {loading ? (
-            <p className="text-gray-400">Loading…</p>
+            <p className="text-[var(--ink-soft)]">Loading…</p>
           ) : (
             <div className="bg-white rounded-xl border overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b">
+                <thead className="bg-[var(--mist)] border-b">
                   <tr>
                     {["Name", "Phone", "Email", "Credit", "Portal"].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left font-medium text-gray-600">
+                      <th key={h} className="px-4 py-3 text-left font-medium text-[var(--ink-soft)]">
                         {h}
                       </th>
                     ))}
@@ -151,7 +151,7 @@ export default function CustomersPage() {
                   {filtered.map((c) => (
                     <tr
                       key={c.id}
-                      className={`hover:bg-gray-50 cursor-pointer ${selected?.id === c.id ? "bg-amber-50/60" : ""}`}
+                      className={`hover:bg-[var(--mist)] cursor-pointer ${selected?.id === c.id ? "bg-amber-50/60" : ""}`}
                       onClick={() => openCustomer(c.id)}
                     >
                       <td className="px-4 py-3 font-medium">
@@ -160,17 +160,17 @@ export default function CustomersPage() {
                           <span className="ml-2 text-[10px] font-bold uppercase text-red-600">Blocked</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-500">{c.phone ?? "—"}</td>
-                      <td className="px-4 py-3 text-gray-500">{c.email ?? "—"}</td>
+                      <td className="px-4 py-3 text-[var(--ink-soft)]">{c.phone ?? "—"}</td>
+                      <td className="px-4 py-3 text-[var(--ink-soft)]">{c.email ?? "—"}</td>
                       <td className="px-4 py-3">₹{Number(c.creditLimit ?? 0).toLocaleString("en-IN")}</td>
-                      <td className="px-4 py-3 text-xs text-gray-500">
+                      <td className="px-4 py-3 text-xs text-[var(--ink-soft)]">
                         {c.portalUserId ? "Linked" : "—"}
                       </td>
                     </tr>
                   ))}
                   {filtered.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
+                      <td colSpan={5} className="px-4 py-8 text-center text-[var(--ink-soft)]">
                         No customers found
                       </td>
                     </tr>
@@ -182,25 +182,25 @@ export default function CustomersPage() {
         </div>
 
         <div className="rounded-xl border bg-white p-5 min-h-[320px]">
-          {detailLoading && <p className="text-sm text-gray-400">Loading detail…</p>}
+          {detailLoading && <p className="text-sm text-[var(--ink-soft)]">Loading detail…</p>}
           {!detailLoading && !selected && (
-            <p className="text-sm text-gray-400">Select a customer to see addresses, credit and recent orders.</p>
+            <p className="text-sm text-[var(--ink-soft)]">Select a customer to see addresses, credit and recent orders.</p>
           )}
           {!detailLoading && selected && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">{selected.name}</h2>
-                <p className="text-sm text-gray-500">
+                <h2 className="text-lg font-semibold text-[var(--ink)]">{selected.name}</h2>
+                <p className="text-sm text-[var(--ink-soft)]">
                   {[selected.phone, selected.email].filter(Boolean).join(" · ") || "No contact"}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-lg bg-gray-50 p-3">
-                  <div className="text-[11px] uppercase tracking-wide text-gray-400">Credit limit</div>
+                <div className="rounded-lg bg-[var(--mist)] p-3">
+                  <div className="text-[11px] uppercase tracking-wide text-[var(--ink-soft)]">Credit limit</div>
                   <div className="font-semibold">₹{Number(selected.creditLimit ?? 0).toLocaleString("en-IN")}</div>
                 </div>
-                <div className="rounded-lg bg-gray-50 p-3">
-                  <div className="text-[11px] uppercase tracking-wide text-gray-400">Outstanding</div>
+                <div className="rounded-lg bg-[var(--mist)] p-3">
+                  <div className="text-[11px] uppercase tracking-wide text-[var(--ink-soft)]">Outstanding</div>
                   <div className="font-semibold">
                     ₹{Number(selected.outstandingBalance ?? 0).toLocaleString("en-IN")}
                   </div>
@@ -212,34 +212,34 @@ export default function CustomersPage() {
                 </div>
               )}
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Addresses</h3>
-                <ul className="space-y-2 text-sm text-gray-700">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-soft)] mb-2">Addresses</h3>
+                <ul className="space-y-2 text-sm text-[var(--ink-soft)]">
                   {(selected.addresses ?? []).map((a) => (
-                    <li key={a.id} className="rounded-lg border border-gray-100 p-2">
+                    <li key={a.id} className="rounded-lg border border-[var(--line)] p-2">
                       <span className="font-medium">{a.label}</span>
                       {a.isDefault && <span className="ml-2 text-[10px] text-amber-700">DEFAULT</span>}
-                      <div className="text-xs text-gray-500 mt-0.5">
+                      <div className="text-xs text-[var(--ink-soft)] mt-0.5">
                         {[a.line1, a.city, a.state, a.pincode].filter(Boolean).join(", ")}
                       </div>
                     </li>
                   ))}
                   {(selected.addresses ?? []).length === 0 && (
-                    <li className="text-xs text-gray-400">{selected.address || "No addresses on file"}</li>
+                    <li className="text-xs text-[var(--ink-soft)]">{selected.address || "No addresses on file"}</li>
                   )}
                 </ul>
               </div>
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Recent orders</h3>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-soft)] mb-2">Recent orders</h3>
                 <ul className="space-y-2">
                   {(selected.orders ?? []).map((o) => (
                     <li key={o.id} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="font-medium text-gray-800">{o.orderNumber}</span>
+                      <span className="font-medium text-[var(--ink)]">{o.orderNumber}</span>
                       <StatusBadge status={o.status} />
-                      <span className="text-gray-500">₹{Number(o.total).toLocaleString("en-IN")}</span>
+                      <span className="text-[var(--ink-soft)]">₹{Number(o.total).toLocaleString("en-IN")}</span>
                     </li>
                   ))}
                   {(selected.orders ?? []).length === 0 && (
-                    <li className="text-xs text-gray-400">No prior orders</li>
+                    <li className="text-xs text-[var(--ink-soft)]">No prior orders</li>
                   )}
                 </ul>
               </div>
@@ -251,7 +251,7 @@ export default function CustomersPage() {
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl p-6 w-96">
-            <h2 className="font-bold text-gray-900 mb-4">New Customer</h2>
+            <h2 className="font-bold text-[var(--ink)] mb-4">New Customer</h2>
             <form onSubmit={create} className="space-y-3">
               {(
                 [
@@ -261,7 +261,7 @@ export default function CustomersPage() {
                 ] as const
               ).map(([label, type, key]) => (
                 <div key={key}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                  <label className="block text-sm font-medium text-[var(--ink-soft)] mb-1">{label}</label>
                   <input
                     type={type}
                     required={key === "name"}
@@ -281,7 +281,7 @@ export default function CustomersPage() {
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg text-sm hover:bg-gray-200"
+                  className="flex-1 bg-[var(--mist)] text-[var(--ink-soft)] py-2 rounded-lg text-sm hover:bg-gray-200"
                 >
                   Cancel
                 </button>

@@ -16,6 +16,7 @@ import {
   type PreviewRow,
 } from "@/lib/validation";
 import { resolveAttributeDefinitions, syncAttributeIndex } from "@/lib/attributes";
+import { resolveRowImageUrls, type CommercialMedia } from "@/lib/commercial-media";
 
 export type GenerateRequest = {
   categoryId: string;
@@ -32,7 +33,7 @@ export type GenerateRequest = {
   /** Commercial description (same for every SKU in the batch). */
   description?: string | null;
   /** Commercial media — mapped to Product.imageUrls on persist (v1 denormalization). */
-  media?: { images: string[] } | null;
+  media?: CommercialMedia | null;
   costPrice?: number | null;
   reorderLevel?: number | null;
   /** Per-row commercial sell/base amounts keyed by row index (from CreatePlan). */
@@ -317,7 +318,10 @@ export async function persistGeneratedRows(
           ? req.rowCommercialPrices[row.index]
           : undefined;
       const commercial = rowPrice !== undefined ? rowPrice : req.baseRate ?? null;
-      const images = req.media?.images?.filter(Boolean) ?? [];
+      const rowAttrs = Object.fromEntries(
+        Object.entries(asJsonObject(row.customAttributes)).map(([k, v]) => [k, String(v ?? "")])
+      );
+      const images = resolveRowImageUrls(req.media, rowAttrs);
       const product = await tx.product.create({
         data: {
           tenantId,
@@ -328,7 +332,7 @@ export async function persistGeneratedRows(
           brandId: req.brandId || null,
           groupCode: req.groupCode || null,
           groupName: req.groupName || null,
-          imageUrls: images.length ? images : undefined,
+          imageUrls: images,
           costPrice: req.costPrice ?? null,
           reorderLevel:
             req.reorderLevel != null && Number.isFinite(req.reorderLevel)

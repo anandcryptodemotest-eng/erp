@@ -84,20 +84,20 @@ export default function BarcodeScannerModal({ onDetected, onClose }: Props) {
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-xl p-5 w-full max-w-sm mx-4">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-bold text-gray-900">Scan Barcode</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl font-bold leading-none">&times;</button>
+          <h2 className="font-bold text-[var(--ink)]">Scan Barcode</h2>
+          <button onClick={onClose} className="text-[var(--ink-soft)] hover:text-[var(--ink-soft)] text-xl font-bold leading-none">&times;</button>
         </div>
 
         {error ? (
           <div>
             <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3 mb-4">{error}</p>
-            <p className="text-xs text-gray-500 mb-3">Type the barcode number manually:</p>
+            <p className="text-xs text-[var(--ink-soft)] mb-3">Type the barcode number manually:</p>
             <form onSubmit={submitManual} className="flex gap-2">
               <input autoFocus value={manual} onChange={e => setManual(e.target.value)}
                 placeholder="e.g. 8901491001045"
-                className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
               <button type="submit"
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700">
+                className="bg-[var(--brand)] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[var(--brand-mid)]">
                 Look up
               </button>
             </form>
@@ -107,19 +107,19 @@ export default function BarcodeScannerModal({ onDetected, onClose }: Props) {
             <div className="relative bg-black rounded-lg overflow-hidden mb-2" style={{ aspectRatio: "4/3" }}>
               <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-64 h-24 border-2 border-indigo-400 rounded opacity-90" />
+                <div className="w-64 h-24 border-2 border-[var(--brand)] rounded opacity-90" />
               </div>
             </div>
-            <p className="text-xs text-center text-indigo-600 font-medium mb-1">{status}</p>
-            <p className="text-xs text-center text-gray-400 mb-3">Align barcode inside the box — hold steady</p>
+            <p className="text-xs text-center text-[var(--brand)] font-medium mb-1">{status}</p>
+            <p className="text-xs text-center text-[var(--ink-soft)] mb-3">Align barcode inside the box — hold steady</p>
             <div className="border-t pt-3">
-              <p className="text-xs text-gray-500 mb-2">Or enter barcode manually:</p>
+              <p className="text-xs text-[var(--ink-soft)] mb-2">Or enter barcode manually:</p>
               <form onSubmit={submitManual} className="flex gap-2">
                 <input value={manual} onChange={e => setManual(e.target.value)}
                   placeholder="e.g. 8901491001045"
-                  className="flex-1 border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                  className="flex-1 border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
                 <button type="submit"
-                  className="bg-indigo-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-indigo-700">
+                  className="bg-[var(--brand)] text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-[var(--brand-mid)]">
                   Go
                 </button>
               </form>

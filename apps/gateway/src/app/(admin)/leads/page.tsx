@@ -33,11 +33,11 @@ interface CustomerLite {
 type LeadStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "DISQUALIFIED" | "CONVERTED";
 
 const STATUS_COLORS: Record<string, string> = {
-  NEW: "bg-blue-100 text-blue-700",
+  NEW: "bg-blue-100 text-[var(--brand)]",
   CONTACTED: "bg-yellow-100 text-yellow-800",
   QUALIFIED: "bg-green-100 text-green-700",
   DISQUALIFIED: "bg-red-100 text-red-600",
-  CONVERTED: "bg-indigo-100 text-indigo-700",
+  CONVERTED: "bg-[var(--mist)] text-[var(--brand)]",
 };
 
 const LIFECYCLE: Array<{ status: LeadStatus; label: string; hint: string }> = [
@@ -231,8 +231,8 @@ export default function LeadsPage() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Leads</h1>
-          <p className="text-sm text-gray-500">{total} total leads</p>
+          <h1 className="text-2xl font-bold text-[var(--ink)]">Leads</h1>
+          <p className="text-sm text-[var(--ink-soft)]">{total} total leads</p>
         </div>
         <button onClick={() => setShowForm(true)}
           className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition">
@@ -254,14 +254,14 @@ export default function LeadsPage() {
               key={step.status}
               onClick={() => setStatusFilter(active ? "" : step.status)}
               className={`rounded-lg border p-3 text-left transition ${
-                active ? "border-emerald-300 bg-emerald-50" : "border-gray-200 bg-white hover:bg-gray-50"
+                active ? "border-emerald-300 bg-emerald-50" : "border-[var(--line)] bg-white hover:bg-[var(--mist)]"
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-gray-800">{step.label}</span>
+                <span className="text-sm font-semibold text-[var(--ink)]">{step.label}</span>
                 <span className={`px-2 py-0.5 rounded-full text-xs ${STATUS_COLORS[step.status]}`}>{statusCounts[step.status] ?? 0}</span>
               </div>
-              <p className="mt-1 text-xs text-gray-500">{step.hint}</p>
+              <p className="mt-1 text-xs text-[var(--ink-soft)]">{step.hint}</p>
             </button>
           );
         })}
@@ -271,7 +271,7 @@ export default function LeadsPage() {
       <div className="flex gap-2 mb-4">
         {["", "NEW", "CONTACTED", "QUALIFIED", "CONVERTED", "DISQUALIFIED"].map(s => (
           <button key={s} onClick={() => setStatusFilter(s)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${statusFilter === s ? "bg-gray-800 text-white border-gray-800" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"}`}>
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${statusFilter === s ? "bg-[var(--brand)] text-white border-gray-800" : "bg-white text-[var(--ink-soft)] border-[var(--line)] hover:border-gray-400"}`}>
             {s || "All"}
           </button>
         ))}
@@ -280,43 +280,43 @@ export default function LeadsPage() {
       {/* Create form */}
       {showForm && (
         <div className="bg-white border rounded-xl p-5 mb-5 shadow-sm">
-          <h2 className="font-semibold text-gray-800 mb-4">New Lead</h2>
+          <h2 className="font-semibold text-[var(--ink)] mb-4">New Lead</h2>
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Name *</label>
+              <label className="block text-xs text-[var(--ink-soft)] mb-1">Name *</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="Contact name"
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Company</label>
+              <label className="block text-xs text-[var(--ink-soft)] mb-1">Company</label>
               <input value={company} onChange={e => setCompany(e.target.value)} placeholder="Company name"
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Email</label>
+              <label className="block text-xs text-[var(--ink-soft)] mb-1">Email</label>
               <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="email@example.com"
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Phone</label>
+              <label className="block text-xs text-[var(--ink-soft)] mb-1">Phone</label>
               <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 9XXXXXXXXX"
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Source</label>
+              <label className="block text-xs text-[var(--ink-soft)] mb-1">Source</label>
               <select value={source} onChange={e => setSource(e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
                 {SOURCES.map(s => <option key={s}>{s}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Notes</label>
+              <label className="block text-xs text-[var(--ink-soft)] mb-1">Notes</label>
               <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional notes"
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
           </div>
           <div className="flex gap-2 justify-end">
-            <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-600 border rounded-lg hover:bg-gray-50">Cancel</button>
+            <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-[var(--ink-soft)] border rounded-lg hover:bg-[var(--mist)]">Cancel</button>
             <button onClick={createLead} disabled={saving}
               className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
               {saving ? "Saving..." : "Create Lead"}
@@ -328,38 +328,38 @@ export default function LeadsPage() {
       {/* Leads table */}
       <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
         {loading ? (
-          <div className="p-8 text-center text-gray-400 text-sm">Loading...</div>
+          <div className="p-8 text-center text-[var(--ink-soft)] text-sm">Loading...</div>
         ) : leads.length === 0 ? (
-          <div className="p-8 text-center text-gray-400 text-sm">No leads yet. Create your first lead above.</div>
+          <div className="p-8 text-center text-[var(--ink-soft)] text-sm">No leads yet. Create your first lead above.</div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-[var(--mist)] border-b">
               <tr>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Name</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Company</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Contact</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Source</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Status</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Created</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ink-soft)]">Name</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ink-soft)]">Company</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ink-soft)]">Contact</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ink-soft)]">Source</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ink-soft)]">Status</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-[var(--ink-soft)]">Created</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {leads.map(lead => (
-                <tr key={lead.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => openDetail(lead)}>
-                  <td className="px-4 py-3 font-medium text-gray-900">{lead.name}</td>
-                  <td className="px-4 py-3 text-gray-600">{lead.company ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">
+                <tr key={lead.id} className="hover:bg-[var(--mist)] cursor-pointer" onClick={() => openDetail(lead)}>
+                  <td className="px-4 py-3 font-medium text-[var(--ink)]">{lead.name}</td>
+                  <td className="px-4 py-3 text-[var(--ink-soft)]">{lead.company ?? "—"}</td>
+                  <td className="px-4 py-3 text-[var(--ink-soft)] text-xs">
                     {lead.email && <div>{lead.email}</div>}
                     {lead.phone && <div>{lead.phone}</div>}
                   </td>
-                  <td className="px-4 py-3 text-gray-500">{lead.source ?? "—"}</td>
+                  <td className="px-4 py-3 text-[var(--ink-soft)]">{lead.source ?? "—"}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[lead.status] ?? "bg-gray-100 text-gray-600"}`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[lead.status] ?? "bg-[var(--mist)] text-[var(--ink-soft)]"}`}>
                       {lead.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">{new Date(lead.createdAt).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 text-[var(--ink-soft)] text-xs">{new Date(lead.createdAt).toLocaleDateString()}</td>
                   <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                     {getAllowedNextStatuses(lead.status as LeadStatus).length > 0 ? (
                       <select
@@ -368,7 +368,7 @@ export default function LeadsPage() {
                           const nextStatus = e.target.value as LeadStatus;
                           if (nextStatus) updateStatus(lead, nextStatus);
                         }}
-                        className="text-xs border rounded px-2 py-1 text-gray-600 focus:outline-none"
+                        className="text-xs border rounded px-2 py-1 text-[var(--ink-soft)] focus:outline-none"
                         title="Move to next status">
                         <option value="">Move to...</option>
                         {getAllowedNextStatuses(lead.status as LeadStatus).map((s) => (
@@ -376,7 +376,7 @@ export default function LeadsPage() {
                         ))}
                       </select>
                     ) : (
-                      <span className="text-xs text-gray-400">No further action</span>
+                      <span className="text-xs text-[var(--ink-soft)]">No further action</span>
                     )}
                   </td>
                 </tr>
@@ -391,31 +391,31 @@ export default function LeadsPage() {
         <div className="fixed inset-0 bg-black/40 z-50 flex justify-end" onClick={() => setSelected(null)}>
           <div className="w-96 bg-white h-full shadow-2xl overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-gray-900">{selected.name}</h2>
-              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-700 text-xl">✕</button>
+              <h2 className="text-lg font-bold text-[var(--ink)]">{selected.name}</h2>
+              <button onClick={() => setSelected(null)} className="text-[var(--ink-soft)] hover:text-[var(--ink-soft)] text-xl">✕</button>
             </div>
 
             <div className="space-y-2 text-sm mb-5">
-              <div className="flex justify-between"><span className="text-gray-500">Company</span><span className="font-medium">{selected.company ?? "—"}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Email</span><span>{selected.email ?? "—"}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Phone</span><span>{selected.phone ?? "—"}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Source</span><span>{selected.source ?? "—"}</span></div>
+              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Company</span><span className="font-medium">{selected.company ?? "—"}</span></div>
+              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Email</span><span>{selected.email ?? "—"}</span></div>
+              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Phone</span><span>{selected.phone ?? "—"}</span></div>
+              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Source</span><span>{selected.source ?? "—"}</span></div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-500">Status</span>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[selected.status] ?? "bg-gray-100 text-gray-600"}`}>{selected.status}</span>
+                <span className="text-[var(--ink-soft)]">Status</span>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[selected.status] ?? "bg-[var(--mist)] text-[var(--ink-soft)]"}`}>{selected.status}</span>
               </div>
-              {selected.notes && <div className="pt-2 text-gray-600 border-t">{selected.notes}</div>}
+              {selected.notes && <div className="pt-2 text-[var(--ink-soft)] border-t">{selected.notes}</div>}
             </div>
 
             {/* Linked opportunities */}
             {opps.length > 0 && (
               <div className="mb-5">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">Linked Opportunities</h3>
+                <h3 className="text-xs font-semibold text-[var(--ink-soft)] uppercase mb-2">Linked Opportunities</h3>
                 <div className="space-y-2">
                   {opps.map(o => (
                     <div key={o.id} className="border rounded-lg p-3 text-sm">
-                      <div className="font-medium text-gray-800">{o.title}</div>
-                      <div className="text-xs text-gray-500 mt-1">{o.stage} — ₹{Number(o.value).toLocaleString()}</div>
+                      <div className="font-medium text-[var(--ink)]">{o.title}</div>
+                      <div className="text-xs text-[var(--ink-soft)] mt-1">{o.stage} — ₹{Number(o.value).toLocaleString()}</div>
                     </div>
                   ))}
                 </div>
@@ -434,7 +434,7 @@ export default function LeadsPage() {
                     type="number" placeholder="Expected value (₹)"
                     className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
 
-                  <label className="flex items-center gap-2 rounded-lg border border-green-200 bg-white px-3 py-2 text-xs text-gray-700">
+                  <label className="flex items-center gap-2 rounded-lg border border-green-200 bg-white px-3 py-2 text-xs text-[var(--ink-soft)]">
                     <input
                       type="checkbox"
                       checked={createOrLinkCustomer}
@@ -445,7 +445,7 @@ export default function LeadsPage() {
 
                   {createOrLinkCustomer && (
                     <div className="rounded-lg border bg-white p-3 space-y-2">
-                      <p className="text-xs font-medium text-gray-600">Customer details (used to create or match)</p>
+                      <p className="text-xs font-medium text-[var(--ink-soft)]">Customer details (used to create or match)</p>
                       <input
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
@@ -465,7 +465,7 @@ export default function LeadsPage() {
                         className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                       />
                       {findMatchingCustomer() && (
-                        <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-1">
+                        <p className="text-xs text-[var(--brand)] bg-[var(--mist)] border border-[var(--line)] rounded px-2 py-1">
                           Existing customer will be linked: {findMatchingCustomer()?.name}
                         </p>
                       )}
@@ -481,24 +481,24 @@ export default function LeadsPage() {
             )}
 
             {selected.status === "CONVERTED" && (
-              <div className="border rounded-xl p-4 bg-indigo-50 border-indigo-200">
-                <h3 className="text-sm font-semibold text-indigo-800 mb-2">Lead already converted</h3>
-                <p className="text-xs text-indigo-700">Next step: open Quotes page to create and send quote for this opportunity.</p>
+              <div className="border rounded-xl p-4 bg-[var(--mist)] border-[var(--line)]">
+                <h3 className="text-sm font-semibold text-[var(--brand)] mb-2">Lead already converted</h3>
+                <p className="text-xs text-[var(--brand)]">Next step: open Quotes page to create and send quote for this opportunity.</p>
               </div>
             )}
 
             {/* Status actions */}
             <div className="mt-4">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">Allowed Next Status</h3>
+              <h3 className="text-xs font-semibold text-[var(--ink-soft)] uppercase mb-2">Allowed Next Status</h3>
               <div className="flex flex-wrap gap-2">
                 {getAllowedNextStatuses(selected.status as LeadStatus).map(s => (
                   <button key={s} onClick={() => updateStatus(selected, s as LeadStatus)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${selected.status === s ? "bg-gray-200 text-gray-500 cursor-not-allowed" : "bg-white text-gray-700 hover:bg-gray-50 border-gray-300"}`}>
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${selected.status === s ? "bg-gray-200 text-[var(--ink-soft)] cursor-not-allowed" : "bg-white text-[var(--ink-soft)] hover:bg-[var(--mist)] border-[var(--line)]"}`}>
                     {s}
                   </button>
                 ))}
                 {getAllowedNextStatuses(selected.status as LeadStatus).length === 0 && (
-                  <span className="text-xs text-gray-400">This status is terminal.</span>
+                  <span className="text-xs text-[var(--ink-soft)]">This status is terminal.</span>
                 )}
               </div>
             </div>
