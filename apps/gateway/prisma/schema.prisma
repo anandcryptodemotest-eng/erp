@@ -19,16 +19,17 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenants          TenantUser[]
-  refreshTokens     RefreshToken[]
-  resetTokens       PasswordResetToken[]
-  notifications     Notification[]
+  tenants       TenantUser[]
+  refreshTokens RefreshToken[]
+  resetTokens   PasswordResetToken[]
+  notifications Notification[]
 }
 
 model Tenant {
   id        String   @id @default(cuid())
   name      String
   slug      String   @unique
+  /// @deprecated Use TenantDomain mappings for portal routing.
   domain    String?  @unique
   plan      String   @default("starter")
   isActive  Boolean  @default(true)
@@ -36,6 +37,7 @@ model Tenant {
   updatedAt DateTime @updatedAt
 
   users         TenantUser[]
+  domains       TenantDomain[]
   licenses      ModuleLicense[]
   settings      TenantSetting[]
   capabilities  TenantCapability[]
@@ -44,7 +46,26 @@ model Tenant {
   branches      Branch[]
 }
 
-/** Operational enablement (distinct from TenantSetting branding/config). */
+model TenantDomain {
+  id                String   @id @default(cuid())
+  tenantId          String
+  hostname          String   @unique
+  portalType        String   @default("CUSTOMER")
+  isPrimary         Boolean  @default(false)
+  isVerified        Boolean  @default(false)
+  certificateStatus String   @default("PENDING")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([hostname, portalType, isVerified])
+}
+
+/**
+ * Operational enablement (distinct from TenantSetting branding/config).
+ */
 model TenantCapability {
   id        String   @id @default(cuid())
   tenantId  String
@@ -72,7 +93,7 @@ model Branch {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   users  UserBranch[]
 
   @@unique([tenantId, code])
@@ -80,10 +101,10 @@ model Branch {
 }
 
 model UserBranch {
-  id       String  @id @default(cuid())
-  tenantId String
-  userId   String
-  branchId String
+  id        String  @id @default(cuid())
+  tenantId  String
+  userId    String
+  branchId  String
   isPrimary Boolean @default(false)
 
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
@@ -188,7 +209,7 @@ model Notification {
   title     String
   body      String
   isRead    Boolean  @default(false)
-  metadata  Json?    // optional extra payload (resourceId, resourceType, etc.)
+  metadata  Json? // optional extra payload (resourceId, resourceType, etc.)
   createdAt DateTime @default(now())
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -223,10 +244,10 @@ model Coupon {
   tenantId       String
   code           String
   description    String?
-  type           String    // PERCENTAGE | FLAT_AMOUNT | FREE_DELIVERY
+  type           String // PERCENTAGE | FLAT_AMOUNT | FREE_DELIVERY
   value          Float
   minOrderAmount Float?
-  maxDiscount    Float?    // cap for PERCENTAGE coupons
+  maxDiscount    Float? // cap for PERCENTAGE coupons
   usageLimit     Int?
   usageCount     Int       @default(0)
   perUserLimit   Int       @default(1)
@@ -243,13 +264,13 @@ model Coupon {
 }
 
 model CouponUsage {
-  id        String   @id @default(cuid())
-  couponId  String
-  tenantId  String
-  userId    String
-  orderId   String
-  discount  Float
-  usedAt    DateTime @default(now())
+  id       String   @id @default(cuid())
+  couponId String
+  tenantId String
+  userId   String
+  orderId  String
+  discount Float
+  usedAt   DateTime @default(now())
 
   coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
 
@@ -262,7 +283,7 @@ model FCMToken {
   tenantId  String
   userId    String
   token     String
-  platform  String   // ANDROID | IOS | WEB
+  platform  String // ANDROID | IOS | WEB
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -284,7 +305,7 @@ model PlatformOperator {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  auditLogs PlatformAuditLog[]
+  auditLogs     PlatformAuditLog[]
   refreshTokens PlatformRefreshToken[]
 }
 
@@ -316,4 +337,207 @@ model PlatformAuditLog {
   @@index([createdAt])
   @@index([operatorId, createdAt])
   @@index([entityType, entityId])
+}
+
+// ── Platform: Asset Store (first-class capability, not owned by Communication) ──
+
+model Asset {
+  id           String   @id @default(cuid())
+  tenantId     String
+  type         String // DOCUMENT | MEDIA | IMAGE | VIDEO | VOICE | FILE | REPORT
+  fileName     String
+  mimeType     String
+  fileSize     Int
+  checksum     String?
+  storageType  String   @default("LOCAL") // LOCAL | S3 | MINIO (future)
+  storagePath  String // internal — never exposed to clients
+  url          String // public URL for serving
+  thumbnailUrl String?
+  duration     Int? // seconds (voice/video)
+  width        Int?
+  height       Int?
+  uploadedBy   String
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, type])
+}
+
+// ── Communication: Conversations ──────────────────────────────────
+
+model Conversation {
+  id            String   @id @default(cuid())
+  tenantId      String
+  type          String   @default("DIRECT") // DIRECT | GROUP | SUPPORT | BROADCAST
+  channel       String   @default("IN_APP") // IN_APP | EMAIL | SMS | PUSH | WHATSAPP
+  status        String   @default("OPEN") // OPEN | ARCHIVED | LOCKED | DELETED
+  title         String?
+  avatarUrl     String?
+  description   String?
+  contextModule String   @default("general") // "sales" | "procurement" | "workflow" | ...
+  contextEntity String   @default("General") // "SalesOrder" | "TaskInstance" | ...
+  contextId     String? // "SO-10012" | "task-id" | ...
+  contextLabel  String? // Display snapshot; ownership is revalidated by the owning module.
+  createdBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+  summaries    ConversationSummary[]
+  policy       ConversationPolicy?
+
+  @@index([tenantId])
+  @@index([tenantId, contextModule, contextEntity, contextId])
+  @@index([tenantId, status])
+}
+
+model ConversationPolicy {
+  id                      String   @id @default(cuid())
+  conversationId          String   @unique
+  tenantId                String
+  visibility              String   @default("PARTICIPANTS") // PARTICIPANTS | TENANT | CONTEXT_MEMBERS
+  allowedParticipantTypes String[] @default([])
+  canSend                 String[] @default([])
+  canEdit                 String[] @default([])
+  canDelete               String[] @default([])
+  canClose                String[] @default([])
+  retentionDays           Int?
+  allowExport             Boolean  @default(false)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model ConversationParticipant {
+  id              String    @id @default(cuid())
+  conversationId  String
+  participantType String    @default("USER") // USER | STAFF | CUSTOMER | SUPPLIER | PARTNER | TEAM | ROLE | SYSTEM | BOT
+  participantId   String // identity or tenant-scoped business-entity ID
+  role            String    @default("MEMBER") // ADMIN | MEMBER
+  joinedAt        DateTime  @default(now())
+  leftAt          DateTime?
+  lastReadAt      DateTime?
+  mutedUntil      DateTime?
+  isArchived      Boolean   @default(false)
+  isPinned        Boolean   @default(false)
+  isFavorite      Boolean   @default(false)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, participantType, participantId])
+  @@index([participantType, participantId])
+}
+
+// ── Communication: Messages ───────────────────────────────────────
+
+model Message {
+  id              String    @id @default(cuid())
+  conversationId  String
+  senderType      String    @default("USER") // USER | SYSTEM
+  senderId        String
+  type            String    @default("TEXT") // TEXT | VOICE | IMAGE | DOCUMENT | VIDEO | AUDIO | LOCATION | CONTACT | SYSTEM
+  text            String?
+  contextModule   String?
+  contextEntity   String?
+  contextId       String?
+  replyToId       String?
+  forwardedFromId String?
+  isDeleted       Boolean   @default(false)
+  deletedBy       String?
+  deletedFor      String[]  @default([])
+  editedAt        DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  conversation  Conversation         @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  replyTo       Message?             @relation("MessageReply", fields: [replyToId], references: [id])
+  replies       Message[]            @relation("MessageReply")
+  forwardedFrom Message?             @relation("MessageForward", fields: [forwardedFromId], references: [id])
+  forwardedTo   Message[]            @relation("MessageForward")
+  attachments   MessageAttachment[]
+  reactions     MessageReaction[]
+  readReceipts  MessageReadReceipt[]
+
+  @@index([conversationId, createdAt])
+  @@index([senderType, senderId])
+  @@index([contextModule, contextEntity, contextId])
+}
+
+model MessageAttachment {
+  id           String  @id @default(cuid())
+  messageId    String
+  assetRef     Json // Strongly typed as AssetRef { type, id, version } at app layer
+  fileName     String
+  mimeType     String
+  fileSize     Int
+  duration     Int? // seconds (voice/video)
+  width        Int?
+  height       Int?
+  thumbnailUrl String?
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+}
+
+model MessageReaction {
+  id        String @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+}
+
+model MessageReadReceipt {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  readAt    DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([userId])
+}
+
+// ── Communication: Presence (v1 in Communication; future: Identity) ──
+
+model Presence {
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  tenantId   String
+  status     String    @default("OFFLINE") // ONLINE | AWAY | OFFLINE
+  lastSeenAt DateTime?
+  updatedAt  DateTime  @updatedAt
+
+  @@index([tenantId])
+}
+
+// ── Communication: AI ────────────────────────────────────────────
+
+model ConversationSummary {
+  id             String   @id @default(cuid())
+  conversationId String
+  tenantId       String
+  type           String   @default("SUMMARY") // SUMMARY | DECISIONS
+  summary        String
+  decisions      String[] @default([])
+  openQuestions  String[] @default([])
+  actionItems    Json? // [{ assignee, task, dueDate }]
+  messageRange   Json // { fromMessageId, toMessageId, fromCreatedAt, toCreatedAt }
+  generatedBy    String // "AI" | userId
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([tenantId])
 }
