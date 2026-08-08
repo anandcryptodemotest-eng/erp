@@ -34,6 +34,15 @@ export function IconOrders({ className = "nav-icon" }: { className?: string }) {
   );
 }
 
+export function IconMessages({ className = "nav-icon" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
+      <path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v6a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 4v-4.1A2.5 2.5 0 0 1 5 12.5v-6Z" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8.5 8.5h7M8.5 11.5h4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function IconProfile({ className = "nav-icon" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>

@@ -8,15 +8,15 @@ interface Props {
   onClose: () => void;
 }
 
-const HINTS = new Map([
+const HINTS = new Map<DecodeHintType, unknown>([
   [DecodeHintType.POSSIBLE_FORMATS, [
     BarcodeFormat.EAN_13, BarcodeFormat.EAN_8,
     BarcodeFormat.UPC_A, BarcodeFormat.UPC_E,
     BarcodeFormat.CODE_128, BarcodeFormat.CODE_39,
     BarcodeFormat.QR_CODE,
-  ]],
+  ] as BarcodeFormat[]],
   [DecodeHintType.TRY_HARDER, true],
-]) as Map<DecodeHintType, unknown>;
+]);
 
 export default function BarcodeScannerModal({ onDetected, onClose }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);

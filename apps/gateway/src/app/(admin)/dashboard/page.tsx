@@ -1,112 +1,179 @@
 "use client";
-import { useEffect, useState } from "react";
-import { api, getTenantId } from "@/lib/admin-api";
 
-interface Stats { products: number; customers: number; orders: number; invoices: number; }
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  DashboardEditor,
+  WorkspaceHero,
+  registerDashboardWidgets,
+  roleDefaultConfig,
+  useToast,
+} from "@erp/ui";
+import type {
+  DashboardConfig,
+  DashboardAuthContext,
+  DashboardPlacement,
+} from "@erp/ui";
+import { api, getAdminUser } from "@/lib/admin-api";
+
+registerDashboardWidgets();
+
+type ConfigResponse = {
+  data: {
+    config: DashboardConfig;
+    isDefault: boolean;
+    auth: { role: string; modules: string[]; capabilities: string[] };
+  };
+};
+
+function prettyRole(role: string) {
+  return role.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<Stats>({ products: 0, customers: 0, orders: 0, invoices: 0 });
-  const [displayName, setDisplayName] = useState("ERP");
+  const toast = useToast();
+  const [config, setConfig] = useState<DashboardConfig | null>(null);
+  const [authCtx, setAuthCtx] = useState<DashboardAuthContext | null>(null);
+  const [roleLabel, setRoleLabel] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const tenantId = getTenantId();
-    if (tenantId) {
-      void api(`/api/tenants/${tenantId}`)
-        .then((r) => {
-          const settings = (r.data?.settings ?? {}) as Record<string, string>;
-          setDisplayName(
-            settings["brand.displayName"]?.trim() ||
-              (r.data?.name as string | undefined)?.trim() ||
-              "ERP"
-          );
-        })
-        .catch(() => undefined);
-    }
-    const safe = async (path: string) => {
-      try {
-        return await api(path);
-      } catch {
-        return { meta: { total: 0 } };
-      }
-    };
-    Promise.all([
-      safe("/api/products?limit=1"),
-      safe("/api/customers?limit=1"),
-      safe("/api/orders?limit=1"),
-      safe("/api/invoices?limit=1"),
-    ]).then(([p, c, o, i]) =>
-      setStats({
-        products: p.meta?.total ?? 0,
-        customers: c.meta?.total ?? 0,
-        orders: o.meta?.total ?? 0,
-        invoices: i.meta?.total ?? 0,
-      })
-    );
+  const applyPayload = useCallback((res: ConfigResponse) => {
+    setConfig(res.data.config);
+    const user = getAdminUser();
+    setRoleLabel(prettyRole(res.data.auth.role || user?.role || "User"));
+    setAuthCtx({
+      userId: user?.id ?? "",
+      role: res.data.auth.role,
+      modules: res.data.auth.modules,
+      capabilities: res.data.auth.capabilities,
+    });
   }, []);
 
-  const cards = [
-    { label: "Products",  value: stats.products,  icon: "📦", color: "bg-[var(--mist)]  border-[var(--line)]",  href: "/products"  },
-    { label: "Customers", value: stats.customers, icon: "👥", color: "bg-green-50 border-green-200", href: "/customers" },
-    { label: "Orders",    value: stats.orders,    icon: "🧾", color: "bg-yellow-50 border-yellow-200", href: "/orders"  },
-    { label: "Invoices",  value: stats.invoices,  icon: "💰", color: "bg-[var(--mist)] border-purple-200", href: "/invoices" },
-  ];
+  const load = useCallback(async () => {
+    registerDashboardWidgets();
+    setLoading(true);
+    setError("");
+    try {
+      const res = await api<ConfigResponse>("/api/dashboard/config?portal=ADMIN");
+      applyPayload(res);
+    } catch (err) {
+      const user = getAdminUser();
+      if (user) {
+        setConfig(roleDefaultConfig(user.role || "USER", "ADMIN"));
+        setRoleLabel(prettyRole(user.role || "User"));
+        setAuthCtx({ userId: user.id ?? "", role: user.role, modules: [], capabilities: [] });
+      } else {
+        setError(err instanceof Error ? err.message : "Could not load dashboard");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [applyPayload]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function save() {
+    if (!config) return;
+    setSaving(true);
+    setError("");
+    try {
+      await api("/api/dashboard/config?portal=ADMIN", {
+        method: "PUT",
+        body: JSON.stringify({
+          widgets: (config.widgets as DashboardPlacement[]).map((p) => ({
+            type: p.type,
+            x: p.x ?? 0,
+            y: p.y ?? 0,
+            w: p.w,
+            h: p.h,
+            config: p.config ?? {},
+          })),
+        }),
+      });
+      const res = await api<ConfigResponse>("/api/dashboard/config?portal=ADMIN");
+      applyPayload(res);
+      toast.success("Layout saved");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not save layout";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function reset() {
+    setSaving(true);
+    setError("");
+    try {
+      await api("/api/dashboard/config?portal=ADMIN", { method: "DELETE" });
+      const res = await api<ConfigResponse>("/api/dashboard/config?portal=ADMIN");
+      applyPayload(res);
+      toast.success("Restored default layout");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not reset dashboard";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const fetchData = useCallback(
+    async <T,>(dataSource: string): Promise<T | null> => {
+      try {
+        return await api<T>(dataSource);
+      } catch {
+        return null;
+      }
+    },
+    []
+  );
+
+  if (loading) {
+    return <div className="ws-page text-sm text-[var(--ink-soft)]">Loading dashboard…</div>;
+  }
+
+  if (!config) {
+    return <div className="ws-page text-sm text-[var(--danger)]">{error || "Could not load dashboard"}</div>;
+  }
 
   return (
-    <div className="p-8">
-      <h1 className="font-display text-2xl font-semibold text-[var(--ink)] mb-2">Dashboard</h1>
-      <p className="text-[var(--ink-soft)]/70 text-sm mb-8">Welcome to {displayName}</p>
+    <main className="ws-page">
+      <WorkspaceHero
+        eyebrow="Workspace"
+        title="Dashboard"
+        description="What needs your attention right now. Process work on Order Desk."
+        badge={roleLabel ? <span className="ws-chip">{roleLabel}</span> : null}
+        actions={
+          <Link href="/sales-desk" className="ws-btn ws-btn--primary">
+            Open Order Desk →
+          </Link>
+        }
+      />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        {cards.map(c => (
-          <a key={c.label} href={c.href} className="admin-card p-5 hover:shadow-[var(--shadow)] transition">
-            <div className="text-3xl mb-2">{c.icon}</div>
-            <div className="text-2xl font-bold text-[var(--ink)]">{c.value}</div>
-            <div className="text-sm text-[var(--ink-soft)]/65">{c.label}</div>
-          </a>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-semibold text-[var(--ink)] mb-4">B2B Lead-to-Cash Flow</h2>
-          <ol className="space-y-2 text-sm text-[var(--ink-soft)]">
-            {[
-              ["📦 Products", "Add products & stock", "/products"],
-              ["👥 Customers", "Create a customer", "/customers"],
-              ["🎯 Leads", "Create lead → Mark Qualified", "/leads"],
-              ["📄 Quotes", "Create quote → Send → Accept", "/quotes"],
-              ["🧾 Orders", "Convert to order → Confirm → Ship", "/orders"],
-              ["💰 Invoices", "View auto-created invoice → Mark Paid", "/invoices"],
-              ["↩️ Returns", "If needed: create sales return", "/returns"],
-            ].map(([icon, desc, href]) => (
-              <li key={desc} className="flex items-center gap-3">
-                <span className="w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold shrink-0">→</span>
-                <a href={href} className="hover:text-green-700 hover:underline font-medium">{icon}</a>
-                <span className="text-[var(--ink-soft)]">— {desc}</span>
-              </li>
-            ))}
-          </ol>
+      {error ? (
+        <div className="mb-4 rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--warning)_35%,var(--line))] bg-[color-mix(in_srgb,var(--warning)_10%,white)] px-4 py-2 text-sm text-[var(--warning)]">
+          {error}
         </div>
+      ) : null}
 
-        <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-semibold text-[var(--ink)] mb-4">Retail / POS Flow</h2>
-          <ol className="space-y-2 text-sm text-[var(--ink-soft)]">
-            {[
-              ["📦 Products", "Add products with barcode & stock", "/products"],
-              ["🏧 POS Billing", "Open shift → Scan & bill → Close shift", "http://localhost:3008"],
-              ["🛒 Online Orders", "Customer app → Checkout → Deliver", "http://localhost:3007"],
-              ["🚚 Delivery", "Assign rider → Track delivery", "http://localhost:3010/delivery-executives"],
-              ["📋 Procurement", "Restock from vendor → Receive stock", "/purchase-orders"],
-            ].map(([icon, desc, href]) => (
-              <li key={desc} className="flex items-center gap-3">
-                <span className="w-6 h-6 bg-blue-100 text-[var(--brand)] rounded-full flex items-center justify-center text-xs font-bold shrink-0">→</span>
-                <a href={href} className="hover:text-[var(--brand)] hover:underline font-medium">{icon}</a>
-                <span className="text-[var(--ink-soft)]">— {desc}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </div>
-    </div>
+      {authCtx ? (
+        <DashboardEditor
+          config={config}
+          auth={authCtx}
+          portal="ADMIN"
+          fetchData={fetchData}
+          onChange={setConfig}
+          onSave={() => void save()}
+          onReset={() => void reset()}
+          saving={saving}
+        />
+      ) : null}
+    </main>
   );
 }

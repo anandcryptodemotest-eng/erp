@@ -148,23 +148,59 @@ export async function POST(request: Request) {
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
 
   const body = await request.json();
-  const { type, title, participantIds, customerIds = [], contextModule, contextEntity, contextId, contextLabel, policy } = body;
+  const isCustomer = auth.role === "CUSTOMER";
+  let { type, title, participantIds, customerIds = [], contextModule, contextEntity, contextId, contextLabel, policy } = body;
 
   if (!type || !["DIRECT", "GROUP"].includes(type)) {
     return NextResponse.json({ error: "type must be DIRECT or GROUP" }, { status: 400 });
   }
-  if (!participantIds || !Array.isArray(participantIds) || participantIds.length === 0) {
+  if (!Array.isArray(participantIds) || (participantIds.length === 0 && !isCustomer)) {
     return NextResponse.json({ error: "participantIds is required" }, { status: 400 });
   }
   if (!Array.isArray(customerIds) || customerIds.some((id: unknown) => typeof id !== "string")) {
     return NextResponse.json({ error: "customerIds must be an array of IDs" }, { status: 400 });
   }
-  if (request.headers.get("x-user-role") === "CUSTOMER" && customerIds.length > 0) {
+  if (isCustomer && customerIds.length > 0) {
     return NextResponse.json({ error: "Customers cannot add arbitrary customer participants" }, { status: 403 });
   }
 
+  if (isCustomer && participantIds.length === 0) {
+    const supportUsers = await prisma.tenantUser.findMany({
+      where: {
+        tenantId,
+        isActive: true,
+        userId: { not: auth.userId },
+        user: { isActive: true },
+      },
+      orderBy: { createdAt: "asc" },
+      take: 100,
+      select: { userId: true, role: true, user: { select: { name: true } } },
+    });
+    const rolePriority: Record<string, number> = {
+      ADMIN: 0,
+      SUPER_ADMIN: 0,
+      ORG_ADMIN: 0,
+      BRANCH_ADMIN: 1,
+      MANAGER: 1,
+    };
+    const supportUser = supportUsers.sort(
+      (left, right) => (rolePriority[left.role] ?? 2) - (rolePriority[right.role] ?? 2)
+    )[0];
+    if (!supportUser) {
+      return NextResponse.json({ error: "No support user is available for this tenant" }, { status: 409 });
+    }
+    participantIds = [supportUser.userId];
+    const conversationTitle = typeof title === "string" && title.trim() ? title.trim() : "Customer support";
+    title = `${conversationTitle} with ${supportUser.user.name || "our team"}`;
+
+    const portalCustomer = await resolvePortalCustomer(tenantId, auth.userId);
+    if (portalCustomer) customerIds = [portalCustomer.id];
+  }
+
+  const uniqueCustomerIds = [...new Set(customerIds as string[])];
+
   const customerResults = await Promise.all(
-    [...new Set(customerIds)].map((customerId: string) =>
+    uniqueCustomerIds.map((customerId) =>
       serviceClient.call<{ data?: CustomerRecord }>("sales", `/api/customers/${customerId}`, { tenantId })
     )
   );
@@ -193,7 +229,7 @@ export async function POST(request: Request) {
             participantId: pid,
             role: pid === auth.userId ? "ADMIN" : "MEMBER",
           })),
-          ...[...new Set(customerIds)].map((customerId: string) => ({
+          ...uniqueCustomerIds.map((customerId) => ({
             participantType: "CUSTOMER",
             participantId: customerId,
             role: "MEMBER",

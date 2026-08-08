@@ -43,9 +43,16 @@ export async function POST(request: Request) {
   const tenantId = request.headers.get("x-tenant-id");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
 
+  let parsedData: z.infer<typeof createCreditNoteSchema> | undefined;
   try {
     const body = await request.json();
     const data = createCreditNoteSchema.parse(body);
+    parsedData = data;
+
+    if (data.sourceRef) {
+      const existing = await prisma.creditNote.findFirst({ where: { tenantId, sourceRef: data.sourceRef } });
+      if (existing) return NextResponse.json({ data: existing });
+    }
 
     if (data.invoiceId) {
       const invoice = await prisma.invoice.findFirst({ where: { id: data.invoiceId, tenantId } });
@@ -63,6 +70,10 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
+    }
+    if (error && typeof error === "object" && "code" in error && error.code === "P2002" && parsedData?.sourceRef) {
+      const existing = await prisma.creditNote.findFirst({ where: { tenantId, sourceRef: parsedData.sourceRef } });
+      if (existing) return NextResponse.json({ data: existing });
     }
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

@@ -8,7 +8,7 @@ import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentation
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
-import { Resource } from "@opentelemetry/resources";
+import { resourceFromAttributes } from "@opentelemetry/resources";
 import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
@@ -49,7 +49,7 @@ export async function bootstrapTelemetry(opts: BootstrapOptions): Promise<void> 
   const env = process.env.DEPLOYMENT_ENVIRONMENT || process.env.NODE_ENV || "development";
   const base = endpointBase(opts.otlpEndpoint);
 
-  const resource = new Resource({
+  const resource = resourceFromAttributes({
     [ATTR_SERVICE_NAME]: serviceName,
     [ATTR_SERVICE_VERSION]: serviceVersion,
     [ATTR_SERVICE_NAMESPACE]: "erp",

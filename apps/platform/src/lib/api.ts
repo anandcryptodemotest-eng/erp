@@ -54,16 +54,17 @@ export function getOperator(): {
 }
 
 export async function api<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
+  const isForm = typeof FormData !== "undefined" && options.body instanceof FormData;
   const res = await fetch(path, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(isForm ? {} : { "Content-Type": "application/json" }),
       Authorization: `Bearer ${getAccessToken()}`,
       ...(options.headers ?? {}),
     },
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+  if (!res.ok) throw new Error((json as { error?: string }).error ?? `HTTP ${res.status}`);
   return json as T;
 }
 

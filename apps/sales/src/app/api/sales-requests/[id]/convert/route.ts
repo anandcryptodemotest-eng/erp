@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getDefaultWorkflow } from "@/lib/order-workflow";
 import { startSalesOrderWorkflowV5, getPublishedDefinition } from "@/lib/workflow-runtime-v5";
 import { notifyPortalCustomer } from "@/lib/notify-customer";
-import { withSpan, recordEvent, captureException } from "@erp/telemetry";
+import { withSpan, recordEvent, captureException } from "@erp/telemetry/helpers";
+import { serviceClient } from "@erp/config";
 
 const log = createLogger({ service: "sales" });
 
@@ -45,6 +46,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       const { id } = await params;
 
       const published = await getPublishedDefinition(tenantId);
+      const warehouses = await serviceClient.call<{ data?: { id: string }[] } | { id: string }[]>(
+        "inventory",
+        "/api/warehouses?limit=1",
+        { method: "GET", tenantId, userId }
+      );
+      const whBody = warehouses.data;
+      const warehouseId = Array.isArray(whBody)
+        ? whBody[0]?.id
+        : whBody && "data" in whBody
+          ? whBody.data?.[0]?.id
+          : undefined;
       if (!published) {
         log.warn("convert_blocked_no_template", { tenantId, sreqId: id });
         return NextResponse.json(
@@ -122,6 +134,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
               customerId: sreq.customerId,
               userId,
               workflowId: defaultWf?.id,
+              warehouseId: warehouseId ?? undefined,
               date: new Date(),
               status: "CONFIRMED",
               isOnlineOrder: sreq.isOnlineOrder,
@@ -229,6 +242,31 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         if (!result.order.workflowId) {
           log.error("convert_missing_workflow", { orderId: result.order.id, tenantId });
           return NextResponse.json({ error: "Order missing workflow binding" }, { status: 500 });
+        }
+
+        if (warehouseId && result.order.items?.length) {
+          const reserve = await serviceClient.call("inventory", "/api/stock/reserve", {
+            method: "POST",
+            tenantId,
+            userId,
+            body: {
+              reference: result.order.id,
+              items: result.order.items.map((item) => ({
+                productId: item.productId,
+                warehouseId,
+                variantId: item.variantId ?? undefined,
+                quantity: item.quantity,
+              })),
+            },
+          });
+          if (reserve.status !== 201 && reserve.status !== 200) {
+            log.warn("convert_stock_reserve_failed", {
+              tenantId,
+              orderId: result.order.id,
+              status: reserve.status,
+              error: reserve.error,
+            });
+          }
         }
 
         await startSalesOrderWorkflowV5({

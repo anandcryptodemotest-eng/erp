@@ -1,5 +1,5 @@
 const SERVICE_URLS: Record<string, string> = {
-  // Keep browser requests same-origin; next.config.ts rewrites these to real services.
+  // Keep browser requests same-origin; next.config.ts rewrites all calls through Gateway.
   gateway: "/_svc/gateway",
   sales: "/_svc/sales",
   inventory: "/_svc/inventory",

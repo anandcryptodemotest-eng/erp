@@ -13,7 +13,14 @@ type SreqRow = {
 };
 
 function formatMoney(n: number) {
-  return `₹${Number(n ?? 0).toFixed(2)}`;
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(
+    n ?? 0
+  );
+}
+
+function initial(name: string | null | undefined) {
+  const v = (name ?? "?").trim();
+  return v.charAt(0).toUpperCase() || "?";
 }
 
 /** Inbox queue — informational rows; actions live in WorkspaceBottomBar. */
@@ -38,31 +45,36 @@ export function InboxQueue({
               type="button"
               onClick={() => onSelect(sreq.id)}
               className={cn(
-                "relative w-full px-4 py-3 text-left transition-colors hover:bg-[var(--mist)]",
-                selected && "bg-[var(--mist)]"
+                "relative w-full px-4 py-3.5 text-left transition-colors hover:bg-[var(--mist)]",
+                selected && "bg-[color-mix(in_srgb,var(--brand)_8%,var(--mist))]"
               )}
               style={{ minHeight: "var(--row-h)" }}
             >
               {selected ? (
-                <span
-                  className="absolute inset-y-0 left-0 w-0.5 bg-[var(--brand)]"
-                  aria-hidden
-                />
+                <span className="absolute inset-y-0 left-0 w-0.5 bg-[var(--brand)]" aria-hidden />
               ) : null}
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium text-[var(--ink)]">
-                    {sreq.requestNumber}
+              <div className="flex items-start gap-3">
+                <span
+                  className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--mist)] text-xs font-bold text-[var(--brand)]"
+                  aria-hidden
+                >
+                  {initial(sreq.customer?.name)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-[var(--ink)]">{sreq.requestNumber}</div>
+                      <div className="mt-0.5 truncate text-xs text-[var(--ink-soft)]">
+                        {sreq.customer?.name ?? "Walk-in customer"}
+                      </div>
+                    </div>
+                    <StatusBadge status={sreq.status} />
                   </div>
-                  <div className="mt-1 truncate text-xs text-[var(--ink-soft)]">
-                    {sreq.customer?.name ?? "—"}
+                  <div className="mt-2 flex items-center justify-between text-xs text-[var(--ink-soft)]">
+                    <span className="font-semibold tabular-nums text-[var(--ink)]">{formatMoney(sreq.total)}</span>
+                    {sreq.paymentMethod ? <span>{sreq.paymentMethod}</span> : null}
                   </div>
                 </div>
-                <StatusBadge status={sreq.status} />
-              </div>
-              <div className="mt-2 flex items-center justify-between text-xs text-[var(--ink-soft)]">
-                <span className="tabular-nums">{formatMoney(sreq.total)}</span>
-                {sreq.paymentMethod ? <span>{sreq.paymentMethod}</span> : null}
               </div>
             </button>
           </li>

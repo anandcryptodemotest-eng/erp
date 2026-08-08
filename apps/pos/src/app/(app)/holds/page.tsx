@@ -17,14 +17,14 @@ export default function HoldsPage() {
 
   const load = useCallback(async () => {
     const res = await api<{ data: Bill[] }>("accounting", "/api/bills?status=HELD&limit=20");
-    if (!res.error) setBills(res.data.data);
+    if (!res.error && res.data) setBills(res.data.data);
     setLoading(false);
   }, []);
 
   useEffect(() => {
     load();
     api<{ data: Warehouse[] }>("inventory", "/api/warehouses?limit=50").then((res) => {
-      if (!res.error) {
+      if (!res.error && res.data) {
         setWarehouses(res.data.data);
         if (res.data.data.length > 0) setWarehouseId(res.data.data[0].id);
       }

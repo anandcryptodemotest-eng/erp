@@ -7,6 +7,7 @@ import {
   CapabilityKey,
   can,
   licenseAllowsProcessStudio,
+  tenantPermissions,
   type PlatformRole,
 } from "@erp/platform-core";
 
@@ -65,7 +66,7 @@ export function buildTenantAuthContext(input: {
     tenantId: input.tenantId,
     userId: input.userId,
     role: input.role,
-    permissions: new Set(),
+    permissions: tenantPermissions(input.role),
     capabilities: new Set(input.capabilities ?? []),
     licenses: new Set(input.modules ?? []),
   };

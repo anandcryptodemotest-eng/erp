@@ -23,7 +23,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const invoice = await prisma.invoice.findFirst({
     where: { id, tenantId },
-    include: { payments: true, creditNotes: true },
+    include: { payments: true, creditNotes: true, lines: true },
   });
 
   if (!invoice) return NextResponse.json({ error: "Invoice not found" }, { status: 404 });

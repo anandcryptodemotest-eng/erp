@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** Compat alias — prefer /sales-desk. */
+/** Compat alias — Order Desk lives at /sales-desk. */
 export default function OmsRedirect() {
   redirect("/sales-desk");
 }

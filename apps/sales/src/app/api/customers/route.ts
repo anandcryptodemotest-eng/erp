@@ -1,6 +1,7 @@
 import { createLogger } from "@erp/logger";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { normalizeCustomerPhone } from "@/lib/customer-phone";
 import { z } from "zod";
 
 const log = createLogger({ service: "sales" });
@@ -79,6 +80,7 @@ export async function POST(request: Request) {
         customerGroup: data.customerGroup,
         tenantId,
         portalUserId: data.portalUserId,
+        phoneNormalized: normalizeCustomerPhone(data.phone),
       },
     });
 

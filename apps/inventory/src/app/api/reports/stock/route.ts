@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+
+const stockQuerySchema = z.object({
+  warehouseId: z.string().min(1).max(100).optional(),
+  lowStockThreshold: z.coerce.number().int().min(1).max(100_000).default(10),
+});
+
+const MAX_LOW_STOCK_ITEMS = 100;
 
 // GET /api/reports/stock
 // Query params: warehouseId (optional), lowStockThreshold (default 10)
@@ -8,8 +16,12 @@ export async function GET(request: NextRequest) {
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
 
   const url = new URL(request.url);
-  const warehouseId = url.searchParams.get("warehouseId") ?? undefined;
-  const threshold = Math.max(1, parseInt(url.searchParams.get("lowStockThreshold") ?? "10"));
+  const query = stockQuerySchema.safeParse({
+    warehouseId: url.searchParams.get("warehouseId") ?? undefined,
+    lowStockThreshold: url.searchParams.get("lowStockThreshold") ?? undefined,
+  });
+  if (!query.success) return NextResponse.json({ error: query.error.errors[0].message }, { status: 400 });
+  const { warehouseId, lowStockThreshold: threshold } = query.data;
 
   const where = {
     tenantId,
@@ -100,7 +112,7 @@ export async function GET(request: NextRequest) {
         lowStockCount: lowStockItems.length,
         threshold,
       },
-      lowStockItems: lowStockItems.map((e) => ({
+      lowStockItems: lowStockItems.slice(0, MAX_LOW_STOCK_ITEMS).map((e) => ({
         productId: e.productId,
         variantId: e.variantId,
         productName: e.variant ? `${e.product.name} / ${e.variant.name}` : e.product.name,
@@ -110,6 +122,7 @@ export async function GET(request: NextRequest) {
         reservedQty: e.reservedQty,
         availableQty: e.quantity - e.reservedQty,
       })),
+      limits: { lowStockItems: MAX_LOW_STOCK_ITEMS },
       topByValue: byValue,
       recentMovements,
     },

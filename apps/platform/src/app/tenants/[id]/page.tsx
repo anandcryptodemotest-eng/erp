@@ -21,6 +21,15 @@ type Detail = {
   apiUsage: string | null;
 };
 
+type TenantDomain = {
+  id: string;
+  hostname: string;
+  portalType: string;
+  isPrimary: boolean;
+  isVerified: boolean;
+  certificateStatus: string;
+};
+
 type CapsResp = {
   licenseAllowsProcessStudio: boolean;
   capabilities: { key: string; enabled: boolean; canEnable: boolean }[];
@@ -30,15 +39,22 @@ export default function TenantDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [row, setRow] = useState<Detail | null>(null);
+  const [domains, setDomains] = useState<TenantDomain[]>([]);
   const [caps, setCaps] = useState<CapsResp | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ name: "", plan: "starter" });
+  const [domainForm, setDomainForm] = useState({ hostname: "", portalType: "CUSTOMER", isPrimary: true });
 
   async function loadCaps() {
     const r = await api<{ data: CapsResp }>(`/api/platform/tenants/${id}/capabilities`);
     setCaps(r.data);
+  }
+
+  async function loadDomains() {
+    const r = await api<{ data: TenantDomain[] }>(`/api/platform/tenants/${id}/domains`);
+    setDomains(r.data ?? []);
   }
 
   useEffect(() => {
@@ -53,6 +69,7 @@ export default function TenantDetailPage() {
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Load failed"));
     loadCaps().catch((e) => setError(e instanceof Error ? e.message : "Capabilities load failed"));
+    loadDomains().catch((e) => setError(e instanceof Error ? e.message : "Domains load failed"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, router]);
 
@@ -70,6 +87,61 @@ export default function TenantDetailPage() {
       setOk(r.data.isActive ? "Tenant enabled" : "Tenant disabled");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Update failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function addDomain(e: FormEvent) {
+    e.preventDefault();
+    if (!domainForm.hostname.trim()) return;
+    setBusy(true);
+    setError(null);
+    setOk(null);
+    try {
+      await api(`/api/platform/tenants/${id}/domains`, {
+        method: "POST",
+        body: JSON.stringify(domainForm),
+      });
+      setDomainForm({ hostname: "", portalType: "CUSTOMER", isPrimary: true });
+      await loadDomains();
+      setOk("Domain mapping added");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Domain mapping failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateDomain(domain: TenantDomain, data: Partial<TenantDomain>) {
+    setBusy(true);
+    setError(null);
+    setOk(null);
+    try {
+      await api(`/api/platform/tenants/${id}/domains/${domain.id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      });
+      await loadDomains();
+      setOk("Domain mapping updated");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Domain mapping update failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeDomain(domain: TenantDomain) {
+    if (!window.confirm(`Remove ${domain.hostname}?`)) return;
+    setBusy(true);
+    setError(null);
+    setOk(null);
+    try {
+      await api(`/api/platform/tenants/${id}/domains/${domain.id}`, { method: "DELETE" });
+      await loadDomains();
+      setOk("Domain mapping removed");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Domain mapping removal failed");
     } finally {
       setBusy(false);
     }
@@ -140,7 +212,8 @@ export default function TenantDetailPage() {
           <>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-xl font-semibold">{row.name}</h2>
+                <h2 className="text-xl font-semibold">Edit tenant</h2>
+                <p className="text-sm text-[var(--ink)]">{row.name}</p>
                 <p className="font-mono text-sm text-[var(--muted)]">{row.slug}</p>
               </div>
               <button
@@ -198,6 +271,87 @@ export default function TenantDetailPage() {
                 {busy ? "Saving…" : "Save changes"}
               </button>
             </form>
+
+            <section className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4 space-y-3">
+              <div>
+                <h3 className="text-sm font-semibold">Domain mappings</h3>
+                <p className="text-xs text-[var(--muted)]">
+                  Platform Admin controls which portal each hostname opens. Verification is required before production routing.
+                </p>
+              </div>
+              <form onSubmit={(e) => void addDomain(e)} className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto]">
+                <input
+                  required
+                  placeholder="portal.acme.com"
+                  className="rounded-lg border border-[var(--line)] bg-black/20 px-3 py-2 text-sm"
+                  value={domainForm.hostname}
+                  onChange={(e) => setDomainForm((f) => ({ ...f, hostname: e.target.value }))}
+                />
+                <select
+                  className="rounded-lg border border-[var(--line)] bg-black/20 px-3 py-2 text-sm"
+                  value={domainForm.portalType}
+                  onChange={(e) => setDomainForm((f) => ({ ...f, portalType: e.target.value }))}
+                >
+                  <option value="CUSTOMER">Customer</option>
+                  <option value="ADMIN">Admin</option>
+                  <option value="SUPPLIER">Supplier</option>
+                  <option value="EMPLOYEE">Employee</option>
+                  <option value="PUBLIC">Public</option>
+                </select>
+                <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                  <input
+                    type="checkbox"
+                    checked={domainForm.isPrimary}
+                    onChange={(e) => setDomainForm((f) => ({ ...f, isPrimary: e.target.checked }))}
+                  />
+                  Primary
+                </label>
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  Add domain
+                </button>
+              </form>
+              {domains.length > 0 ? (
+                <div className="divide-y divide-[var(--line)] rounded-lg border border-[var(--line)]">
+                  {domains.map((domain) => (
+                    <div key={domain.id} className="flex flex-wrap items-center justify-between gap-3 px-3 py-3 text-sm">
+                      <div>
+                        <p className="font-mono">{domain.hostname}</p>
+                        <p className="text-xs text-[var(--muted)]">
+                          {domain.portalType} · {domain.isPrimary ? "Primary · " : ""}
+                          {domain.isVerified ? "Verified" : "Unverified"} · SSL {domain.certificateStatus.toLowerCase()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!domain.isVerified && (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => void updateDomain(domain, { isVerified: true, certificateStatus: "ACTIVE" })}
+                            className="rounded-lg border border-[var(--line)] px-3 py-1.5 text-xs disabled:opacity-50"
+                          >
+                            Verify
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void removeDomain(domain)}
+                          className="rounded-lg border border-[var(--bad)]/40 px-3 py-1.5 text-xs text-[var(--bad)] disabled:opacity-50"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-[var(--muted)]">No domain mappings configured.</p>
+              )}
+            </section>
 
             <div className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4 space-y-3">
               <h3 className="text-sm font-semibold">Capabilities</h3>

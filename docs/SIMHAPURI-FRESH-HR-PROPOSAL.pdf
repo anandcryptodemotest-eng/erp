@@ -1,0 +1,660 @@
+%PDF-1.4
+%SankalpProposal
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+4 0 obj
+<< /Length 578 >>
+stream
+0.035 0.12 0.19 rg
+0 0 595 842 re
+f
+0 0.45 0.43 rg
+0 0 595 10 re
+f
+1 1 1 rg
+BT
+/F2 31 Tf
+58 470 Td
+(SIMHAPURI FRESH) Tj
+ET
+0.75 0.95 0.93 rg
+BT
+/F1 18 Tf
+60 430 Td
+(GROCERY PLATFORM) Tj
+ET
+0.75 0.95 0.93 RG
+2 w
+60 405 m
+220 405 l
+S
+1 1 1 rg
+BT
+/F2 13 Tf
+60 365 Td
+(Commerce, Store Operations) Tj
+ET
+1 1 1 rg
+BT
+/F2 13 Tf
+60 344 Td
+(and Delivery Management Proposal) Tj
+ET
+0.78 0.84 0.85 rg
+BT
+/F1 10 Tf
+60 90 Td
+(Prepared by Sankalp | [Client / Organization Name] | [DD Month YYYY]) Tj
+ET
+0.65 0.75 0.76 rg
+BT
+/F1 9 Tf
+60 65 Td
+(Reusable reference proposal | Version 1.0) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Length 3341 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 01) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(HR Operations Overview) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(Sankalp ERP provides Simhapuri Fresh with a tenant-secure HR and payroll foundation for) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(maintaining employee records, configuring income-tax slabs, managing leave requests,) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 685 Td
+(preparing payroll, issuing payslips and posting the related financial entries to) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 671 Td
+(accounting.) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 642 Td
+(The current implementation is designed for controlled administration by authorized HR) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 628 Td
+(and management users. Employee and payroll records are tenant-scoped, validated at the) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 614 Td
+(API boundary and connected to the accounting service through authenticated service) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 600 Td
+(calls.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 571 Td
+(Completed capability summary) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 540 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 540 Td
+(Employee master records) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 521 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 521 Td
+(Employee ID and email uniqueness within a tenant) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 502 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 502 Td
+(Department, position, hire date and salary details) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 483 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 483 Td
+(Employee bank account and bank name fields) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 464 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 464 Td
+(Active/inactive employee status with soft deactivation) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 445 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 445 Td
+(Employee detail view with recent payroll and leave history) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 426 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 426 Td
+(Delivery-executive attributes for employees who perform delivery work) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 407 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 407 Td
+(Tenant-scoped APIs and role-based write controls) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 380 Td
+(Current user access) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 349 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 349 Td
+(**Admin:** full HR administration and payroll control) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 330 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 330 Td
+(**Manager:** employee updates, tax-slab management, leave approval and payroll) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 316 Td
+(operations) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 297 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 297 Td
+(**Authorized employee context:** records are restricted by tenant and) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 283 Td
+(authenticated request context) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(2) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Length 2604 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 02) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(Leave and Tax Management) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 713 Td
+(Leave management) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 682 Td
+(The completed leave workflow allows authorized users to create, list, inspect and manage) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 668 Td
+(employee leave requests.) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 11 Tf
+54 639 Td
+(Available features) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 613 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 613 Td
+(Leave request creation) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 594 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 594 Td
+(Annual, sick, personal, maternity, paternity and unpaid leave types) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 575 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 575 Td
+(Start date, end date and reason) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 556 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 556 Td
+(Paginated leave listing) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 537 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 537 Td
+(Filter by employee and status) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 518 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 518 Td
+(Employee identity shown with each request) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 499 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 499 Td
+(Manager or Admin approval) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 480 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 480 Td
+(Manager or Admin rejection) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 461 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 461 Td
+(Employee-side cancellation for pending or approved requests) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 442 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 442 Td
+(Protected state transitions) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 423 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 423 Td
+(Tenant-scoped leave records) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 11 Tf
+54 396 Td
+(Leave states) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 370 Td
+(```text) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 349 Td
+(PENDING -> APPROVED) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 328 Td
+(\\-> REJECTED) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 307 Td
+(PENDING / APPROVED -> CANCELLED) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(3) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Length 836 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 03) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(Payroll and Accounting Integration) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(The completed payroll workflow supports employee-level monthly payroll records and the) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(following controlled state machine:) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 670 Td
+(```text) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 649 Td
+(DRAFT -> PROCESSED -> PAID) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(4) Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 12 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 4 0 R >>
+endobj
+9 0 obj
+<< /Type /Page /Parent 12 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 5 0 R >>
+endobj
+10 0 obj
+<< /Type /Page /Parent 12 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 6 0 R >>
+endobj
+11 0 obj
+<< /Type /Page /Parent 12 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 7 0 R >>
+endobj
+12 0 obj
+<< /Type /Pages /Count 4 /Kids [8 0 R 9 0 R 10 0 R 11 0 R] >>
+endobj
+13 0 obj
+<< /Type /Catalog /Pages 12 0 R >>
+endobj
+xref
+0 14
+0000000000 65535 f 
+0000000026 00000 n 
+0000000096 00000 n 
+0000000171 00000 n 
+0000000239 00000 n 
+0000000867 00000 n 
+0000004259 00000 n 
+0000006914 00000 n 
+0000007800 00000 n 
+0000007947 00000 n 
+0000008094 00000 n 
+0000008242 00000 n 
+0000008390 00000 n 
+0000008468 00000 n 
+trailer
+<< /Size 14 /Root 13 0 R >>
+startxref
+8519
+%%EOF

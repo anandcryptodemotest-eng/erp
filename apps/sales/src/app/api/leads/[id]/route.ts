@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { normalizeCustomerPhone } from "@/lib/customer-phone";
 import { z } from "zod";
 
 const LEAD_STATUSES = ["NEW", "CONTACTED", "QUALIFIED", "DISQUALIFIED", "CONVERTED"] as const;
@@ -102,6 +103,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
               name: customerName,
               email: customerEmail,
               phone: customerPhone,
+              phoneNormalized: normalizeCustomerPhone(customerPhone),
             },
           });
           customerId = customer.id;

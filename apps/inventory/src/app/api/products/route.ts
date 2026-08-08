@@ -1,7 +1,8 @@
 import { createLogger } from "@erp/logger";
 import { NextResponse } from "next/server";
+import { requireCatalogManager, requireProductRead } from "@erp/auth";
 import { prisma } from "@/lib/prisma";
-import { resolveTaxRate, suggestTaxFromHsn } from "@/lib/tax-resolution";
+import { resolveTaxRate } from "@/lib/tax-resolution";
 import {
   resolveAttributeDefinitions,
   syncAttributeIndex,
@@ -107,6 +108,8 @@ const engineCreateSchema = z.object({
 export async function GET(request: Request) {
   const tenantId = request.headers.get("x-tenant-id");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
+  const denied = requireProductRead(request);
+  if (denied) return denied;
 
   const url = new URL(request.url);
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1"));
@@ -118,6 +121,7 @@ export async function GET(request: Request) {
   const barcode = url.searchParams.get("barcode") ?? undefined;
   const isFeatured = url.searchParams.get("isFeatured") === "true" ? true : undefined;
   const lowStock = url.searchParams.get("lowStock") === "true";
+  const includeInactive = url.searchParams.get("includeInactive") === "true";
 
   // Faceted filters: ?attr[grade]=BWR&attr[thickness_mm]=18
   const attrFilters: { key: string; value: string }[] = [];
@@ -157,7 +161,7 @@ export async function GET(request: Request) {
 
   const where = {
     tenantId,
-    isActive: true,
+    ...(includeInactive ? {} : { isActive: true }),
     ...(search && { name: { contains: search, mode: "insensitive" as const } }),
     ...(categoryId && { categoryId }),
     ...(brandId && { brandId }),
@@ -194,7 +198,6 @@ export async function POST(request: Request) {
   const tenantId = request.headers.get("x-tenant-id");
   const userId = request.headers.get("x-user-id") ?? undefined;
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
-  const { requireCatalogManager } = await import("@erp/auth");
   const denied = requireCatalogManager(request);
   if (denied) return denied;
 
@@ -234,6 +237,8 @@ export async function POST(request: Request) {
     const data = createProductSchema.parse(body);
     const countryCode = (data.countryCode ?? "IN").toUpperCase();
 
+    // GST: only persist what the author sets. No silent HSN/category/default injection.
+    // Unset taxRate → null → order layer applies 0% GST.
     let taxCode = data.taxCode?.trim() || undefined;
     let taxRate = data.taxRate;
     let hsnCode = data.hsnCode?.trim() || undefined;
@@ -241,59 +246,39 @@ export async function POST(request: Request) {
     let taxApprovalStatus: "APPROVED" | "PENDING_REVIEW" = "PENDING_REVIEW";
     let taxReviewNotes: string | undefined;
 
-    if (data.categoryId && (taxCode === undefined || taxRate === undefined)) {
-      const category = await prisma.productCategory.findFirst({
-        where: { id: data.categoryId, tenantId },
-        select: { defaultHsnCode: true, defaultTaxCode: true, defaultTaxRate: true },
-      });
-      if (category) {
-        hsnCode = hsnCode ?? category.defaultHsnCode ?? undefined;
-        taxCode = taxCode ?? category.defaultTaxCode ?? undefined;
-        taxRate = taxRate ?? category.defaultTaxRate ?? undefined;
-      }
-    }
+    const gstExplicitlySet = taxRate !== undefined || Boolean(taxCode);
 
-    if (!taxCode || taxRate === undefined) {
-      const suggestion = await suggestTaxFromHsn(hsnCode);
-      hsnConfidence = suggestion.confidence;
-      if (!taxCode) taxCode = suggestion.taxCode;
-      if (taxRate === undefined) taxRate = suggestion.taxRate;
-      if (suggestion.reason) taxReviewNotes = suggestion.reason;
-    } else {
+    if (gstExplicitlySet) {
+      if (taxCode) {
+        const resolved = await resolveTaxRate(tenantId, userId, countryCode, taxCode);
+        if (!resolved) {
+          return NextResponse.json({ error: `Invalid taxCode ${taxCode} for ${countryCode}` }, { status: 400 });
+        }
+        if (taxRate !== undefined && Math.abs(taxRate - resolved.rate) > 0.000001) {
+          return NextResponse.json(
+            { error: `taxRate ${taxRate} does not match configured rate ${resolved.rate} for ${taxCode}` },
+            { status: 400 }
+          );
+        }
+        taxRate = taxRate ?? resolved.rate;
+      }
       hsnConfidence = hsnCode ? "MANUAL" : "MISSING";
-      taxReviewNotes = "Tax set manually on product";
-    }
-
-    if (taxCode) {
-      const resolved = await resolveTaxRate(tenantId, userId, countryCode, taxCode);
-      if (!resolved) {
-        return NextResponse.json({ error: `Invalid taxCode ${taxCode} for ${countryCode}` }, { status: 400 });
-      }
-      if (taxRate !== undefined && Math.abs(taxRate - resolved.rate) > 0.000001) {
-        return NextResponse.json(
-          { error: `taxRate ${taxRate} does not match configured rate ${resolved.rate} for ${taxCode}` },
-          { status: 400 }
-        );
-      }
-      taxRate = taxRate ?? resolved.rate;
-    } else if (taxRate === undefined) {
-      const resolvedDefault = await resolveTaxRate(tenantId, userId, countryCode);
-      if (resolvedDefault) {
-        taxCode = resolvedDefault.code;
-        taxRate = resolvedDefault.rate;
-      }
-    }
-
-    if (!hsnCode) {
-      hsnConfidence = "MISSING";
-      taxApprovalStatus = "PENDING_REVIEW";
-      taxReviewNotes = taxReviewNotes ?? "Missing HSN. Manager approval required before billing.";
-    } else if (hsnConfidence === "EXACT" || hsnConfidence === "MANUAL") {
       taxApprovalStatus = "APPROVED";
-      taxReviewNotes = taxReviewNotes ?? "Auto-approved tax from exact HSN/manual assignment.";
+      taxReviewNotes = "GST set explicitly on product";
     } else {
-      taxApprovalStatus = "PENDING_REVIEW";
-      taxReviewNotes = taxReviewNotes ?? "Partial HSN match. Manager approval required.";
+      // Optional HSN for catalog metadata only — does not imply a tax rate
+      if (!hsnCode && data.categoryId) {
+        const category = await prisma.productCategory.findFirst({
+          where: { id: data.categoryId, tenantId },
+          select: { defaultHsnCode: true },
+        });
+        hsnCode = category?.defaultHsnCode ?? undefined;
+      }
+      taxRate = undefined;
+      taxCode = undefined;
+      hsnConfidence = "MISSING";
+      taxApprovalStatus = "APPROVED";
+      taxReviewNotes = "No GST configured — 0% applied at order time";
     }
 
     const definitions = await resolveAttributeDefinitions(tenantId, data.categoryId);
@@ -346,8 +331,8 @@ export async function POST(request: Request) {
         taxReviewNotes,
         taxApprovedAt: taxApprovalStatus === "APPROVED" ? new Date() : undefined,
         taxApprovedBy: taxApprovalStatus === "APPROVED" ? (userId ?? "SYSTEM") : undefined,
-        taxCode,
-        taxRate,
+        taxCode: taxCode ?? null,
+        taxRate: taxRate ?? null,
         customAttributes: attrResult.values as object,
       },
     });

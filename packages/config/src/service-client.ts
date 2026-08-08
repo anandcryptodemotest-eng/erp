@@ -1,6 +1,7 @@
 import type { ServiceEvent, ModuleId } from "@erp/types";
+import { getServiceSecret } from "@erp/auth";
 import { createLogger, getRequestContext, requestIdHeaders } from "@erp/logger";
-import { injectTraceHeaders } from "@erp/telemetry";
+import { injectTraceHeaders } from "@erp/telemetry/helpers";
 
 const log = createLogger({ service: "service-client" });
 
@@ -13,6 +14,7 @@ const SERVICE_PORTS: Record<string, number> = {
   hr: 3004,
   procurement: 3005,
   delivery: 3006,
+  communication: 3008,
 };
 
 const PROPAGATED_CTX_HEADERS = [
@@ -38,7 +40,7 @@ export class ServiceClient {
   private serviceSecret: string;
 
   constructor() {
-    this.serviceSecret = process.env.SERVICE_SECRET || "dev-service-secret";
+    this.serviceSecret = getServiceSecret();
   }
 
   async call<T>(
@@ -49,6 +51,7 @@ export class ServiceClient {
       body?: unknown;
       tenantId?: string;
       userId?: string;
+      role?: string;
       requestId?: string;
     } = {}
   ): Promise<{ data?: T; error?: string; status: number }> {
@@ -71,6 +74,7 @@ export class ServiceClient {
       if (options.userId || ctx?.userId) {
         headers["x-user-id"] = options.userId ?? ctx!.userId!;
       }
+      if (options.role) headers["x-user-role"] = options.role;
       if (options.requestId) headers["x-request-id"] = options.requestId;
 
       injectTraceHeaders(headers);

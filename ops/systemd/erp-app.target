@@ -1,0 +1,7 @@
+[Unit]
+Description=ERP application services
+Wants=erp-app@customer.service erp-app@gateway.service erp-app@platform.service erp-app@sales.service erp-app@inventory.service erp-app@accounting.service erp-app@hr.service erp-app@procurement.service erp-app@delivery.service
+After=erp-app@customer.service erp-app@gateway.service erp-app@platform.service erp-app@sales.service erp-app@inventory.service erp-app@accounting.service erp-app@hr.service erp-app@procurement.service erp-app@delivery.service
+
+[Install]
+WantedBy=multi-user.target

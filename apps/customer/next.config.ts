@@ -6,8 +6,16 @@ import type { NextConfig } from "next";
 const GATEWAY_URL = process.env.GATEWAY_SERVICE_URL ?? "http://127.0.0.1:3010/admin";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@erp/ui", "@erp/types", "@erp/ui-runtime", "@erp/workflow", "@erp/extensions"],
+  transpilePackages: ["@erp/ui", "@erp/types", "@erp/ui-runtime", "@erp/workflow"],
   allowedDevOrigins: ["150.242.201.102", "localhost", "127.0.0.1"],
+  async redirects() {
+    return [
+      { source: "/products", destination: "/shop", permanent: false },
+      { source: "/products/all", destination: "/search", permanent: false },
+      { source: "/products/:id", destination: "/shop/p/:id", permanent: false },
+      { source: "/catalog/:code", destination: "/shop/g/:code", permanent: false },
+    ];
+  },
   async rewrites() {
     return [
       { source: "/api/:path*", destination: `${GATEWAY_URL}/api/:path*` },

@@ -19,7 +19,9 @@ const createRequestSchema = z.object({
   deliveryAddressId: z.string().nullish(),
   deliveryAddressText: z.string().nullish(),
   deliveryFee: z.number().min(0).default(0),
-  paymentMethod: z.enum(["COD", "UPI", "CARD", "WALLET", "SPLIT"]).default("COD"),
+  paymentMethod: z
+    .enum(["COD", "UPI", "CARD", "WALLET", "SPLIT", "COUNTER", "BANK_TRANSFER"])
+    .default("COD"),
   couponId: z.string().optional(),
   couponDiscount: z.number().min(0).default(0),
   items: lineItemInputSchema,

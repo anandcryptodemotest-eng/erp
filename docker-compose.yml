@@ -4,6 +4,7 @@
 
 services:
   postgres:
+    restart: unless-stopped
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: erp
@@ -21,18 +22,30 @@ services:
       retries: 5
 
   gateway:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: apps/gateway/Dockerfile
+      args:
+        SALES_SERVICE_URL: http://sales:3001
+        INVENTORY_SERVICE_URL: http://inventory:3002
+        ACCOUNTING_SERVICE_URL: http://accounting:3003
+        HR_SERVICE_URL: http://hr:3004
+        PROCUREMENT_SERVICE_URL: http://procurement:3005
+        DELIVERY_SERVICE_URL: http://delivery:3006
+        GATEWAY_SERVICE_URL: http://gateway:3010
     ports:
       - "3010:3010"
     environment:
       DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_gateway
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
-      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET before starting the stack}
+      SERVICE_SECRET: ${SERVICE_SECRET:?Set SERVICE_SECRET before starting the stack}
+      INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:-}
+      OTP_PEPPER: ${OTP_PEPPER:-}
       SERVICE_NAME: gateway
       SERVICE_VERSION: "1.0.0"
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-true}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       SALES_SERVICE_URL: http://sales:3001
       INVENTORY_SERVICE_URL: http://inventory:3002
@@ -51,6 +64,7 @@ services:
       start_period: 40s
 
   sales:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: apps/sales/Dockerfile
@@ -58,11 +72,12 @@ services:
       - "3001:3001"
     environment:
       DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_sales
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
-      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET before starting the stack}
+      SERVICE_SECRET: ${SERVICE_SECRET:?Set SERVICE_SECRET before starting the stack}
       SERVICE_NAME: sales
       SERVICE_VERSION: "1.0.0"
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-true}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       GATEWAY_URL: http://gateway:3010
       INVENTORY_SERVICE_URL: http://inventory:3002
@@ -81,6 +96,7 @@ services:
       start_period: 40s
 
   inventory:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: apps/inventory/Dockerfile
@@ -88,11 +104,12 @@ services:
       - "3002:3002"
     environment:
       DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_inventory
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
-      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET before starting the stack}
+      SERVICE_SECRET: ${SERVICE_SECRET:?Set SERVICE_SECRET before starting the stack}
       SERVICE_NAME: inventory
       SERVICE_VERSION: "1.0.0"
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-true}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       GATEWAY_URL: http://gateway:3010
     depends_on:
@@ -106,6 +123,7 @@ services:
       start_period: 40s
 
   accounting:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: apps/accounting/Dockerfile
@@ -113,11 +131,12 @@ services:
       - "3003:3003"
     environment:
       DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_accounting
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
-      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET before starting the stack}
+      SERVICE_SECRET: ${SERVICE_SECRET:?Set SERVICE_SECRET before starting the stack}
       SERVICE_NAME: accounting
       SERVICE_VERSION: "1.0.0"
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-true}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       GATEWAY_URL: http://gateway:3010
       SALES_SERVICE_URL: http://sales:3001
@@ -134,6 +153,7 @@ services:
       start_period: 40s
 
   hr:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: apps/hr/Dockerfile
@@ -141,11 +161,12 @@ services:
       - "3004:3004"
     environment:
       DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_hr
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
-      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET before starting the stack}
+      SERVICE_SECRET: ${SERVICE_SECRET:?Set SERVICE_SECRET before starting the stack}
       SERVICE_NAME: hr
       SERVICE_VERSION: "1.0.0"
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-true}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       GATEWAY_URL: http://gateway:3010
       ACCOUNTING_SERVICE_URL: http://accounting:3003
@@ -160,6 +181,7 @@ services:
       start_period: 40s
 
   procurement:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: apps/procurement/Dockerfile
@@ -167,11 +189,12 @@ services:
       - "3005:3005"
     environment:
       DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_procurement
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
-      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET before starting the stack}
+      SERVICE_SECRET: ${SERVICE_SECRET:?Set SERVICE_SECRET before starting the stack}
       SERVICE_NAME: procurement
       SERVICE_VERSION: "1.0.0"
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-true}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       GATEWAY_URL: http://gateway:3010
       INVENTORY_SERVICE_URL: http://inventory:3002
@@ -188,6 +211,7 @@ services:
       start_period: 40s
 
   delivery:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: apps/delivery/Dockerfile
@@ -195,11 +219,12 @@ services:
       - "3006:3006"
     environment:
       DATABASE_URL: postgresql://erp:erp_dev_password@postgres:5432/erp_delivery
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
-      SERVICE_SECRET: ${SERVICE_SECRET:-dev-service-secret}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET before starting the stack}
+      SERVICE_SECRET: ${SERVICE_SECRET:?Set SERVICE_SECRET before starting the stack}
       SERVICE_NAME: delivery
       SERVICE_VERSION: "1.0.0"
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-true}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       GATEWAY_URL: http://gateway:3010
       SALES_SERVICE_URL: http://sales:3001
@@ -216,6 +241,7 @@ services:
 
   # Observability only — does not build/start app images
   otel-collector:
+    restart: unless-stopped
     profiles: ["obs"]
     image: otel/opentelemetry-collector-contrib:0.115.1
     command: ["--config=/etc/otelcol/config.yaml"]
@@ -231,6 +257,7 @@ services:
       - prometheus
 
   tempo:
+    restart: unless-stopped
     profiles: ["obs"]
     image: grafana/tempo:2.6.1
     command: ["-config.file=/etc/tempo/tempo.yaml"]
@@ -241,6 +268,7 @@ services:
       - "3200:3200"
 
   loki:
+    restart: unless-stopped
     profiles: ["obs"]
     image: grafana/loki:3.2.1
     command: ["-config.file=/etc/loki/local-config.yaml"]
@@ -248,6 +276,7 @@ services:
       - "3100:3100"
 
   prometheus:
+    restart: unless-stopped
     profiles: ["obs"]
     image: prom/prometheus:v2.55.1
     volumes:
@@ -261,6 +290,7 @@ services:
       - --web.enable-remote-write-receiver
 
   grafana:
+    restart: unless-stopped
     profiles: ["obs"]
     image: grafana/grafana:11.3.1
     environment:
@@ -281,6 +311,7 @@ services:
       - tempo
 
   promtail:
+    restart: unless-stopped
     profiles: ["obs"]
     image: grafana/promtail:3.2.1
     volumes:

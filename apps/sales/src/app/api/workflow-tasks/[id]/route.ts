@@ -8,7 +8,7 @@ import {
   expireStaleLeases,
 } from "@/lib/workflow-runtime-v5";
 import { WorkflowAuthError } from "@/lib/workflow-task-auth";
-import { recordEvent, withSpan } from "@erp/telemetry";
+import { recordEvent, withSpan } from "@erp/telemetry/helpers";
 
 type Ctx = { params: Promise<{ id: string }> };
 const log = createLogger({ service: "sales" });

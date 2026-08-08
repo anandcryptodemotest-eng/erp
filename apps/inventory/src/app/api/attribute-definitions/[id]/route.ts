@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "../../../../generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
@@ -55,11 +56,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 // PATCH /api/attribute-definitions/:id  (key is immutable)
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const tenantId = request.headers.get("x-tenant-id");
-  const role = request.headers.get("x-user-role");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
-  if (role && !["ADMIN", "MANAGER", "ORG_ADMIN", "SUPER_ADMIN", "BRANCH_ADMIN"].includes(role)) {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
-  }
+  const { requireCatalogManager } = await import("@erp/auth");
+  const denied = requireCatalogManager(request);
+  if (denied) return denied;
 
   const { id } = await params;
   const existing = await prisma.productAttributeDefinition.findFirst({ where: { id, tenantId } });
@@ -95,7 +95,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
             categoryId: row.categoryId,
             optionsOverride: row.options ?? undefined,
           },
-          update: { optionsOverride: row.options },
+          update: {
+            optionsOverride: row.options === null ? Prisma.JsonNull : row.options,
+          },
         });
       }
     }
@@ -105,7 +107,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       data: {
         ...rest,
         options: rest.options === undefined ? undefined : rest.options,
-        validation: rest.validation === undefined ? undefined : rest.validation,
+        validation:
+          rest.validation === undefined
+            ? undefined
+            : rest.validation === null
+              ? Prisma.JsonNull
+              : rest.validation,
       },
       include: {
         categoryLinks: { include: { category: { select: { id: true, name: true } } } },

@@ -49,6 +49,50 @@ export type PlatformCapability =
   | "manageProcess"
   | "readAll";
 
+export const TENANT_PERMISSIONS = [
+  "tenant.read",
+  "tenant.manageUsers",
+  "tenant.manageSettings",
+  "catalog.write",
+  "sales.write",
+  "orders.write",
+  "inventory.write",
+  "finance.write",
+  "procurement.write",
+  "delivery.write",
+  "reports.read",
+  "audit.read",
+  "reconciliation.read",
+  "reconciliation.retry",
+] as const;
+
+export type TenantPermission = (typeof TENANT_PERMISSIONS)[number];
+
+const TENANT_ROLE_PERMISSIONS: Record<string, ReadonlySet<TenantPermission>> = {
+  SUPER_ADMIN: new Set(TENANT_PERMISSIONS),
+  ADMIN: new Set(TENANT_PERMISSIONS),
+  ORG_ADMIN: new Set(["tenant.read", "tenant.manageUsers", "tenant.manageSettings", "reports.read", "audit.read"]),
+  MANAGER: new Set(["tenant.read", "catalog.write", "sales.write", "orders.write", "inventory.write", "procurement.write", "delivery.write", "reports.read", "audit.read"]),
+  ACCOUNTANT: new Set(["tenant.read", "finance.write", "reports.read", "audit.read", "reconciliation.read", "reconciliation.retry"]),
+  CATALOG_MANAGER: new Set(["tenant.read", "catalog.write", "inventory.write", "reports.read"]),
+  PROCUREMENT_OFFICER: new Set(["tenant.read", "procurement.write", "inventory.write", "reports.read"]),
+  DISPATCH_EXECUTIVE: new Set(["tenant.read", "delivery.write"]),
+  DELIVERY_EXECUTIVE: new Set(["tenant.read", "delivery.write"]),
+  SALES_EXECUTIVE: new Set(["tenant.read", "sales.write", "orders.write", "reports.read"]),
+  SALES_REP: new Set(["tenant.read", "sales.write", "orders.write", "reports.read"]),
+  PRICING_EXECUTIVE: new Set(["tenant.read", "sales.write", "orders.write", "reports.read"]),
+  VIEWER: new Set(["tenant.read", "reports.read"]),
+  USER: new Set(["tenant.read"]),
+};
+
+export function tenantCan(role: string | null | undefined, permission: TenantPermission): boolean {
+  return !!role && (TENANT_ROLE_PERMISSIONS[role]?.has(permission) ?? false);
+}
+
+export function tenantPermissions(role: string | null | undefined): Set<string> {
+  return new Set(role ? TENANT_ROLE_PERMISSIONS[role] ?? [] : []);
+}
+
 const PERMISSIONS: Record<PlatformRole, ReadonlySet<PlatformCapability>> = {
   PLATFORM_OWNER: new Set([
     "provisionTenant",

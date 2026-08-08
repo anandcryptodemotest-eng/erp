@@ -33,6 +33,8 @@ export default function TenantsPage() {
     plan: "starter",
     adminEmail: "",
     adminPassword: "",
+    customerDomain: "",
+    adminDomain: "",
   });
 
   async function load() {
@@ -59,7 +61,7 @@ export default function TenantsPage() {
         body: JSON.stringify(form),
       });
       setCreated(r.data);
-      setForm({ name: "", slug: "", plan: "starter", adminEmail: "", adminPassword: "" });
+      setForm({ name: "", slug: "", plan: "starter", adminEmail: "", adminPassword: "", customerDomain: "", adminDomain: "" });
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Create failed");
@@ -103,11 +105,21 @@ export default function TenantsPage() {
           />
           <input
             required
-            placeholder="slug"
-            pattern="[a-z0-9-]+"
+            placeholder="slug (e.g. acme-corp)"
+            /* Chromium pattern uses /v: hyphen must be first or escaped */
+            pattern="[-a-z0-9]+"
+            title="Lowercase letters, numbers, and hyphens only"
             className="rounded-lg border border-[var(--line)] bg-black/20 px-3 py-2"
             value={form.slug}
-            onChange={(e) => setForm({ ...form, slug: e.target.value })}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                slug: e.target.value
+                  .toLowerCase()
+                  .replace(/\s+/g, "-")
+                  .replace(/[^a-z0-9-]/g, ""),
+              })
+            }
           />
           <input
             required
@@ -125,6 +137,18 @@ export default function TenantsPage() {
             className="rounded-lg border border-[var(--line)] bg-black/20 px-3 py-2"
             value={form.adminPassword}
             onChange={(e) => setForm({ ...form, adminPassword: e.target.value })}
+          />
+          <input
+            placeholder="Customer domain (optional)"
+            className="rounded-lg border border-[var(--line)] bg-black/20 px-3 py-2"
+            value={form.customerDomain}
+            onChange={(e) => setForm({ ...form, customerDomain: e.target.value })}
+          />
+          <input
+            placeholder="Admin domain (optional)"
+            className="rounded-lg border border-[var(--line)] bg-black/20 px-3 py-2"
+            value={form.adminDomain}
+            onChange={(e) => setForm({ ...form, adminDomain: e.target.value })}
           />
           <select
             className="rounded-lg border border-[var(--line)] bg-black/20 px-3 py-2"
@@ -157,6 +181,7 @@ export default function TenantsPage() {
                 <th className="px-3 py-2 font-medium">Modules</th>
                 <th className="px-3 py-2 font-medium">Storage</th>
                 <th className="px-3 py-2 font-medium">API Usage</th>
+                <th className="px-3 py-2 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -176,6 +201,14 @@ export default function TenantsPage() {
                   <td className="px-3 py-2">{t.modules?.join(", ") || "—"}</td>
                   <td className="px-3 py-2">{t.storage ?? "—"}</td>
                   <td className="px-3 py-2">{t.apiUsage ?? "—"}</td>
+                  <td className="px-3 py-2">
+                    <Link
+                      className="rounded-lg border border-[var(--line)] px-3 py-1.5 text-xs font-semibold hover:bg-white/5"
+                      href={`/tenants/${t.id}`}
+                    >
+                      Edit
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

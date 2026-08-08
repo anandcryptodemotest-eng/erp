@@ -5,7 +5,7 @@
  * Widgets only use UIRuntime / UIContext — never REST.
  */
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   registerWidget,
   type UIRuntime,
@@ -419,6 +419,228 @@ const DriverPickerWidget: Widget = {
   },
 };
 
+function resolveInvoicePdf(runtime: UIRuntime, localPdfUrl: string | null): {
+  pdfUrl: string | null;
+  invoiceId?: string;
+  invoiceNumber?: string;
+} {
+  const fv = runtime.context.fieldValues;
+  const doc = runtime.context.documents?.invoice;
+  if (localPdfUrl) {
+    return {
+      pdfUrl: localPdfUrl,
+      invoiceId: fv.invoiceId || doc?.id,
+      invoiceNumber: fv.invoiceNumber || doc?.number,
+    };
+  }
+  if (typeof fv.invoicePdfUrl === "string" && fv.invoicePdfUrl) {
+    return {
+      pdfUrl: fv.invoicePdfUrl,
+      invoiceId: fv.invoiceId || doc?.id,
+      invoiceNumber: fv.invoiceNumber || doc?.number,
+    };
+  }
+  if (doc?.pdfUrl) {
+    return { pdfUrl: doc.pdfUrl, invoiceId: doc.id, invoiceNumber: doc.number };
+  }
+  const id = fv.invoiceId || doc?.id;
+  if (id) {
+    return {
+      pdfUrl: `/api/invoices/${id}/pdf`,
+      invoiceId: id,
+      invoiceNumber: fv.invoiceNumber || doc?.number,
+    };
+  }
+  return { pdfUrl: null };
+}
+
+function DocumentGenerateInner({
+  runtime,
+  props,
+}: {
+  runtime: UIRuntime;
+  props: Record<string, unknown>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const [localPdfUrl, setLocalPdfUrl] = useState<string | null>(null);
+
+  const documentType = String(props.documentType ?? "INVOICE");
+  const command = String(props.command ?? "accounting.generateInvoice");
+  const payloadBuilder = String(props.payloadBuilder ?? "accounting.invoice");
+  const documentRef = (props.documentRef as { type: string; id: string; version: number }) ?? {
+    type: "DOCUMENT",
+    id: "tax-invoice",
+    version: 1,
+  };
+  const payloadOverrides = props.payloadOverrides as
+    | { fieldKey: string; path: string }[]
+    | undefined;
+  const canComplete = runtime.context.permissions.canComplete;
+
+  const resolved = useMemo(
+    () => resolveInvoicePdf(runtime, localPdfUrl),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fieldValues/documents are mutated by host
+    [
+      localPdfUrl,
+      runtime.context.fieldValues.invoicePdfUrl,
+      runtime.context.fieldValues.invoiceId,
+      runtime.context.documents?.invoice?.pdfUrl,
+      runtime.context.documents?.invoice?.id,
+    ]
+  );
+
+  useEffect(() => {
+    setLocalPdfUrl(null);
+  }, [runtime.context.entity.id]);
+
+  const phase: "none" | "generating" | "available" = busy
+    ? "generating"
+    : resolved.pdfUrl
+      ? "available"
+      : "none";
+
+  async function onGenerate(force: boolean) {
+    const invoke = runtime.context.hostApis?.invokeDomainCommand;
+    if (!invoke) {
+      setStatus("Host command bridge not wired — complete the step to generate.");
+      return;
+    }
+    setBusy(true);
+    setStatus(null);
+    try {
+      const res = await invoke({
+        command,
+        documentType,
+        documentRef,
+        payloadBuilder,
+        payloadOverrides,
+        force,
+      });
+      if (!res.ok) {
+        setStatus(res.error ?? "Generate failed");
+        runtime.toast.error(res.error ?? "Generate failed");
+        return;
+      }
+      if (res.pdfUrl) {
+        setLocalPdfUrl(res.pdfUrl);
+        runtime.context.setFieldValue("invoicePdfUrl", res.pdfUrl);
+      }
+      if (res.invoiceNumber) {
+        runtime.context.setFieldValue("invoiceNumber", res.invoiceNumber);
+      }
+      if (res.invoiceId) {
+        runtime.context.setFieldValue("invoiceId", res.invoiceId);
+      }
+      setStatus(`Generated ${res.invoiceNumber ?? "invoice"}`);
+      runtime.toast.success(`Invoice ${res.invoiceNumber ?? ""} ready`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function onDownload() {
+    const url = resolved.pdfUrl;
+    if (!url) return;
+    const open = runtime.context.hostApis?.openDocument;
+    if (open) {
+      void open(url, `${resolved.invoiceNumber ?? "invoice"}.pdf`).catch((e) =>
+        runtime.toast.error(e instanceof Error ? e.message : "Could not open PDF")
+      );
+    } else {
+      runtime.toast.error("Download requires host openDocument bridge");
+    }
+  }
+
+  return (
+    <div className="space-y-2 rounded-lg border border-emerald-200 bg-emerald-50/40 p-3" key="DocumentGenerate">
+      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
+        {documentType === "INVOICE" ? "Invoice" : "Document"}
+      </p>
+      <p className="text-xs text-[var(--ink-soft)]">
+        Template{" "}
+        <code className="rounded bg-white px-1">
+          {documentRef.type}:{documentRef.id}@v{documentRef.version}
+        </code>
+        {payloadBuilder ? (
+          <>
+            {" "}
+            · builder <code className="rounded bg-white px-1">{payloadBuilder}</code>
+          </>
+        ) : null}
+      </p>
+      {phase === "none" && (
+        <p className="text-[11px] text-[var(--ink-soft)]">No invoice PDF yet for this order.</p>
+      )}
+      {status && <p className="text-xs text-emerald-900">{status}</p>}
+      {phase === "available" && resolved.invoiceNumber && (
+        <p className="text-xs text-emerald-900">{resolved.invoiceNumber}</p>
+      )}
+      <div className="flex flex-wrap gap-2">
+        {phase === "available" && (
+          <button
+            type="button"
+            className="rounded-lg border border-emerald-700 bg-white px-3 py-2 text-xs font-semibold text-emerald-900 hover:bg-emerald-50"
+            onClick={onDownload}
+          >
+            Download PDF
+          </button>
+        )}
+        {canComplete && phase === "none" && (
+          <button
+            type="button"
+            disabled={busy}
+            className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+            onClick={() => void onGenerate(false)}
+          >
+            Generate invoice PDF
+          </button>
+        )}
+        {canComplete && phase === "generating" && (
+          <button
+            type="button"
+            disabled
+            className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-semibold text-white opacity-50"
+          >
+            Generating…
+          </button>
+        )}
+        {canComplete && phase === "available" && (
+          <button
+            type="button"
+            disabled={busy}
+            className="rounded-lg border border-emerald-800 px-3 py-2 text-xs font-semibold text-emerald-900 hover:bg-emerald-100 disabled:opacity-50"
+            onClick={() => void onGenerate(true)}
+          >
+            Regenerate
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const DocumentGenerateWidget: Widget = {
+  render(runtime, props) {
+    return <DocumentGenerateInner runtime={runtime} props={props} />;
+  },
+  validate: () => ({ ok: true }),
+  collectPayload(_runtime, props) {
+    const documentRef = (props.documentRef as { type: string; id: string; version: number }) ?? {
+      type: "DOCUMENT",
+      id: "tax-invoice",
+      version: 1,
+    };
+    return {
+      documentRef,
+      documentType: props.documentType ?? "INVOICE",
+      command: props.command ?? "accounting.generateInvoice",
+      payloadBuilder: props.payloadBuilder ?? "accounting.invoice",
+      payloadOverrides: props.payloadOverrides,
+    };
+  },
+};
+
 let phase2Registered = false;
 
 export function ensurePhase2WidgetsRegistered(): void {
@@ -514,5 +736,39 @@ export function ensurePhase2WidgetsRegistered(): void {
       defaultProps: { fieldKey: "assignedDriverId", required: false },
     },
     factory: () => DriverPickerWidget,
+  });
+  registerWidget({
+    manifest: {
+      id: "DocumentGenerate",
+      category: "Business",
+      displayName: "Document Generate",
+      icon: "file",
+      supportsValidation: false,
+      supportsPayload: true,
+      defaultProps: {
+        documentType: "INVOICE",
+        command: "accounting.generateInvoice",
+        payloadBuilder: "accounting.invoice",
+        documentRef: { type: "DOCUMENT", id: "tax-invoice", version: 1 },
+      },
+    },
+    factory: () => DocumentGenerateWidget,
+  });
+  registerWidget({
+    manifest: {
+      id: "InvoiceGenerate",
+      category: "Business",
+      displayName: "Invoice Generate",
+      icon: "file-text",
+      supportsValidation: false,
+      supportsPayload: true,
+      defaultProps: {
+        documentType: "INVOICE",
+        command: "accounting.generateInvoice",
+        payloadBuilder: "accounting.invoice",
+        documentRef: { type: "DOCUMENT", id: "tax-invoice", version: 1 },
+      },
+    },
+    factory: () => DocumentGenerateWidget,
   });
 }

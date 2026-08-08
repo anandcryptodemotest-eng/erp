@@ -1,0 +1,752 @@
+#!/usr/bin/env bash
+# ERP stack operator CLI. Never print secret values.
+set -euo pipefail
+
+REPO_ROOT="${ERP_ROOT:-/home/erp}"
+COMPOSE_FILE="${REPO_ROOT}/docker-compose.yml"
+ENV_FILE="${REPO_ROOT}/.env"
+HEAL_LOCK="${ERP_HEAL_LOCK:-/tmp/erp-heal.lock}"
+
+CORE_SERVICES=(postgres gateway sales inventory accounting hr procurement delivery)
+API_APPS=(gateway sales inventory accounting hr procurement delivery)
+HOST_UI_APPS=(customer platform)
+FORBIDDEN_HOST_APPS=(gateway sales inventory accounting hr procurement delivery)
+
+PLACEHOLDERS=(
+  "dev-secret-change-in-production"
+  "dev-service-secret"
+  "change-me-in-production"
+  "CHANGE_ME"
+  "changeme"
+  "changeme-in-production"
+)
+
+declare -A LIVE_URL=(
+  [gateway]="http://127.0.0.1:3010/admin/health/live"
+  [sales]="http://127.0.0.1:3001/health/live"
+  [inventory]="http://127.0.0.1:3002/health/live"
+  [accounting]="http://127.0.0.1:3003/health/live"
+  [hr]="http://127.0.0.1:3004/health/live"
+  [procurement]="http://127.0.0.1:3005/health/live"
+  [delivery]="http://127.0.0.1:3006/health/live"
+  [customer]="http://127.0.0.1:3007/"
+  [platform]="http://127.0.0.1:3011/platform"
+)
+
+usage() {
+  cat <<'EOF'
+erp — ERP stack operator CLI
+
+Usage:
+  erp up                 Start Compose core + host customer/platform/nginx
+  erp down               Stop Compose core only (not host UI / nginx)
+  erp restart [svc]      Restart all core services, or one compose/host service
+  erp status             Container + HTTP + host probes
+  erp logs [svc]         Follow logs (compose or host journal)
+  erp doctor             Config/secret/infra diagnosis (never prints secrets)
+  erp heal               Recover crashed/unhealthy services
+  erp install-watchdog   Install systemd timer (every 2 min → erp heal)
+
+Compose core:  postgres gateway sales inventory accounting hr procurement delivery
+Host/systemd:  customer platform nginx
+Never started by erp up: host gateway / sales / inventory / other APIs
+EOF
+}
+
+die() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+need_repo() {
+  [[ -d "$REPO_ROOT" ]] || die "ERP root not found: $REPO_ROOT"
+  [[ -f "$COMPOSE_FILE" ]] || die "missing $COMPOSE_FILE"
+}
+
+compose() {
+  docker compose --project-directory "$REPO_ROOT" -f "$COMPOSE_FILE" "$@"
+}
+
+is_core_service() {
+  local s="$1"
+  local x
+  for x in "${CORE_SERVICES[@]}"; do
+    [[ "$x" == "$s" ]] && return 0
+  done
+  return 1
+}
+
+is_api_app() {
+  local s="$1"
+  local x
+  for x in "${API_APPS[@]}"; do
+    [[ "$x" == "$s" ]] && return 0
+  done
+  return 1
+}
+
+is_host_ui() {
+  local s="$1"
+  local x
+  for x in "${HOST_UI_APPS[@]}"; do
+    [[ "$x" == "$s" ]] && return 0
+  done
+  return 1
+}
+
+host_unit() {
+  printf 'erp-app@%s.service' "$1"
+}
+
+unit_loaded() {
+  systemctl list-unit-files "$1" --no-legend 2>/dev/null | grep -q .
+}
+
+unit_active() {
+  systemctl is-active --quiet "$1" 2>/dev/null
+}
+
+unit_enabled() {
+  systemctl is-enabled --quiet "$1" 2>/dev/null
+}
+
+unit_state() {
+  local unit="$1"
+  if ! unit_loaded "$unit" && [[ ! -f /etc/systemd/system/erp-app@.service ]]; then
+    echo "absent"
+    return
+  fi
+  local active enabled
+  active=$(systemctl is-active "$unit" 2>/dev/null || true)
+  enabled=$(systemctl is-enabled "$unit" 2>/dev/null || true)
+  echo "${active:-unknown}/${enabled:-unknown}"
+}
+
+http_code() {
+  local url="$1"
+  local extra=() code
+  [[ "$url" == https://* ]] && extra+=(-k)
+  code=$(curl -sS "${extra[@]}" -o /dev/null -w '%{http_code}' --max-time 3 "$url" 2>/dev/null || true)
+  [[ "$code" =~ ^[0-9]{3}$ ]] || code="000"
+  printf '%s\n' "$code"
+}
+
+http_ok() {
+  local code
+  code=$(http_code "$1")
+  [[ "$code" =~ ^[23] ]]
+}
+
+short_fp() {
+  local hex="${1:-}"
+  if [[ ${#hex} -lt 12 ]]; then
+    echo "n/a"
+    return
+  fi
+  printf '%s...%s' "${hex:0:4}" "${hex: -4}"
+}
+
+sha256_hex() {
+  # stdin → hex digest only
+  sha256sum | awk '{print $1}'
+}
+
+dotenv_value() {
+  set +x
+  local key="$1"
+  local file="$ENV_FILE"
+  [[ -f "$file" ]] || return 0
+  local line raw
+  line=$(grep -E "^${key}=" "$file" | tail -n1 || true)
+  [[ -n "$line" ]] || return 0
+  raw="${line#*=}"
+  raw="${raw%$'\r'}"
+  if [[ "$raw" == \"*\" && "$raw" == *\" ]]; then
+    raw="${raw:1:${#raw}-2}"
+  elif [[ "$raw" == \'*\' && "$raw" == *\' ]]; then
+    raw="${raw:1:${#raw}-2}"
+  fi
+  printf '%s' "$raw"
+}
+
+is_placeholder() {
+  local value="$1"
+  local p
+  [[ -z "$value" ]] && return 0
+  for p in "${PLACEHOLDERS[@]}"; do
+    [[ "$value" == "$p" ]] && return 0
+  done
+  return 1
+}
+
+container_secret_fp() {
+  set +x
+  local svc="$1"
+  local var="$2"
+  local cid
+  cid=$(compose ps -q "$svc" 2>/dev/null || true)
+  [[ -n "$cid" ]] || return 1
+  # Hash inside the container so the secret never reaches this process stdout.
+  docker exec "$cid" sh -c "printf %s \"\${$var}\" | sha256sum" 2>/dev/null | awk '{print $1}'
+}
+
+compose_inspect() {
+  local svc="$1"
+  local cid
+  cid=$(compose ps -q "$svc" 2>/dev/null || true)
+  if [[ -z "$cid" ]]; then
+    echo "missing -"
+    return
+  fi
+  docker inspect --format '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}-{{end}}' "$cid" 2>/dev/null || echo "unknown -"
+}
+
+port_listening() {
+  local port="$1"
+  ss -tln 2>/dev/null | grep -Eq ":${port}[[:space:]]" || ss -tlnH 2>/dev/null | grep -Eq ":${port} "
+}
+
+ensure_host_uis() {
+  local app unit
+  for app in "${HOST_UI_APPS[@]}"; do
+    unit=$(host_unit "$app")
+    if unit_loaded "$unit" || [[ -f /etc/erp/${app}.env ]]; then
+      if unit_active "$unit"; then
+        continue
+      fi
+      if http_ok "${LIVE_URL[$app]}"; then
+        continue
+      fi
+      echo "starting host ${app} (${unit})"
+      systemctl start "$unit" || echo "warn: could not start ${unit}" >&2
+    fi
+  done
+  if unit_loaded nginx.service || systemctl cat nginx.service &>/dev/null; then
+    if ! unit_active nginx.service; then
+      echo "starting nginx"
+      systemctl start nginx || echo "warn: could not start nginx" >&2
+    fi
+  fi
+}
+
+stop_forbidden_host_apis() {
+  local app unit
+  for app in "${FORBIDDEN_HOST_APPS[@]}"; do
+    unit=$(host_unit "$app")
+    if unit_active "$unit" || [[ "$(systemctl is-active "$unit" 2>/dev/null || true)" == "activating" ]]; then
+      echo "stopping conflicting host unit ${unit} (APIs run in Compose)"
+      systemctl stop "$unit" || true
+    fi
+    if unit_enabled "$unit"; then
+      echo "disabling conflicting host unit ${unit}"
+      systemctl disable "$unit" || true
+    fi
+  done
+}
+
+acquire_stack_lock() {
+  exec 9>"$HEAL_LOCK"
+  if ! flock -n 9; then
+    return 1
+  fi
+  return 0
+}
+
+cmd_up() {
+  need_repo
+  if ! acquire_stack_lock; then
+    echo "another erp up/heal is running; wait and retry"
+    die "stack lock busy"
+  fi
+  echo "starting Compose core: ${CORE_SERVICES[*]}"
+  compose up -d "${CORE_SERVICES[@]}"
+  stop_forbidden_host_apis
+  ensure_host_uis
+  echo "stack up."
+}
+
+cmd_down() {
+  need_repo
+  echo "stopping Compose core only: ${CORE_SERVICES[*]}"
+  compose stop "${CORE_SERVICES[@]}"
+  echo "compose core stopped (customer / platform / nginx left running)."
+}
+
+cmd_restart() {
+  need_repo
+  local svc="${1:-}"
+  if [[ -z "$svc" ]]; then
+    echo "restarting Compose core"
+    compose restart "${CORE_SERVICES[@]}"
+    return
+  fi
+  if is_core_service "$svc"; then
+    echo "restarting compose ${svc}"
+    compose restart "$svc"
+    return
+  fi
+  if is_host_ui "$svc"; then
+    echo "restarting host ${svc}"
+    systemctl restart "$(host_unit "$svc")"
+    return
+  fi
+  if [[ "$svc" == "nginx" ]]; then
+    echo "restarting nginx"
+    systemctl restart nginx
+    return
+  fi
+  die "unknown service: $svc (core: ${CORE_SERVICES[*]} | host: customer platform nginx)"
+}
+
+cmd_logs() {
+  need_repo
+  local svc="${1:-}"
+  if [[ -z "$svc" ]]; then
+    compose logs -f --tail=100 "${CORE_SERVICES[@]}"
+    return
+  fi
+  if is_core_service "$svc"; then
+    compose logs -f --tail=100 "$svc"
+    return
+  fi
+  if is_host_ui "$svc"; then
+    journalctl -u "$(host_unit "$svc")" -f -n 100
+    return
+  fi
+  if [[ "$svc" == "nginx" ]]; then
+    journalctl -u nginx -f -n 100
+    return
+  fi
+  die "unknown service: $svc"
+}
+
+print_row() {
+  printf '%-14s %-10s %-22s %-12s %s\n' "$1" "$2" "$3" "$4" "$5"
+}
+
+cmd_status() {
+  need_repo
+  local rc=0 svc state health http unit
+  print_row "SERVICE" "KIND" "STATE" "HEALTH" "HTTP"
+  print_row "-------" "----" "-----" "------" "----"
+
+  for svc in "${CORE_SERVICES[@]}"; do
+    read -r state health <<<"$(compose_inspect "$svc")"
+    http="-"
+    if [[ -n "${LIVE_URL[$svc]:-}" ]]; then
+      http=$(http_code "${LIVE_URL[$svc]}")
+      if [[ "$state" != "running" || "$health" == "unhealthy" || ! "$http" =~ ^[23] ]]; then
+        rc=1
+      fi
+    else
+      if [[ "$state" != "running" || "$health" == "unhealthy" ]]; then
+        rc=1
+      fi
+    fi
+    print_row "$svc" "compose" "$state" "$health" "$http"
+  done
+
+  for svc in "${HOST_UI_APPS[@]}"; do
+    unit=$(host_unit "$svc")
+    state=$(unit_state "$unit")
+    http=$(http_code "${LIVE_URL[$svc]}")
+    if ! [[ "$http" =~ ^[23] ]]; then
+      rc=1
+    fi
+    print_row "$svc" "host" "$state" "-" "$http"
+  done
+
+  state=$(unit_state nginx.service)
+  local nginx_root nginx_admin
+  nginx_root=$(http_code "https://127.0.0.1/")
+  nginx_admin=$(http_code "https://127.0.0.1/admin/health/live")
+  if ! [[ "$nginx_root" =~ ^[23] ]] && ! [[ "$nginx_admin" =~ ^[23] ]]; then
+    rc=1
+  fi
+  if ! unit_active nginx.service; then
+    rc=1
+  fi
+  print_row "nginx" "host" "$state" "-" "${nginx_root}/${nginx_admin}"
+
+  return "$rc"
+}
+
+doctor_secrets() {
+  local rc=0
+  local jwt_val svc_val jwt_fp svc_fp
+  jwt_val=$(dotenv_value JWT_SECRET)
+  svc_val=$(dotenv_value SERVICE_SECRET)
+
+  echo "== secrets (.env + running app containers) =="
+  if [[ ! -f "$ENV_FILE" ]]; then
+    echo "JWT_SECRET       FAIL   missing $ENV_FILE"
+    echo "SERVICE_SECRET   FAIL   missing $ENV_FILE"
+    unset jwt_val svc_val
+    return 1
+  fi
+
+  if is_placeholder "$jwt_val"; then
+    echo "JWT_SECRET       FAIL   placeholder or empty in .env"
+    rc=1
+  else
+    jwt_fp=$(printf '%s' "$jwt_val" | sha256_hex)
+    echo "JWT_SECRET       OK     .env fingerprint: $(short_fp "$jwt_fp")"
+  fi
+  unset jwt_val
+
+  if is_placeholder "$svc_val"; then
+    echo "SERVICE_SECRET   FAIL   placeholder or empty in .env"
+    rc=1
+  else
+    svc_fp=$(printf '%s' "$svc_val" | sha256_hex)
+    echo "SERVICE_SECRET   OK     .env fingerprint: $(short_fp "$svc_fp")"
+  fi
+  unset svc_val
+
+  compare_secret_var JWT_SECRET "${jwt_fp:-}" || rc=1
+  compare_secret_var SERVICE_SECRET "${svc_fp:-}" || rc=1
+  return "$rc"
+}
+
+compare_secret_var() {
+  local var="$1"
+  local expected_fp="${2:-}"
+  local svc fp mismatch=0 any=0
+  declare -A fps=()
+
+  for svc in "${API_APPS[@]}"; do
+    fp=$(container_secret_fp "$svc" "$var" || true)
+    if [[ -z "$fp" ]]; then
+      continue
+    fi
+    any=1
+    fps["$svc"]="$fp"
+    if [[ -n "$expected_fp" && "$fp" != "$expected_fp" ]]; then
+      mismatch=1
+    fi
+  done
+
+  if [[ "$any" -eq 0 ]]; then
+    echo "${var}       SKIP   no running app containers"
+    return 0
+  fi
+
+  local first="" s
+  for s in "${!fps[@]}"; do
+    if [[ -z "$first" ]]; then
+      first="${fps[$s]}"
+    elif [[ "${fps[$s]}" != "$first" ]]; then
+      mismatch=1
+    fi
+  done
+
+  if [[ "$mismatch" -eq 1 ]]; then
+    echo "${var}       MISMATCH   recreate ALL API apps together"
+    if [[ -n "$expected_fp" ]]; then
+      echo "  .env        $(short_fp "$expected_fp")"
+    fi
+    for svc in "${API_APPS[@]}"; do
+      [[ -n "${fps[$svc]:-}" ]] || continue
+      echo "  ${svc}     $(short_fp "${fps[$svc]}")"
+    done
+    return 1
+  fi
+
+  echo "${var}       MATCH   fingerprint: $(short_fp "$first")"
+  return 0
+}
+
+secrets_mismatch() {
+  local jwt_val svc_val jwt_fp svc_fp fp svc
+  jwt_val=$(dotenv_value JWT_SECRET)
+  svc_val=$(dotenv_value SERVICE_SECRET)
+  jwt_fp=$(printf '%s' "$jwt_val" | sha256_hex)
+  svc_fp=$(printf '%s' "$svc_val" | sha256_hex)
+  unset jwt_val svc_val
+  for svc in "${API_APPS[@]}"; do
+    fp=$(container_secret_fp "$svc" JWT_SECRET || true)
+    if [[ -n "$fp" && "$fp" != "$jwt_fp" ]]; then
+      return 0
+    fi
+    fp=$(container_secret_fp "$svc" SERVICE_SECRET || true)
+    if [[ -n "$fp" && "$fp" != "$svc_fp" ]]; then
+      return 0
+    fi
+  done
+  local first="" 
+  for svc in "${API_APPS[@]}"; do
+    fp=$(container_secret_fp "$svc" JWT_SECRET || true)
+    [[ -n "$fp" ]] || continue
+    if [[ -z "$first" ]]; then
+      first="$fp"
+    elif [[ "$fp" != "$first" ]]; then
+      return 0
+    fi
+  done
+  first=""
+  for svc in "${API_APPS[@]}"; do
+    fp=$(container_secret_fp "$svc" SERVICE_SECRET || true)
+    [[ -n "$fp" ]] || continue
+    if [[ -z "$first" ]]; then
+      first="$fp"
+    elif [[ "$fp" != "$first" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+cmd_doctor() {
+  need_repo
+  local rc=0
+
+  doctor_secrets || rc=1
+  echo
+
+  echo "== otel =="
+  local otel_flag otel_cid
+  otel_flag=$(dotenv_value OTEL_SDK_DISABLED)
+  otel_cid=$(compose ps -q otel-collector 2>/dev/null || true)
+  if [[ -z "$otel_cid" ]]; then
+    if [[ "${otel_flag,,}" == "true" ]]; then
+      echo "OTEL_SDK_DISABLED=true and collector stopped   OK"
+    else
+      echo "otel-collector down while OTEL_SDK_DISABLED!=true   FAIL"
+      rc=1
+    fi
+  else
+    echo "otel-collector running   OK"
+  fi
+  echo
+
+  echo "== nginx / ports =="
+  if [[ -f /etc/nginx/conf.d/erp-gateway.conf ]]; then
+    echo "erp-gateway.conf   OK"
+  else
+    echo "erp-gateway.conf   FAIL   missing /etc/nginx/conf.d/erp-gateway.conf"
+    rc=1
+  fi
+  if port_listening 80; then
+    echo "port 80            OK"
+  else
+    echo "port 80            FAIL   not listening"
+    rc=1
+  fi
+  if port_listening 443; then
+    echo "port 443           OK"
+  else
+    echo "port 443           FAIL   not listening"
+    rc=1
+  fi
+  echo
+
+  echo "== host systemd boundary =="
+  local app unit st
+  for app in "${FORBIDDEN_HOST_APPS[@]}"; do
+    unit=$(host_unit "$app")
+    st=$(systemctl is-active "$unit" 2>/dev/null || true)
+    if [[ "$st" == "active" || "$st" == "activating" ]] || unit_enabled "$unit"; then
+      echo "${unit}   FAIL   host API unit must not run alongside Compose"
+      rc=1
+    fi
+  done
+  if [[ "$rc" -eq 0 ]]; then
+    echo "no conflicting host API units   OK"
+  fi
+  for app in "${HOST_UI_APPS[@]}"; do
+    unit=$(host_unit "$app")
+    st=$(systemctl is-active "$unit" 2>/dev/null || true)
+    if [[ "$st" == "failed" || "$st" == "activating" ]]; then
+      if http_ok "${LIVE_URL[$app]}"; then
+        echo "${unit}   WARN   unit ${st} but HTTP live is OK (unmanaged process?)"
+      else
+        echo "${unit}   FAIL   unit ${st} and HTTP live failed"
+        rc=1
+      fi
+    elif [[ "$st" == "active" ]]; then
+      echo "${unit}   OK"
+    elif [[ -f /etc/erp/${app}.env ]]; then
+      echo "${unit}   WARN   env present but unit not active"
+    fi
+  done
+  if unit_active nginx.service; then
+    echo "nginx.service   OK"
+  else
+    echo "nginx.service   FAIL"
+    rc=1
+  fi
+
+  return "$rc"
+}
+
+wait_live() {
+  local svc="$1"
+  local url="${LIVE_URL[$svc]:-}"
+  local i
+  [[ -n "$url" ]] || return 0
+  for i in $(seq 1 20); do
+    if http_ok "$url"; then
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
+
+recreate_api_group() {
+  echo "recreating ALL API apps together (secret mismatch safety)"
+  compose up -d --force-recreate --no-deps "${API_APPS[@]}"
+}
+
+heal_compose() {
+  local mismatch=0
+  if secrets_mismatch; then
+    mismatch=1
+    recreate_api_group
+  fi
+
+  local svc state health missing=() exited=() unhealthy=() livefail=()
+  for svc in "${CORE_SERVICES[@]}"; do
+    read -r state health <<<"$(compose_inspect "$svc")"
+    case "$state" in
+      missing) missing+=("$svc") ;;
+      exited|dead|created) exited+=("$svc") ;;
+    esac
+    if [[ "$health" == "unhealthy" ]]; then
+      unhealthy+=("$svc")
+    fi
+  done
+
+  if [[ ${#missing[@]} -gt 0 || ${#exited[@]} -gt 0 ]]; then
+    echo "bringing up missing/exited: ${missing[*]} ${exited[*]}"
+    compose up -d "${CORE_SERVICES[@]}"
+  fi
+
+  if [[ ${#unhealthy[@]} -gt 0 ]]; then
+    echo "restarting unhealthy: ${unhealthy[*]}"
+    compose restart "${unhealthy[@]}"
+  fi
+
+  sleep 3
+
+  for svc in "${API_APPS[@]}"; do
+    if ! wait_live "$svc"; then
+      livefail+=("$svc")
+    fi
+  done
+
+  if [[ ${#livefail[@]} -eq 0 ]]; then
+    return 0
+  fi
+
+  if [[ "$mismatch" -eq 1 ]] || secrets_mismatch; then
+    recreate_api_group
+    sleep 5
+    return 0
+  fi
+
+  echo "force-recreating still-failing live probes: ${livefail[*]}"
+  # If more than one API app is failing, recreate the whole API group anyway.
+  if [[ ${#livefail[@]} -gt 1 ]]; then
+    recreate_api_group
+  else
+    compose up -d --force-recreate --no-deps "${livefail[@]}"
+  fi
+}
+
+heal_host() {
+  local app unit
+  for app in "${HOST_UI_APPS[@]}"; do
+    unit=$(host_unit "$app")
+    if http_ok "${LIVE_URL[$app]}"; then
+      continue
+    fi
+    if unit_loaded "$unit" || [[ -f /etc/erp/${app}.env ]]; then
+      echo "recovering host ${app}"
+      systemctl restart "$unit" || echo "warn: restart ${unit} failed" >&2
+    else
+      echo "warn: ${app} HTTP failed and no systemd unit to recover" >&2
+    fi
+  done
+
+  if ! unit_active nginx.service; then
+    echo "recovering nginx"
+    systemctl start nginx || echo "warn: start nginx failed" >&2
+  elif ! http_ok "https://127.0.0.1/" && ! http_ok "https://127.0.0.1/admin/health/live"; then
+    echo "nginx active but edge HTTP failed; reloading"
+    nginx -t && systemctl reload nginx || systemctl restart nginx || true
+  fi
+}
+
+cmd_heal() {
+  need_repo
+  if ! acquire_stack_lock; then
+    echo "heal already running; skipping"
+    return 0
+  fi
+
+  local jwt_chk svc_chk
+  jwt_chk=$(dotenv_value JWT_SECRET)
+  svc_chk=$(dotenv_value SERVICE_SECRET)
+  if is_placeholder "$jwt_chk" || is_placeholder "$svc_chk"; then
+    echo "warn: placeholder JWT_SECRET or SERVICE_SECRET in .env (doctor will fail); not rotating automatically" >&2
+  fi
+  unset jwt_chk svc_chk
+
+  stop_forbidden_host_apis
+  heal_compose
+  heal_host
+  echo "heal complete."
+  cmd_status
+}
+
+install_cli_wrapper() {
+  local dest=/usr/local/bin/erp
+  cat >"$dest" <<EOF
+#!/usr/bin/env bash
+export ERP_ROOT="${REPO_ROOT}"
+exec "${REPO_ROOT}/scripts/erp" "\$@"
+EOF
+  chmod 0755 "$dest"
+  echo "installed $dest → ${REPO_ROOT}/scripts/erp"
+}
+
+cmd_install_watchdog() {
+  need_repo
+  if [[ ${EUID} -ne 0 ]]; then
+    die "install-watchdog must run as root (sudo erp install-watchdog)"
+  fi
+  [[ -x "${REPO_ROOT}/scripts/erp" ]] || chmod +x "${REPO_ROOT}/scripts/erp"
+  install_cli_wrapper
+  install -d -m 0755 /etc/systemd/system
+  install -m 0644 "${REPO_ROOT}/ops/systemd/erp-watchdog.service" /etc/systemd/system/erp-watchdog.service
+  install -m 0644 "${REPO_ROOT}/ops/systemd/erp-watchdog.timer" /etc/systemd/system/erp-watchdog.timer
+  stop_forbidden_host_apis
+  systemctl daemon-reload
+  systemctl enable erp-watchdog.timer
+  systemctl start erp-watchdog.timer
+  echo "watchdog installed: erp-watchdog.timer (every 2 min → erp heal)"
+  systemctl list-timers erp-watchdog.timer --no-pager || true
+}
+
+main() {
+  local cmd="${1:-}"
+  shift || true
+  case "$cmd" in
+    up) cmd_up "$@" ;;
+    down) cmd_down "$@" ;;
+    restart) cmd_restart "$@" ;;
+    status) cmd_status "$@" ;;
+    logs) cmd_logs "$@" ;;
+    doctor) cmd_doctor "$@" ;;
+    heal) cmd_heal "$@" ;;
+    install-watchdog) cmd_install_watchdog "$@" ;;
+    -h|--help|help|"") usage ;;
+    *)
+      usage >&2
+      die "unknown command: $cmd"
+      ;;
+  esac
+}
+
+main "$@"

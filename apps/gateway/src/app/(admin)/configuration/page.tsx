@@ -22,6 +22,12 @@ const STUDIO_ITEMS: {
     status: "live",
   },
   {
+    href: "/configuration/documents",
+    title: "Documents",
+    description: "Print templates (placement canvas) for invoices and other artifacts.",
+    status: "live",
+  },
+  {
     href: "#",
     title: "Rules",
     description: "Approval and business rules.",

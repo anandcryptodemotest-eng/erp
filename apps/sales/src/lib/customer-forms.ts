@@ -20,7 +20,8 @@ export const CUSTOMER_CHECKOUT_FORM: FormDefinition = {
       required: true,
       options: [
         { value: "COD", label: "Cash on Delivery" },
-        { value: "UPI", label: "UPI" },
+        { value: "COUNTER", label: "Pay at Counter" },
+        { value: "BANK_TRANSFER", label: "Bank Transfer" },
       ],
     },
     {

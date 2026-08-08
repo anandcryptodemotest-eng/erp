@@ -1,7 +1,7 @@
 ﻿# ERP System — Full Architecture & Design Document
 
 > **Status:** Living document. Update UC implementation status as each use case is completed.
-> **Last updated:** Aug 2026 — TrustWood ERP Platform v1.0 (ADR 0015–0017). Gateway is identity + tenant admin UI host + BFF rewrites (port **3010**, not 3000). Domain services remain DB-per-service. Prefer **migrate-when-touched** over rewrites (ADR 0016). UI: one TrustWood brand, shared AdminShell, Process Designer package (ADR 0015).
+> **Last updated:** Mar 2026 — TrustWood ERP Platform v1.0 (ADR 0015–0017). Gateway is identity + tenant admin UI host + BFF rewrites (port **3010**, not 3000). Domain services remain DB-per-service. Prefer **migrate-when-touched** over rewrites (ADR 0016). UI: one TrustWood brand, shared AdminShell, Process Designer package (ADR 0015). **Communication** is a platform capability in the Gateway (ADR 0017) — conversations, messages, presence, reactions, AI summaries. **Asset** is a first-class platform capability — shared by Communication, Documents, Products.
 
 ---
 
@@ -77,7 +77,7 @@ all services -> gateway     JWT verified locally (no HTTP call)
 | Monorepo         | Turborepo + pnpm workspaces                       |
 | Containerization | Docker + Docker Compose                           |
 | Styling          | Tailwind CSS                                      |
-| Shared packages  | @erp/auth  @erp/config  @erp/types  @erp/ui       |
+| Shared packages  | @erp/auth  @erp/config  @erp/types  @erp/ui  @erp/asset  @erp/communication |
 
 ---
 
@@ -85,7 +85,7 @@ all services -> gateway     JWT verified locally (no HTTP call)
 
 | Service     | Port | Owns                                                                              | Calls                       |
 |-------------|------|-----------------------------------------------------------------------------------|-----------------------------|
-| gateway     | 3010 | Users, Tenants, Licenses, Settings, Invitations, Notifications, AuditLog, Tenant Admin UI, BFF rewrites | Platform UI :3011 |
+| gateway     | 3010 | Users, Tenants, Licenses, Settings, Invitations, Notifications, AuditLog, Tenant Admin UI, BFF rewrites, **Communication** (conversations, messages, presence), **Asset Store** | Platform UI :3011 |
 | sales       | 3001 | Leads, Opportunities, Activities, Quotes, Orders, SalesReturns, Customers        | inventory, accounting       |
 | inventory   | 3002 | Categories, Products, Variants, PriceLists, Warehouses, Stock, BOM               | --                          |
 | accounting  | 3003 | CoA, Journals, Invoices, CreditNotes, DebitNotes, Payments, Tax, Assets, FX      | --                          |

@@ -6,8 +6,50 @@ import {
   type PlatformTokenClaims,
 } from "@erp/platform-core";
 
+const DEV_JWT_SECRET = "dev-secret-change-in-production";
+const DEV_SERVICE_SECRET = "dev-service-secret";
+const SECRET_PLACEHOLDERS = new Set([
+  DEV_JWT_SECRET,
+  DEV_SERVICE_SECRET,
+  "change-me-in-production",
+]);
+
+function isStrictSecurityEnvironment() {
+  const deployment = (process.env.DEPLOYMENT_ENVIRONMENT ?? "").trim().toLowerCase();
+  // Compose/dev images always set NODE_ENV=production for Next standalone.
+  // Honor an explicit deployment label so local stacks can keep placeholder secrets.
+  if (deployment === "development" || deployment === "dev" || deployment === "local") {
+    return false;
+  }
+  return (
+    deployment === "production" ||
+    deployment === "staging" ||
+    process.env.NODE_ENV === "production"
+  );
+}
+
+function configuredSecret(name: "JWT_SECRET" | "SERVICE_SECRET", fallback: string) {
+  const value = process.env[name]?.trim();
+  if (value && (!SECRET_PLACEHOLDERS.has(value) || !isStrictSecurityEnvironment())) {
+    return value;
+  }
+  if (isStrictSecurityEnvironment()) {
+    throw new Error(`${name} must be configured with a non-default value`);
+  }
+  return value || fallback;
+}
+
 const getSecret = () =>
-  new TextEncoder().encode(process.env.JWT_SECRET || "dev-secret-change-in-production");
+  new TextEncoder().encode(configuredSecret("JWT_SECRET", DEV_JWT_SECRET));
+
+export function getServiceSecret() {
+  return configuredSecret("SERVICE_SECRET", DEV_SERVICE_SECRET);
+}
+
+export function validateAuthSecrets() {
+  getSecret();
+  getServiceSecret();
+}
 
 /**
  * Create a JWT token for inter-service communication
@@ -100,28 +142,42 @@ export function extractToken(authHeader: string | null): string | null {
  * Service-to-service authentication header
  */
 export function serviceAuthHeader(): Record<string, string> {
-  const serviceKey = process.env.SERVICE_SECRET || "dev-service-secret";
-  return { "x-service-key": serviceKey };
+  return { "x-service-key": getServiceSecret() };
 }
 
 /**
  * Verify service-to-service call
  */
 export function verifyServiceCall(serviceKey: string | null): boolean {
-  const expected = process.env.SERVICE_SECRET || "dev-service-secret";
-  return serviceKey === expected;
+  try {
+    return serviceKey === getServiceSecret();
+  } catch {
+    return false;
+  }
 }
 
 export type { AuthToken, UserRole };
 export type { PlatformTokenClaims, PlatformRole };
 export { createServiceMiddleware } from "./middleware";
 export {
+  getIdentityProviderRegistry,
+  getIdentityProvider,
+} from "./providers";
+export type { IdentityProvider, VerifiedIdentity } from "./providers";
+export {
   PROCESS_OWNER_ROLES,
   CATALOG_MANAGER_ROLES,
   TENANT_ADMIN_ROLES,
+  PRODUCT_READ_ROLES,
+  PRICE_LIST_READ_ROLES,
+  PRICE_LIST_WRITE_ROLES,
   roleAllowed,
+  requireRoles,
   requireProcessOwner,
   requireCatalogManager,
+  requireProductRead,
+  requirePriceListRead,
+  requirePriceListWrite,
 } from "./role-gates";
 export {
   DESIGNER_TENANT_ROLES,

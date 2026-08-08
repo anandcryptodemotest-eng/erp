@@ -113,7 +113,35 @@ export interface AttachmentItem {
 export interface HostApis {
   uploadFile?: (file: File) => Promise<AttachmentItem>;
   addComment?: (body: string) => void | Promise<void>;
+  /** Domain command bridge — widgets never call REST (ADR 0009). */
+  invokeDomainCommand?: (args: {
+    command: string;
+    documentRef?: { type: string; id: string; version: number };
+    documentType?: string;
+    payloadBuilder?: string;
+    payloadOverrides?: { fieldKey: string; path: string }[];
+    payload?: Record<string, unknown>;
+    /** Re-render PDF even if one already exists. */
+    force?: boolean;
+  }) => Promise<{
+    ok: boolean;
+    error?: string;
+    pdfUrl?: string;
+    invoiceId?: string;
+    invoiceNumber?: string;
+    data?: Record<string, unknown>;
+  }>;
+  /** Authenticated open/download for private PDFs (Bearer required — not plain href). */
+  openDocument?: (url: string, fileName?: string) => Promise<void>;
 }
+
+/** Host-hydrated document metadata for task screens (e.g. existing invoice PDF). */
+export type TaskDocumentMeta = {
+  id?: string;
+  number?: string;
+  pdfUrl?: string;
+  status?: string;
+};
 
 export interface UIContext {
   entity: { type: string; id: string; data: Record<string, unknown> };
@@ -139,6 +167,11 @@ export interface UIContext {
   timeline?: WorkflowTimelineEvent[];
   comments?: CommentItem[];
   attachments?: AttachmentItem[];
+  /**
+   * Domain documents already linked to this task entity (invoice, etc.).
+   * Widgets resolve PDF URLs from here without knowing hydration details.
+   */
+  documents?: Record<string, TaskDocumentMeta>;
   hostApis?: HostApis;
 }
 

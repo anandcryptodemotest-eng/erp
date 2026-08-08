@@ -14,10 +14,12 @@
     "clsx": "^2.1.1",
     "lucide-react": "^1.16.0",
     "react-hook-form": "^7.54.0",
+    "recharts": "^3.10.1",
     "tailwind-merge": "^3.6.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "react": "^19.2.0",

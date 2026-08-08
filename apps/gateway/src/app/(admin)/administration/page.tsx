@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api, getTenantId } from "@/lib/admin-api";
 import { PageHeader, Button, Input } from "@erp/ui";
+import { WhatsAppIntegrationPanel } from "./whatsapp-integration-panel";
+import { PorterLogisticsPanel } from "./porter-logistics-panel";
 
 type Section =
   | "general"
@@ -243,7 +245,7 @@ export default function AdministrationPage() {
   }
 
   if (loading) {
-    return <div className="p-8 text-sm text-[var(--ink-soft)]">Loading tenant administration…</div>;
+    return <div className="p-4 md:p-8 text-sm text-[var(--ink-soft)]">Loading tenant administration…</div>;
   }
 
   return (
@@ -491,15 +493,9 @@ export default function AdministrationPage() {
           )}
 
           {section === "integrations" && (
-            <div className="space-y-3">
-              <h2 className="text-sm font-semibold text-[var(--ink)]">Integrations</h2>
-              <p className="text-sm text-[var(--ink-soft)]">
-                External connectors are not configured yet. This section is reserved under Tenant
-                Configuration per the Tenant Operating Model.
-              </p>
-              <div className="rounded-xl border border-dashed border-[var(--line)] bg-[var(--mist)] px-4 py-6 text-center text-xs text-[var(--ink-soft)]">
-                Coming soon
-              </div>
+            <div className="space-y-6">
+              <WhatsAppIntegrationPanel />
+              <PorterLogisticsPanel />
             </div>
           )}
         </div>

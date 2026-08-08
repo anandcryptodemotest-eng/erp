@@ -58,9 +58,11 @@ export function Shell({ children }: { children: ReactNode }) {
     setReady(true);
   }, []);
 
+  const operatorName = ready ? (op?.name?.trim() || op?.email) : undefined;
+
   return (
     <AdminShell
-      brandEyebrow="TrustWood"
+      brandEyebrow={operatorName ?? "Platform Admin"}
       brandTitle="Platform Admin"
       brandContext={ready ? formatRole(op?.role) : undefined}
       groups={NAV_GROUPS}
@@ -71,7 +73,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </Link>
       )}
       user={{
-        name: ready ? (op?.email ?? "Operator") : "Operator",
+        name: operatorName ?? "Platform Admin",
         subtitle: ready ? formatRole(op?.role) : undefined,
         onSignOut: () => {
           clearPlatformAuth();

@@ -1,19 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { FormDefinition } from "@erp/workflow";
-import type { WorkflowTimelineEvent } from "@erp/ui-runtime";
-import { Button, Container, PriceDisplay, SectionHeader, Skeleton } from "@erp/ui";
-import { api } from "@/lib/api-client";
+import { BillSummary, Button, Container, PriceDisplay, SectionHeader, Skeleton } from "@erp/ui";
+import { api, openAuthenticatedDocument } from "@/lib/api-client";
+import { billSummaryRows } from "@/lib/bill-summary";
 import { addToCart, clearCart } from "@/lib/cart-store";
-import {
-  OMS_TRACKER_STEPS,
-  SREQ_TRACKER_STEPS,
-  customerCanCancelRequest,
-  omsLabel,
-  sreqLabel,
-} from "@/lib/oms-status";
+import { customerCanCancelRequest, omsLabel, sreqLabel } from "@/lib/oms-status";
+import { buildBuyerTimeline } from "@/lib/order-timeline";
 import {
   CustomerScreenController,
   createCustomerHost,
@@ -55,72 +50,21 @@ interface SalesRequestDetail {
     status: string;
     paymentStatus: string;
     total: number;
+    trackingNumber?: string | null;
+    trackingUrl?: string | null;
+    fulfillmentMode?: string | null;
+    carrier?: string | null;
+    documents?: {
+      id: string;
+      type: string;
+      fileName: string;
+      fileUrl: string;
+      mimeType?: string | null;
+    }[];
   } | null;
 }
 
-function buildTimeline(row: SalesRequestDetail): WorkflowTimelineEvent[] {
-  const events: WorkflowTimelineEvent[] = [
-    {
-      id: "created",
-      type: "CREATED",
-      title: "Sales request submitted",
-      at: row.createdAt,
-      remarks: sreqLabel(row.status),
-    },
-  ];
-  if (row.status === "REJECTED") {
-    events.push({
-      id: "rejected",
-      type: "REJECTED",
-      title: "Rejected",
-      at: row.createdAt,
-      remarks: row.rejectReason ?? undefined,
-    });
-  }
-  if (row.status === "CANCELLED") {
-    events.push({
-      id: "cancelled",
-      type: "CANCELLED",
-      title: "Cancelled",
-      at: row.createdAt,
-    });
-  }
-  const soStatus = row.salesOrder?.status ?? row.soStatus;
-  const soNumber = row.salesOrder?.orderNumber ?? row.soNumber;
-  if (row.status === "CONVERTED" && soStatus) {
-    events.push({
-      id: "converted",
-      type: "CONVERTED",
-      title: `Order created${soNumber ? ` (${soNumber})` : ""}`,
-      at: row.createdAt,
-      remarks: omsLabel(soStatus),
-    });
-    const steps = OMS_TRACKER_STEPS;
-    const idx = steps.findIndex((s) => s.match.includes(soStatus));
-    steps.forEach((step, i) => {
-      if (idx >= 0 && i <= idx) {
-        events.push({
-          id: `so-${step.status}`,
-          type: step.status,
-          title: step.label,
-          at: row.createdAt,
-        });
-      }
-    });
-  } else if (row.status === "OPEN") {
-    SREQ_TRACKER_STEPS.slice(0, 1).forEach((step) => {
-      events.push({
-        id: `sreq-${step.status}`,
-        type: step.status,
-        title: step.label,
-        at: row.createdAt,
-      });
-    });
-  }
-  return events;
-}
-
-export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+function OrderDetailInner({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [row, setRow] = useState<SalesRequestDetail | null>(null);
@@ -129,7 +73,27 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [id, setId] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [docBusy, setDocBusy] = useState<string | null>(null);
+  const [docErr, setDocErr] = useState("");
   const justPlaced = searchParams.get("placed") === "1";
+
+  async function downloadInvoice(doc: {
+    id: string;
+    fileName: string;
+  }) {
+    setDocBusy(doc.id);
+    setDocErr("");
+    try {
+      await openAuthenticatedDocument(
+        `/api/order-documents/${doc.id}/file`,
+        doc.fileName || "invoice.pdf"
+      );
+    } catch (e) {
+      setDocErr(e instanceof Error ? e.message : "Could not open document");
+    } finally {
+      setDocBusy(null);
+    }
+  }
 
   useEffect(() => {
     params.then((p) => setId(p.id));
@@ -203,7 +167,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     [router]
   );
 
-  const timeline = useMemo(() => (row ? buildTimeline(row) : []), [row]);
+  const timeline = useMemo(() => (row ? buildBuyerTimeline(row).map((e) => ({ id: e.id, type: e.id, title: e.title, at: e.at || row.createdAt, remarks: e.current ? "Current" : undefined })) : []), [row]);
 
   if (loading) {
     return (
@@ -240,6 +204,47 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         <p className="mb-1 text-sm font-medium text-[var(--forest)]">
           Sales order {soNumber} · {omsLabel(soStatus!)}
         </p>
+      ) : null}
+      {row.salesOrder?.trackingUrl || row.salesOrder?.trackingNumber ? (
+        <p className="mb-2 text-sm">
+          {row.salesOrder.trackingUrl ? (
+            <a
+              href={row.salesOrder.trackingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-[var(--forest)] underline"
+            >
+              Track shipment
+            </a>
+          ) : (
+            <span className="font-semibold text-[var(--forest)]">Tracking</span>
+          )}
+          {row.salesOrder.trackingNumber ? (
+            <span className="ml-2 text-xs text-[var(--ink-soft)]">{row.salesOrder.trackingNumber}</span>
+          ) : null}
+        </p>
+      ) : null}
+      {row.salesOrder?.documents && row.salesOrder.documents.length > 0 ? (
+        <div className="mb-4 rounded-[var(--radius)] border border-[var(--line)] bg-white p-3">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
+            Invoices
+          </p>
+          {docErr ? <p className="mb-2 text-xs text-red-600">{docErr}</p> : null}
+          <ul className="space-y-1">
+            {row.salesOrder.documents.map((d) => (
+              <li key={d.id}>
+                <button
+                  type="button"
+                  className="text-sm font-medium text-[var(--forest)] underline disabled:opacity-50"
+                  disabled={docBusy === d.id}
+                  onClick={() => void downloadInvoice(d)}
+                >
+                  {docBusy === d.id ? "Opening…" : `Download ${d.fileName}`}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
       <p className="mb-6 text-xs text-[var(--ink-soft)]">
         {new Date(row.createdAt).toLocaleString("en-IN")}
@@ -286,16 +291,19 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         ) : null}
 
-        <div className="space-y-2 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--paper)] p-4 text-sm">
-          <div className="flex justify-between text-[var(--ink-soft)]">
-            <span>Subtotal</span>
-            <PriceDisplay amount={row.subtotal} size="sm" className="text-[var(--ink-soft)]" />
-          </div>
-          <div className="flex justify-between border-t border-[var(--line)] pt-2 text-base">
-            <span className="font-bold text-[var(--ink)]">Total</span>
-            <PriceDisplay amount={row.total} />
-          </div>
-        </div>
+        <BillSummary
+          title="Bill summary"
+          rows={billSummaryRows({
+            subtotal: row.subtotal,
+            discount: row.couponDiscount,
+            tax: row.tax ?? 0,
+            delivery: row.deliveryFee,
+            total: row.total,
+          })}
+          totalLabel="Total"
+          totalValue={row.total}
+          footer="GST applies only when configured on the product."
+        />
 
         {msg ? <div className="text-sm text-[var(--danger)]">{msg}</div> : null}
 
@@ -318,5 +326,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
     </Container>
+  );
+}
+
+
+export default function OrderDetailPage(props: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense fallback={<div className="p-8 text-sm text-[var(--ink-soft)]">Loading…</div>}>
+      <OrderDetailInner {...props} />
+    </Suspense>
   );
 }

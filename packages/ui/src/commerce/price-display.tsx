@@ -7,10 +7,13 @@ export function PriceDisplay({
   amount,
   className,
   size = "md",
+  prefix,
 }: {
   amount: string | number | null | undefined;
   className?: string;
   size?: "sm" | "md" | "lg";
+  /** Shown before formatted amount, e.g. "From" */
+  prefix?: string;
 }) {
   if (amount == null || amount === "") {
     return <span className={cn("text-[var(--ink-soft)]", className)}>—</span>;
@@ -22,14 +25,19 @@ export function PriceDisplay({
   return (
     <span
       className={cn(
-        "font-bold tabular-nums text-[var(--amber)]",
+        "font-bold tabular-nums text-[var(--ink)]",
         size === "sm" && "text-sm",
         size === "md" && "text-base",
-        size === "lg" && "text-2xl",
+        size === "lg" && "text-2xl tracking-tight",
         className
       )}
     >
-      {text}
+      {prefix ? (
+        <span className="mr-1 text-[0.7em] font-semibold text-[var(--ink-soft)]">
+          {prefix}
+        </span>
+      ) : null}
+      <span className="text-[var(--amber)]">{text}</span>
     </span>
   );
 }

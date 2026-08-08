@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { getServiceSecret } from "@erp/auth";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma";
 
 const pushSchema = z.object({
   // Target: either a single userId or broadcast to all users of the tenant
@@ -17,7 +19,7 @@ export async function POST(request: NextRequest) {
   const senderId = request.headers.get("x-user-id");
   const role = request.headers.get("x-user-role");
   const serviceKey = request.headers.get("x-service-key");
-  const serviceSecret = process.env.SERVICE_SECRET || "dev-service-secret";
+  const serviceSecret = getServiceSecret();
   const isService = !!serviceSecret && serviceKey === serviceSecret;
 
   if (!tenantId || (!senderId && !isService)) {
@@ -60,7 +62,7 @@ export async function POST(request: NextRequest) {
       type,
       title,
       body: notifBody,
-      metadata: metadata ?? undefined,
+      metadata: metadata ? (metadata as Prisma.InputJsonValue) : undefined,
     })),
   });
 

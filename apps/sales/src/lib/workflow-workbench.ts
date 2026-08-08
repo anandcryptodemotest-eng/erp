@@ -152,11 +152,13 @@ export async function getWorkbenchForRole(input: {
 
   const enriched = snapshotTasks.map((t) => {
     const siblings = allOrderTasks.filter((s) => s.salesOrderId === t.salesOrderId);
-    const completedKeys = new Set(
-      siblings.filter((s) => s.status === "COMPLETED").map((s) => s.stepKey)
+    const satisfiedKeys = new Set(
+      siblings
+        .filter((s) => s.status === "COMPLETED" || s.status === "SKIPPED")
+        .map((s) => s.stepKey)
     );
     const formUi = resolveStepUiFromSnapshot(t.workflowInstance?.snapshot, t.stepKey);
-    const unmet = parseDependsOn(t.dependsOn).filter((key) => !completedKeys.has(key));
+    const unmet = parseDependsOn(t.dependsOn).filter((key) => !satisfiedKeys.has(key));
     const blockedBy = unmet.map((key) => {
       const dep = siblings.find((s) => s.stepKey === key);
       return dep?.title ?? key;

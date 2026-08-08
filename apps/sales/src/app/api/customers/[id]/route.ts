@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { normalizeCustomerPhone } from "@/lib/customer-phone";
 import { z } from "zod";
 
 const updateCustomerSchema = z.object({
@@ -89,7 +90,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const existing = await prisma.customer.findFirst({ where: { id, tenantId } });
     if (!existing) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
 
-    const customer = await prisma.customer.update({ where: { id }, data });
+    const customer = await prisma.customer.update({
+      where: { id },
+      data: {
+        ...data,
+        ...(data.phone !== undefined && { phoneNormalized: normalizeCustomerPhone(data.phone) }),
+      },
+    });
     return NextResponse.json({ data: customer });
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -1,27 +1,32 @@
 /**
  * Same-origin API client. Paths like `/api/orders` are rewritten by next.config
- * to the gateway, which proxies to microservices (avoids browser CORS).
+ * to the gateway. Public catalog uses `/api/portal/*` (Customer BFF).
  */
-export type ServiceName = "gateway" | "sales" | "inventory" | "accounting" | "delivery";
+import { storage } from "@/lib/platform/storage";
+import { resolveTenantSlug } from "@/lib/tenant";
+
+export type ServiceName = "gateway" | "sales" | "inventory" | "portal";
+
+const TOKEN_KEY = "customer_token";
+const TENANT_KEY = "customer_tenant_id";
 
 function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("customer_token");
+  return storage.get(TOKEN_KEY);
 }
 
 function getTenantId(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("customer_tenant_id");
+  return storage.get(TENANT_KEY);
 }
 
 export function saveAuth(token: string, tenantId: string) {
-  localStorage.setItem("customer_token", token);
-  localStorage.setItem("customer_tenant_id", tenantId);
+  storage.set(TOKEN_KEY, token);
+  storage.set(TENANT_KEY, tenantId);
 }
 
 export function clearAuth() {
-  localStorage.removeItem("customer_token");
-  localStorage.removeItem("customer_tenant_id");
+  storage.remove(TOKEN_KEY);
+  storage.remove(TENANT_KEY);
+  storage.remove("customer_display_name");
 }
 
 export function isAuthenticated(): boolean {
@@ -33,22 +38,27 @@ export async function api<T = unknown>(
   path: string,
   options: RequestInit & { skipAuth?: boolean } = {}
 ): Promise<{ data: T; error?: never } | { error: string; data?: never }> {
-  // Same-origin (rewrite → gateway). Absolute origin avoids odd base-URL cases.
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const url = `${origin}${path}`;
   const token = getToken();
   const tenantId = getTenantId();
+  const tenantSlug = resolveTenantSlug();
 
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] ??= "application/json";
+  }
 
   if (token && !options.skipAuth) {
     headers["Authorization"] = `Bearer ${token}`;
   }
   if (tenantId) {
     headers["x-tenant-id"] = tenantId;
+  }
+  if (tenantSlug) {
+    headers["x-tenant-slug"] = tenantSlug;
   }
 
   try {
@@ -61,4 +71,39 @@ export async function api<T = unknown>(
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Network error" };
   }
+}
+
+/** Authenticated binary download (invoice PDFs). Plain <a href> cannot send Bearer. */
+export async function openAuthenticatedDocument(path: string, fileName = "document.pdf") {
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const token = getToken();
+  const tenantId = getTenantId();
+  const tenantSlug = resolveTenantSlug();
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (tenantId) headers["x-tenant-id"] = tenantId;
+  if (tenantSlug) headers["x-tenant-slug"] = tenantSlug;
+
+  const res = await fetch(`${origin}${path}`, { headers });
+  if (!res.ok) {
+    let msg = `Download failed (${res.status})`;
+    try {
+      const j = (await res.json()) as { error?: string };
+      if (j.error) msg = j.error;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.target = "_blank";
+  a.rel = "noreferrer";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }

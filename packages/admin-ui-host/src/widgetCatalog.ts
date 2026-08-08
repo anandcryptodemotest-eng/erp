@@ -11,8 +11,8 @@ export type WidgetCatalogEntry = {
   description: string;
   supportedContexts: string[];
   defaultProps?: Record<string, unknown>;
-  /** Boolean/string prop keys authors may edit in Layout */
-  editableProps?: { key: string; label: string; type: "boolean" | "string" }[];
+  /** Boolean/string/documentRef prop keys authors may edit in Layout */
+  editableProps?: { key: string; label: string; type: "boolean" | "string" | "documentRef" }[];
   permissions?: string[];
   featureFlag?: string;
   /** Include in Form Designer layout picker */
@@ -119,6 +119,14 @@ export const adminWidgetCatalog: Record<string, WidgetCatalogEntry> = {
     editableProps: [{ key: "required", label: "Required", type: "boolean" }],
     designerVisible: true,
   },
+  DispatchFulfillment: {
+    id: "DispatchFulfillment",
+    name: "Dispatch Fulfillment",
+    category: "Business",
+    description: "Own fleet or Porter booking for the dispatch step.",
+    supportedContexts: ["ADMIN", "DISPATCH"],
+    designerVisible: true,
+  },
   DriverPicker: {
     id: "DriverPicker",
     name: "Driver Picker",
@@ -127,6 +135,42 @@ export const adminWidgetCatalog: Record<string, WidgetCatalogEntry> = {
     supportedContexts: ["ADMIN", "DISPATCH"],
     defaultProps: { fieldKey: "assignedDriverId", required: false },
     editableProps: [{ key: "required", label: "Required", type: "boolean" }],
+    designerVisible: true,
+  },
+  DocumentGenerate: {
+    id: "DocumentGenerate",
+    name: "Document Generate",
+    category: "Business",
+    description: "Preview/confirm document generation via domain command (generic runtime).",
+    supportedContexts: ["ADMIN"],
+    defaultProps: {
+      documentType: "INVOICE",
+      command: "accounting.generateInvoice",
+      payloadBuilder: "accounting.invoice",
+      documentRef: { type: "DOCUMENT", id: "tax-invoice", version: 1 },
+    },
+    editableProps: [
+      { key: "documentRef", label: "Published document", type: "documentRef" },
+      { key: "payloadBuilder", label: "Payload builder", type: "string" },
+    ],
+    designerVisible: true,
+  },
+  InvoiceGenerate: {
+    id: "InvoiceGenerate",
+    name: "Invoice Generate",
+    category: "Business",
+    description: "Seeded DocumentGenerate for AR tax invoices.",
+    supportedContexts: ["ADMIN"],
+    defaultProps: {
+      documentType: "INVOICE",
+      command: "accounting.generateInvoice",
+      payloadBuilder: "accounting.invoice",
+      documentRef: { type: "DOCUMENT", id: "tax-invoice", version: 1 },
+    },
+    editableProps: [
+      { key: "documentRef", label: "Published document", type: "documentRef" },
+      { key: "payloadBuilder", label: "Payload builder", type: "string" },
+    ],
     designerVisible: true,
   },
 };

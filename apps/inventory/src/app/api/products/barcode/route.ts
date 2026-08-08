@@ -39,7 +39,7 @@ export async function GET(request: Request) {
           exists: true,
           variableWeight: true,
           weightKg: vw.weightKg,
-          lineTotal: Math.round(product.sellPrice * vw.weightKg * 100) / 100,
+          lineTotal: Math.round((product.sellPrice ?? 0) * vw.weightKg * 100) / 100,
         },
       });
     }

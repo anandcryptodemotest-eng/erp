@@ -22,6 +22,7 @@ const receiveSchema = z.object({
     )
     .min(1),
   reference: z.string().min(1),
+  idempotencyKey: z.string().min(1).optional(),
   notes: z.string().optional(),
 });
 
@@ -30,9 +31,17 @@ export async function POST(request: Request) {
   const tenantId = request.headers.get("x-tenant-id");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
 
+  let parsedIdempotencyKey: string | undefined;
   try {
     const body = await request.json();
-    const { items, reference, notes } = receiveSchema.parse(body);
+    const { items, reference, idempotencyKey, notes } = receiveSchema.parse(body);
+    parsedIdempotencyKey = idempotencyKey;
+    if (idempotencyKey) {
+      const existing = await prisma.stockMovement.findMany({
+        where: { tenantId, idempotencyKey: { startsWith: `${idempotencyKey}:` } },
+      });
+      if (existing.length > 0) return NextResponse.json({ data: existing });
+    }
 
     for (const item of items) {
       const scope = await assertVariantStockScope(prisma, {
@@ -46,8 +55,14 @@ export async function POST(request: Request) {
     }
 
     const movements = await prisma.$transaction(async (tx) => {
+      if (idempotencyKey) {
+        const existing = await tx.stockMovement.findMany({
+          where: { tenantId, idempotencyKey: { startsWith: `${idempotencyKey}:` } },
+        });
+        if (existing.length > 0) return existing;
+      }
       const ms = [];
-      for (const item of items) {
+      for (const [index, item] of items.entries()) {
         const variantId = normalizeVariantId(item.variantId);
         await upsertStockDelta(tx, {
           tenantId,
@@ -66,6 +81,7 @@ export async function POST(request: Request) {
             type: "IN",
             quantity: item.quantity,
             reference,
+            idempotencyKey: idempotencyKey ? `${idempotencyKey}:${index}` : undefined,
             notes,
           },
         });
@@ -74,10 +90,16 @@ export async function POST(request: Request) {
       return ms;
     });
 
-    return NextResponse.json({ data: movements }, { status: 201 });
+    return NextResponse.json({ data: movements }, { status: idempotencyKey ? 200 : 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
+    }
+    if (error && typeof error === "object" && "code" in error && error.code === "P2002" && parsedIdempotencyKey) {
+      const existing = await prisma.stockMovement.findMany({
+        where: { tenantId, idempotencyKey: { startsWith: `${parsedIdempotencyKey}:` } },
+      });
+      if (existing.length > 0) return NextResponse.json({ data: existing });
     }
     const msg = error instanceof Error ? error.message : "Internal server error";
     if (/Foreign key constraint|WarehouseStock_warehouseId|WarehouseStock_productId/i.test(msg)) {

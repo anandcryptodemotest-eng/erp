@@ -47,7 +47,7 @@ export default function PayrollPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-[var(--ink)]">Payroll</h1>
         <button onClick={() => { setShowForm(true); setMsg(""); }} className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700">+ Create Payroll</button>

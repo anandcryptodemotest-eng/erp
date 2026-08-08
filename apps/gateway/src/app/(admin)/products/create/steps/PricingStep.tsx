@@ -107,6 +107,32 @@ export function PricingStep() {
         )}
       </div>
 
+      <div className="rounded-lg border border-[var(--line)] bg-[var(--mist)]/40 p-4 space-y-3">
+        <div>
+          <div className="text-sm font-semibold text-[var(--ink)]">GST (optional)</div>
+          <p className="mt-0.5 text-xs text-[var(--ink-soft)]">
+            Leave blank for <span className="font-semibold">0% GST</span>. Set only when this product
+            should charge tax at order time.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <FormField label="GST %">
+            <input
+              className={fieldClass}
+              placeholder="e.g. 18"
+              inputMode="decimal"
+              {...register("taxRatePercent")}
+            />
+          </FormField>
+          <FormField label="Tax code">
+            <input className={fieldClass} placeholder="e.g. GST_18" {...register("taxCode")} />
+          </FormField>
+          <FormField label="HSN (optional)">
+            <input className={fieldClass} placeholder="HSN" {...register("hsnCode")} />
+          </FormField>
+        </div>
+      </div>
+
       {pricingBasis === "PER_EACH" && (
         <div className="space-y-3">
           <div className="text-sm font-medium text-[var(--ink)]">Price Variation</div>

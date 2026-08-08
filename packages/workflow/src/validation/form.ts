@@ -74,7 +74,11 @@ export function validateLayout(def: FormDefinition): {
     );
   } else {
     const ids = layout.map((w) => w.widget);
-    if (!ids.includes("FormFields") && (def.fields?.length ?? 0) > 0) {
+    if (
+      !ids.includes("FormFields") &&
+      !ids.includes("DispatchFulfillment") &&
+      (def.fields?.length ?? 0) > 0
+    ) {
       warnings.push(
         issue(
           "LAYOUT_MISSING_FORM_FIELDS",

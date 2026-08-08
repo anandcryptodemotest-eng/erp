@@ -1,0 +1,266 @@
+import type { DocumentDefinition, PlacedItem } from "./types";
+
+function field(
+  id: string,
+  path: string,
+  x: number,
+  y: number,
+  width: number,
+  opts?: Partial<PlacedItem>
+): PlacedItem {
+  const placement = {
+    x,
+    y,
+    width,
+    height: 14,
+    ...(opts?.placement?.area != null ? { area: opts.placement.area } : {}),
+    ...(opts?.placement?.align != null ? { align: opts.placement.align } : {}),
+  };
+  const binding = {
+    path: opts?.binding?.path ?? path,
+    ...(opts?.binding?.formatter != null ? { formatter: opts.binding.formatter } : {}),
+    fallback: opts?.binding?.fallback ?? "",
+  };
+  return {
+    ...opts,
+    id,
+    name: opts?.name ?? id,
+    type: "Field",
+    placement,
+    binding,
+    rotation: opts?.rotation ?? 0,
+    locked: opts?.locked ?? false,
+    visible: opts?.visible ?? true,
+    zIndex: opts?.zIndex ?? 0,
+    opacity: opts?.opacity ?? 1,
+    ...(opts?.style != null ? { style: opts.style } : {}),
+  };
+}
+
+function text(
+  id: string,
+  label: string,
+  x: number,
+  y: number,
+  width: number,
+  content: string,
+  style?: PlacedItem["style"]
+): PlacedItem {
+  return {
+    id,
+    name: label,
+    type: "Text",
+    placement: { x, y, width, height: 14 },
+    properties: { text: content },
+    style,
+    rotation: 0,
+    locked: false,
+    visible: true,
+    zIndex: 0,
+    opacity: 1,
+  };
+}
+
+/** Seeded Tax Invoice layout — Container groups + Field/Table (no PartyBlock/TotalsBlock). */
+export const TAX_INVOICE_SEED: DocumentDefinition = {
+  id: "tax-invoice",
+  key: "tax-invoice",
+  name: "Tax Invoice",
+  documentType: "INVOICE",
+  page: {
+    size: "A4",
+    orientation: "portrait",
+    margin: { top: 40, right: 40, bottom: 40, left: 40 },
+  },
+  items: [
+    {
+      id: "header",
+      name: "Header",
+      type: "Container",
+      placement: { area: "header", x: 0, y: 0, width: 515, height: 72 },
+      rotation: 0,
+      locked: false,
+      visible: true,
+      zIndex: 0,
+      opacity: 1,
+      children: [
+        {
+          id: "logo",
+          name: "Logo",
+          type: "Logo",
+          placement: { x: 0, y: 0, width: 120, height: 48 },
+          binding: { path: "seller.logoUrl", fallback: "" },
+          rotation: 0,
+          locked: false,
+          visible: true,
+          zIndex: 0,
+          opacity: 1,
+        },
+        {
+          id: "title",
+          name: "Title",
+          type: "Text",
+          placement: { x: 280, y: 8, width: 230, height: 24, align: "right" },
+          properties: { text: "TAX INVOICE" },
+          style: { fontSize: 18, fontWeight: 700, textAlign: "right" },
+          rotation: 0,
+          locked: false,
+          visible: true,
+          zIndex: 0,
+          opacity: 1,
+        },
+        field("invoiceNumber", "invoice.number", 280, 36, 230, {
+          name: "Invoice Number",
+          placement: { area: "header", x: 280, y: 36, width: 230, align: "right" },
+          style: { textAlign: "right", fontSize: 11 },
+        }),
+        field("invoiceDate", "invoice.date", 280, 52, 230, {
+          name: "Invoice Date",
+          placement: { area: "header", x: 280, y: 52, width: 230, align: "right" },
+          binding: { path: "invoice.date", formatter: "date", fallback: "" },
+          style: { textAlign: "right", fontSize: 10 },
+        }),
+      ],
+    },
+    {
+      id: "seller",
+      name: "Seller",
+      type: "Container",
+      placement: { area: "body", x: 0, y: 88, width: 250, height: 90 },
+      rotation: 0,
+      locked: false,
+      visible: true,
+      zIndex: 0,
+      opacity: 1,
+      children: [
+        text("sellerLabel", "Seller label", 0, 0, 250, "Seller", {
+          fontWeight: 700,
+          fontSize: 10,
+        }),
+        field("sellerName", "seller.name", 0, 18, 250, { name: "Seller Name" }),
+        field("sellerAddress", "seller.address", 0, 34, 250, { name: "Seller Address" }),
+        field("sellerGstin", "seller.gstin", 0, 50, 250, {
+          name: "Seller GSTIN",
+          binding: { path: "seller.gstin", fallback: "" },
+        }),
+      ],
+    },
+    {
+      id: "buyer",
+      name: "Buyer",
+      type: "Container",
+      placement: { area: "body", x: 265, y: 88, width: 250, height: 90 },
+      rotation: 0,
+      locked: false,
+      visible: true,
+      zIndex: 0,
+      opacity: 1,
+      children: [
+        text("buyerLabel", "Buyer label", 0, 0, 250, "Bill to", {
+          fontWeight: 700,
+          fontSize: 10,
+        }),
+        field("buyerName", "buyer.name", 0, 18, 250, { name: "Buyer Name" }),
+        field("buyerAddress", "buyer.address", 0, 34, 250, { name: "Buyer Address" }),
+        field("buyerGstin", "buyer.gstin", 0, 50, 250, { name: "Buyer GSTIN" }),
+      ],
+    },
+    {
+      id: "lines",
+      name: "Line items",
+      type: "Table",
+      placement: { area: "body", x: 0, y: 200, width: 515, height: 280 },
+      binding: { path: "lines" },
+      rotation: 0,
+      locked: false,
+      visible: true,
+      zIndex: 0,
+      opacity: 1,
+      properties: {
+        columns: [
+          { key: "sku", label: "SKU", width: 70 },
+          { key: "description", label: "Description", width: 180 },
+          { key: "qty", label: "Qty", width: 40 },
+          { key: "rate", label: "Rate", width: 70, formatter: "currency" },
+          { key: "tax", label: "Tax", width: 55, formatter: "currency" },
+          { key: "amount", label: "Amount", width: 80, formatter: "currency" },
+        ],
+      },
+    },
+    {
+      id: "totals",
+      name: "Totals",
+      type: "Container",
+      placement: { area: "body", x: 300, y: 500, width: 215, height: 80 },
+      rotation: 0,
+      locked: false,
+      visible: true,
+      zIndex: 0,
+      opacity: 1,
+      children: [
+        field("subtotal", "totals.subtotal", 0, 0, 215, {
+          name: "Subtotal",
+          binding: { path: "totals.subtotal", formatter: "currency", fallback: "0" },
+          style: { textAlign: "right" },
+        }),
+        field("taxTotal", "totals.tax", 0, 18, 215, {
+          name: "Tax",
+          binding: { path: "totals.tax", formatter: "currency", fallback: "0" },
+          style: { textAlign: "right" },
+        }),
+        field("grandTotal", "totals.total", 0, 40, 215, {
+          name: "Grand Total",
+          binding: { path: "totals.total", formatter: "currency", fallback: "0" },
+          style: { textAlign: "right", fontWeight: 700, fontSize: 12 },
+        }),
+      ],
+    },
+    {
+      id: "amountInWordsLabel",
+      name: "Amount in words label",
+      type: "Text",
+      placement: { area: "body", x: 0, y: 590, width: 120, height: 16 },
+      properties: { text: "Amount in words:" },
+      style: { fontSize: 9, fontWeight: 600 },
+      rotation: 0,
+      locked: false,
+      visible: true,
+      zIndex: 0,
+      opacity: 1,
+    },
+    field("amountInWords", "totals.total", 120, 590, 395, {
+      name: "Amount in words",
+      placement: { area: "body", x: 120, y: 590, width: 395, height: 16 },
+      binding: { path: "totals.total", formatter: "words", fallback: "" },
+      style: { fontSize: 9 },
+    }),
+    {
+      id: "footer",
+      name: "Footer",
+      type: "Container",
+      placement: { area: "footer", x: 0, y: 720, width: 515, height: 60 },
+      rotation: 0,
+      locked: false,
+      visible: true,
+      zIndex: 0,
+      opacity: 1,
+      children: [
+        {
+          id: "declaration",
+          name: "Declaration",
+          type: "Text",
+          placement: { x: 0, y: 0, width: 515, height: 40 },
+          properties: {
+            text: "Declaration: We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.",
+          },
+          style: { fontSize: 8 },
+          rotation: 0,
+          locked: false,
+          visible: true,
+          zIndex: 0,
+          opacity: 1,
+        },
+      ],
+    },
+  ],
+};

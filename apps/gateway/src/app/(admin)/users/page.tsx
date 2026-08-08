@@ -136,7 +136,7 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="max-w-5xl space-y-6 p-4 md:p-8">
       <div>
         <PageHeader title="Users & roles" />
         <p className="-mt-4 mb-2 text-sm text-[var(--ink-soft)]">

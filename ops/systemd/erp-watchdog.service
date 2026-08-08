@@ -1,0 +1,15 @@
+[Unit]
+Description=ERP stack self-heal
+Documentation=file:///home/erp/ops/ERP-CLI.md
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/erp
+Environment=ERP_ROOT=/home/erp
+ExecStart=/usr/local/bin/erp heal
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

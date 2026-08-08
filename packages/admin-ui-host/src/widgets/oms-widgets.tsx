@@ -490,6 +490,7 @@ const ActionButtonsWidget: Widget = {
   collectPayload: () => ({}),
 };
 
+import { DispatchFulfillmentWidget } from "./dispatch-fulfillment";
 import { ensurePhase2WidgetsRegistered } from "./phase2-widgets";
 
 let registered = false;
@@ -541,6 +542,17 @@ export function ensureOmsWidgetsRegistered(): void {
       supportsPayload: false,
     },
     factory: () => ActionButtonsWidget,
+  });
+  registerWidget({
+    manifest: {
+      id: "DispatchFulfillment",
+      category: "Business",
+      displayName: "Dispatch Fulfillment",
+      icon: "truck",
+      supportsValidation: true,
+      supportsPayload: true,
+    },
+    factory: () => DispatchFulfillmentWidget,
   });
   ensurePhase2WidgetsRegistered();
 }

@@ -12,6 +12,22 @@ const monorepoRoot = path.join(__dirname, "../..");
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  outputFileTracingRoot: monorepoRoot,
+  serverExternalPackages: [
+    "@erp/telemetry",
+    "@opentelemetry/auto-instrumentations-node",
+    "@opentelemetry/api",
+    "@opentelemetry/exporter-metrics-otlp-http",
+    "@opentelemetry/exporter-trace-otlp-http",
+    "@opentelemetry/resources",
+    "@opentelemetry/sdk-node",
+    "@opentelemetry/sdk-metrics",
+    "@opentelemetry/semantic-conventions",
+    "google-auth-library",
+    "gaxios",
+    "https-proxy-agent",
+    "@node-rs/argon2",
+  ],
   // Served publicly only via nginx at https://host/admin (apps bind to 127.0.0.1).
   basePath: "/admin",
   turbopack: {
@@ -24,10 +40,11 @@ const nextConfig: NextConfig = {
       "@erp/extensions": "./packages/extensions/src/index.ts",
       "@erp/process-forms": "./packages/process-forms/src/index.tsx",
       "@erp/process-designer": "./packages/process-designer/src/index.tsx",
+      "@erp/document-designer": "./packages/document-designer/src/index.tsx",
     },
   },
   allowedDevOrigins: ["150.242.201.102", "localhost", "127.0.0.1"],
-  transpilePackages: ["@erp/logger", "@erp/telemetry", "@erp/ui", "@erp/types", "@erp/auth", "@erp/config", "@erp/workflow", "@erp/ui-runtime", "@erp/extensions", "@erp/pricing", "@erp/process-designer", "@erp/process-forms", "@erp/admin-ui-host"],
+  transpilePackages: ["@erp/logger", "@erp/ui", "@erp/types", "@erp/auth", "@erp/config", "@erp/workflow", "@erp/ui-runtime", "@erp/extensions", "@erp/pricing", "@erp/process-designer", "@erp/process-forms", "@erp/document-designer", "@erp/documents", "@erp/admin-ui-host"],
   async rewrites() {
     return {
       // Local-dev parity for nginx's public `/api/*` → gateway `/admin/api/*` rewrite.
@@ -36,13 +53,32 @@ const nextConfig: NextConfig = {
       // no nginx in front of `next dev`, so re-map it here instead (harmless in prod —
       // nginx already strips this before the request reaches Next).
       beforeFiles: [
+        { source: "/api/reports/sales/:path*", destination: `${SALES_URL}/api/reports/sales/:path*`, basePath: false },
+        { source: "/api/reports/sales", destination: `${SALES_URL}/api/reports/sales`, basePath: false },
+        { source: "/api/reports/stock", destination: `${INVENTORY_URL}/api/reports/stock`, basePath: false },
+        { source: "/api/reports/reconciliation/:path*", destination: `${ACCOUNTING_URL}/api/reports/reconciliation/:path*`, basePath: false },
+        { source: "/api/reports/reconciliation", destination: `${ACCOUNTING_URL}/api/reports/reconciliation`, basePath: false },
+        { source: "/api/reports/delivery/:path*", destination: `${DELIVERY_URL}/api/reports/:path*`, basePath: false },
+        { source: "/api/reports/delivery", destination: `${DELIVERY_URL}/api/reports`, basePath: false },
         { source: "/api/:path*", destination: `${GATEWAY_URL}/admin/api/:path*`, basePath: false },
       ],
       afterFiles: [
+      // Reports must live here (basePath /admin) so nginx `/api/reports/*` →
+      // `/admin/api/reports/*` matches. beforeFiles above are basePath:false for next dev.
+      { source: "/api/reports/sales/:path*", destination: `${SALES_URL}/api/reports/sales/:path*` },
+      { source: "/api/reports/sales", destination: `${SALES_URL}/api/reports/sales` },
+      { source: "/api/reports/stock", destination: `${INVENTORY_URL}/api/reports/stock` },
+      { source: "/api/reports/reconciliation/:path*", destination: `${ACCOUNTING_URL}/api/reports/reconciliation/:path*` },
+      { source: "/api/reports/reconciliation", destination: `${ACCOUNTING_URL}/api/reports/reconciliation` },
+      { source: "/api/reports/delivery/:path*", destination: `${DELIVERY_URL}/api/reports/:path*` },
+      { source: "/api/reports/delivery", destination: `${DELIVERY_URL}/api/reports` },
+
       // ── Sales ──────────────────────────────────────────────────────────
       { source: "/api/customers/:path*",     destination: `${SALES_URL}/api/customers/:path*` },
       { source: "/api/orders/:path*",        destination: `${SALES_URL}/api/orders/:path*` },
       { source: "/api/orders",               destination: `${SALES_URL}/api/orders` },
+      { source: "/api/order-documents/:path*", destination: `${SALES_URL}/api/order-documents/:path*` },
+      { source: "/api/order-documents",        destination: `${SALES_URL}/api/order-documents` },
       { source: "/api/sales-requests/:path*", destination: `${SALES_URL}/api/sales-requests/:path*` },
       { source: "/api/sales-requests",        destination: `${SALES_URL}/api/sales-requests` },
       { source: "/api/order-workflows/:path*", destination: `${SALES_URL}/api/order-workflows/:path*` },
@@ -51,6 +87,8 @@ const nextConfig: NextConfig = {
       { source: "/api/workflow-templates",        destination: `${SALES_URL}/api/workflow-templates` },
       { source: "/api/workflow-forms/:path*", destination: `${SALES_URL}/api/workflow-forms/:path*` },
       { source: "/api/workflow-forms",        destination: `${SALES_URL}/api/workflow-forms` },
+      { source: "/api/workflow-documents/:path*", destination: `${SALES_URL}/api/workflow-documents/:path*` },
+      { source: "/api/workflow-documents",        destination: `${SALES_URL}/api/workflow-documents` },
       { source: "/api/workflow-tasks/:path*", destination: `${SALES_URL}/api/workflow-tasks/:path*` },
       { source: "/api/workflow-tasks",        destination: `${SALES_URL}/api/workflow-tasks` },
       { source: "/api/quotes/:path*",        destination: `${SALES_URL}/api/quotes/:path*` },
@@ -125,12 +163,10 @@ const nextConfig: NextConfig = {
       { source: "/api/purchase-returns",           destination: `${PROCUREMENT_URL}/api/returns` },
 
       // ── Delivery ──────────────────────────────────────────────────────
-      { source: "/api/delivery-zones/:path*",      destination: `${DELIVERY_URL}/api/delivery-zones/:path*` },
-      { source: "/api/delivery-zones",             destination: `${DELIVERY_URL}/api/delivery-zones` },
+      { source: "/api/delivery-zones/:path*",      destination: `${DELIVERY_URL}/api/zones/:path*` },
+      { source: "/api/delivery-zones",             destination: `${DELIVERY_URL}/api/zones` },
       { source: "/api/assignments/:path*",         destination: `${DELIVERY_URL}/api/assignments/:path*` },
       { source: "/api/assignments",                destination: `${DELIVERY_URL}/api/assignments` },
-      { source: "/api/delivery-executives/:path*", destination: `${DELIVERY_URL}/api/delivery-executives/:path*` },
-      { source: "/api/delivery-executives",        destination: `${DELIVERY_URL}/api/delivery-executives` },
       ],
     };
   },

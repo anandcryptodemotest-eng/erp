@@ -38,7 +38,7 @@ export type WidgetCatalogOption = {
     category: string;
     description?: string;
     defaultProps?: Record<string, unknown>;
-    editableProps?: { key: string; label: string; type: "boolean" | "string" }[];
+    editableProps?: { key: string; label: string; type: "boolean" | "string" | "documentRef" }[];
   };
 };
 
@@ -95,6 +95,83 @@ const DEFAULT_WIDGETS: WidgetCatalogOption[] = [
   { id: "InventoryView", label: "Inventory View (Business)", entry: { name: "Inventory View", category: "Business" } },
   { id: "PriceSummary", label: "Price Summary (Business)", entry: { name: "Price Summary", category: "Business" } },
 ];
+
+type PublishedDocOption = {
+  documentId: string;
+  version: number;
+  name?: string | null;
+  documentType?: string | null;
+  lifecycle?: string;
+};
+
+function PublishedDocumentPicker({
+  api,
+  value,
+  onChange,
+}: {
+  api: FormDesignerApi;
+  value: { type?: string; id?: string; version?: number } | undefined;
+  onChange: (ref: { type: "DOCUMENT"; id: string; version: number }) => void;
+}) {
+  const [rows, setRows] = useState<PublishedDocOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setErr(null);
+      try {
+        const r = await api("/api/workflow-documents?lifecycle=PUBLISHED");
+        const data = (r.data ?? []) as PublishedDocOption[];
+        if (!cancelled) setRows(Array.isArray(data) ? data : []);
+      } catch (e) {
+        if (!cancelled) setErr(e instanceof Error ? e.message : "Failed to load documents");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [api]);
+
+  const selectedKey =
+    value?.id && value.version != null ? `${value.id}@${value.version}` : "";
+
+  return (
+    <label className="form-studio__field" style={{ display: "block", minWidth: "12rem" }}>
+      <span className="text-[11px] text-[var(--ink-soft)]">Published document</span>
+      {loading ? (
+        <p className="text-[11px] text-[var(--ink-soft)]">Loading…</p>
+      ) : err ? (
+        <p className="text-[11px] text-red-600">{err}</p>
+      ) : (
+        <select
+          className="form-studio__control form-studio__control--sm"
+          value={selectedKey}
+          onChange={(e) => {
+            const [id, ver] = e.target.value.split("@");
+            if (!id || !ver) return;
+            onChange({ type: "DOCUMENT", id, version: Number(ver) });
+          }}
+        >
+          <option value="">Select…</option>
+          {rows.map((row) => {
+            const key = `${row.documentId}@${row.version}`;
+            return (
+              <option key={key} value={key}>
+                {(row.name || row.documentId) + ` · v${row.version}`}
+                {row.documentType ? ` (${row.documentType})` : ""}
+              </option>
+            );
+          })}
+        </select>
+      )}
+    </label>
+  );
+}
 
 type SectionId = "properties" | "layout" | "fields";
 
@@ -537,7 +614,7 @@ export function FormDesigner({
                   )}
                 </div>
                 {!readOnly && meta?.entry?.editableProps?.length ? (
-                  <div className="form-studio__prop-row">
+                  <div className="form-studio__prop-row" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
                     {meta.entry.editableProps.map((p) =>
                       p.type === "boolean" ? (
                         <label key={p.key} className="form-studio__chip">
@@ -555,6 +632,40 @@ export function FormDesigner({
                           />
                           {p.label}
                         </label>
+                      ) : p.type === "string" ? (
+                        <label key={p.key} className="form-studio__field" style={{ display: "block" }}>
+                          <span className="text-[11px] text-[var(--ink-soft)]">{p.label}</span>
+                          <input
+                            className="form-studio__control form-studio__control--sm"
+                            value={String(w.props?.[p.key] ?? "")}
+                            onChange={(e) => {
+                              const layout = [...(def.layout ?? [])];
+                              layout[i] = {
+                                ...w,
+                                props: { ...(w.props ?? {}), [p.key]: e.target.value },
+                              };
+                              setDef({ ...def, layout });
+                            }}
+                          />
+                        </label>
+                      ) : p.type === "documentRef" ? (
+                        <PublishedDocumentPicker
+                          key={p.key}
+                          api={api}
+                          value={
+                            w.props?.[p.key] as
+                              | { type?: string; id?: string; version?: number }
+                              | undefined
+                          }
+                          onChange={(ref) => {
+                            const layout = [...(def.layout ?? [])];
+                            layout[i] = {
+                              ...w,
+                              props: { ...(w.props ?? {}), [p.key]: ref },
+                            };
+                            setDef({ ...def, layout });
+                          }}
+                        />
                       ) : null
                     )}
                   </div>

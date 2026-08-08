@@ -9,6 +9,7 @@ const receiveSchema = z.object({
     receivedQty: z.number().positive(), // Float for weight-based receiving (e.g. 25.5 kg)
   })).min(1),
   warehouseId: z.string(),
+  idempotencyKey: z.string().min(1).optional(),
   notes: z.string().optional(),
 });
 
@@ -74,7 +75,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
 
       const body = await request.json();
-      const { items: receiveItems, warehouseId, notes } = receiveSchema.parse(body);
+      const { items: receiveItems, warehouseId, idempotencyKey, notes } = receiveSchema.parse(body);
+      const requestIdempotencyKey =
+        idempotencyKey ?? request.headers.get("x-idempotency-key") ?? request.headers.get("x-request-id") ?? undefined;
 
       // Validate received quantities
       for (const ri of receiveItems) {
@@ -103,6 +106,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           };
         }),
         reference: order.id,
+        idempotencyKey: requestIdempotencyKey
+          ? `PO-RECEIVE-${order.id}-${requestIdempotencyKey}`
+          : undefined,
         notes,
       };
 
@@ -113,12 +119,39 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         userId,
       });
 
-      if (stockResult.status !== 201) {
+      if (stockResult.status < 200 || stockResult.status >= 300) {
         const errBody = stockResult.data as { error?: string } | undefined;
-        return NextResponse.json({ error: errBody?.error ?? "Stock receive failed" }, { status: 500 });
+        return NextResponse.json({ error: errBody?.error ?? "Stock receive failed" }, { status: 502 });
       }
 
-      // Update receivedQty on items and order status
+      // Post AP before committing local receipt state so a failed downstream call is retryable.
+      const today = new Date();
+      const due = new Date(today);
+      due.setDate(due.getDate() + 30);
+      const invoiceResult = await serviceClient.call("accounting", "/api/invoices", {
+        method: "POST",
+        body: {
+          type: "PAYABLE",
+          entityId: order.vendorId,
+          sourceRef: order.id,
+          date: today.toISOString().split("T")[0],
+          dueDate: due.toISOString().split("T")[0],
+          subtotal: order.subtotal,
+          tax: order.tax,
+          notes: `Auto-generated from PO ${order.orderNumber}`,
+        },
+        tenantId,
+        userId,
+      });
+      if (invoiceResult.status < 200 || invoiceResult.status >= 300) {
+        const errBody = invoiceResult.data as { error?: string } | undefined;
+        return NextResponse.json(
+          { error: errBody?.error ?? invoiceResult.error ?? "AP invoice creation failed" },
+          { status: 502 }
+        );
+      }
+
+      // Update received quantities and order status after downstream success.
       const updated = await prisma.$transaction(async (tx) => {
         for (const ri of receiveItems) {
           await tx.purchaseOrderItem.update({
@@ -136,27 +169,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           },
           include: { items: true, vendor: { select: { id: true, name: true } } },
         });
-      });
-
-      // Create AP invoice in accounting
-      const today = new Date();
-      const due = new Date(today);
-      due.setDate(due.getDate() + 30);
-      await serviceClient.call("accounting", "/api/invoices", {
-        method: "POST",
-        body: {
-          type: "PAYABLE",
-          entityId: order.vendorId,
-          entityName: (updated as { vendor?: { name?: string } }).vendor?.name,
-          sourceRef: order.id,
-          date: today.toISOString().split("T")[0],
-          dueDate: due.toISOString().split("T")[0],
-          subtotal: order.subtotal,
-          tax: order.tax,
-          notes: `Auto-generated from PO ${order.orderNumber}`,
-        },
-        tenantId,
-        userId,
       });
 
       return NextResponse.json({ data: updated });

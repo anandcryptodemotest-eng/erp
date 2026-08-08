@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@erp/extensions": "workspace:*",
+    "@erp/types": "workspace:*",
     "@erp/ui-runtime": "workspace:*",
     "@erp/workflow": "workspace:*"
   },

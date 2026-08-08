@@ -16,6 +16,7 @@ export async function GET(request: Request, { params }: Params) {
   if (!auth) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
 
   const { id } = await params;
+  if (auth.tenantId !== id) return NextResponse.json({ error: "Tenant access denied" }, { status: 403 });
 
   const member = await prisma.tenantUser.findUnique({
     where: { tenantId_userId: { tenantId: id, userId: auth.userId } },
@@ -42,6 +43,7 @@ export async function PUT(request: Request, { params }: Params) {
   if (!auth) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
 
   const { id } = await params;
+  if (auth.tenantId !== id) return NextResponse.json({ error: "Tenant access denied" }, { status: 403 });
 
   const caller = await prisma.tenantUser.findUnique({
     where: { tenantId_userId: { tenantId: id, userId: auth.userId } },

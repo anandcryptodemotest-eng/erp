@@ -1,7 +1,6 @@
 import type { CartItem } from "@erp/types";
+import { storage } from "@/lib/platform/storage";
 export type { CartItem } from "@erp/types";
-
-// Cart stored in localStorage — no server-side cart needed
 
 const KEY = "customer_cart";
 
@@ -13,17 +12,27 @@ function notifyCartChanged(): void {
   window.dispatchEvent(new Event(CART_CHANGED_EVENT));
 }
 
+export function lineAmount(item: CartItem): number {
+  if (typeof item.lineTotal === "number" && Number.isFinite(item.lineTotal)) {
+    return item.lineTotal;
+  }
+  return item.price * item.qty;
+}
+
+function withLineTotal(item: CartItem): CartItem {
+  return { ...item, lineTotal: item.price * item.qty };
+}
+
 export function getCart(): CartItem[] {
-  if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? "[]") as CartItem[];
+    return JSON.parse(storage.get(KEY) ?? "[]") as CartItem[];
   } catch {
     return [];
   }
 }
 
 export function saveCart(items: CartItem[]): void {
-  localStorage.setItem(KEY, JSON.stringify(items));
+  storage.set(KEY, JSON.stringify(items));
   notifyCartChanged();
 }
 
@@ -32,16 +41,28 @@ export function addToCart(item: CartItem): CartItem[] {
     throw new Error("Invalid cart item — missing name or price");
   }
   const cart = getCart();
+  const incoming = withLineTotal(item);
   const existing = cart.find(
     (c) => c.productId === item.productId && c.variantId === item.variantId
   );
   if (existing) {
     existing.qty += item.qty;
-    // Keep latest catalog price when re-adding
     existing.price = item.price;
     existing.name = item.name;
+    existing.pricingBasis = item.pricingBasis ?? existing.pricingBasis;
+    existing.rateAmount = item.rateAmount ?? existing.rateAmount;
+    existing.rateUom = item.rateUom ?? existing.rateUom;
+    existing.measureQuantity = item.measureQuantity ?? existing.measureQuantity;
+    existing.measureUom = item.measureUom ?? existing.measureUom;
+    existing.resolvedQuantity =
+      existing.measureQuantity != null
+        ? existing.measureQuantity * existing.qty
+        : item.resolvedQuantity;
+    existing.billLines = item.billLines ?? existing.billLines;
+    existing.selectedAttributes = item.selectedAttributes ?? existing.selectedAttributes;
+    existing.lineTotal = existing.price * existing.qty;
   } else {
-    cart.push({ ...item, variantId: item.variantId || undefined });
+    cart.push({ ...incoming, variantId: item.variantId || undefined });
   }
   saveCart(cart);
   return cart;
@@ -51,7 +72,17 @@ export function updateQty(productId: string, variantId: string | undefined, qty:
   const cart = getCart()
     .map((c) => {
       if (c.productId === productId && c.variantId === variantId) {
-        return { ...c, qty };
+        const next = { ...c, qty };
+        next.lineTotal = next.price * qty;
+        if (next.measureQuantity != null) {
+          next.resolvedQuantity = next.measureQuantity * qty;
+        }
+        if (next.billLines?.length) {
+          next.billLines = next.billLines.map((row) =>
+            row.label === "Quantity" ? { ...row, value: String(qty) } : row
+          );
+        }
+        return next;
       }
       return c;
     })
@@ -77,10 +108,9 @@ export function cartCount(): number {
 }
 
 export function cartTotal(): number {
-  return getCart().reduce((sum, c) => sum + c.price * c.qty, 0);
+  return getCart().reduce((sum, c) => sum + lineAmount(c), 0);
 }
 
-/** Subscribe to live cart updates (same tab + other tabs). Returns unsubscribe. */
 export function subscribeCart(onChange: () => void): () => void {
   if (typeof window === "undefined") return () => undefined;
   const onCustom = () => onChange();

@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+
+const reportQuerySchema = z.object({
+  from: z.string().datetime({ offset: true }).optional(),
+  to: z.string().datetime({ offset: true }).optional(),
+});
+
+const MAX_REPORT_WINDOW_MS = 366 * 24 * 60 * 60 * 1000;
+const MAX_ORDER_ROWS = 10_000;
 
 // GET /api/reports/sales
 // Query params: from, to (ISO dates), groupBy=day|week|month (default day)
@@ -8,10 +17,18 @@ export async function GET(request: NextRequest) {
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
 
   const url = new URL(request.url);
-  const fromParam = url.searchParams.get("from");
-  const toParam = url.searchParams.get("to");
-  const from = fromParam ? new Date(fromParam) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const to = toParam ? new Date(toParam) : new Date();
+  const query = reportQuerySchema.safeParse({
+    from: url.searchParams.get("from") ?? undefined,
+    to: url.searchParams.get("to") ?? undefined,
+  });
+  if (!query.success) return NextResponse.json({ error: query.error.errors[0].message }, { status: 400 });
+
+  const from = query.data.from ? new Date(query.data.from) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const to = query.data.to ? new Date(query.data.to) : new Date();
+  if (from > to) return NextResponse.json({ error: "from must be before to" }, { status: 400 });
+  if (to.getTime() - from.getTime() > MAX_REPORT_WINDOW_MS) {
+    return NextResponse.json({ error: "Report range cannot exceed 366 days" }, { status: 400 });
+  }
 
   // Totals summary
   const [summary, topCustomers, ordersByStatus] = await Promise.all([
@@ -52,7 +69,11 @@ export async function GET(request: NextRequest) {
     where: { tenantId, date: { gte: from, lte: to }, status: { notIn: ["CANCELLED"] } },
     select: { date: true, total: true },
     orderBy: { date: "asc" },
+    take: MAX_ORDER_ROWS + 1,
   });
+  if (dailyOrders.length > MAX_ORDER_ROWS) {
+    return NextResponse.json({ error: "Report contains too many orders; narrow the date range" }, { status: 400 });
+  }
 
   // Group by date string
   const dailyMap: Record<string, { date: string; orders: number; revenue: number }> = {};

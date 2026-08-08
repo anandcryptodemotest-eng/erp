@@ -121,7 +121,7 @@ export default function FormsCatalogPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 md:p-8">
       <div>
         <div className="mb-1 text-xs text-[var(--ink-soft)]">
           <Link href="/configuration" className="hover:underline">

@@ -1338,7 +1338,7 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="p-8 max-w-[1400px] mx-auto">
+    <div className="p-4 md:p-8 max-w-[1400px] mx-auto">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-[var(--ink)] tracking-tight">
@@ -1441,7 +1441,7 @@ export default function ProductsPage() {
           {loading ? (
             <p className="text-[var(--ink-soft)] text-sm">Loading…</p>
           ) : (
-            <div className="bg-[var(--surface-raised)] rounded-xl border border-[var(--line)] overflow-hidden shadow-sm">
+            <div className="overflow-x-auto rounded-xl border border-[var(--line)] bg-[var(--surface-raised)] shadow-sm">
               <table className="w-full text-sm">
                 <thead className="bg-[var(--mist)] border-b border-[var(--line)]">
                   <tr>
@@ -1606,7 +1606,7 @@ export default function ProductsPage() {
             <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--ink-soft)] mb-3">
               Fields for this tenant ({defs.length})
             </h2>
-            <div className="bg-[var(--surface-raised)] rounded-xl border border-[var(--line)] overflow-hidden shadow-sm">
+            <div className="overflow-x-auto rounded-xl border border-[var(--line)] bg-[var(--surface-raised)] shadow-sm">
               <table className="w-full text-sm">
                 <thead className="bg-[var(--mist)] border-b border-[var(--line)] text-left">
                   <tr>
@@ -1727,7 +1727,7 @@ export default function ProductsPage() {
                 + Add Category
               </button>
             </div>
-            <div className="bg-[var(--surface-raised)] rounded-xl border border-[var(--line)] overflow-hidden shadow-sm">
+            <div className="overflow-x-auto rounded-xl border border-[var(--line)] bg-[var(--surface-raised)] shadow-sm">
               <table className="w-full text-sm">
                 <thead className="bg-[var(--mist)] border-b border-[var(--line)] text-left">
                   <tr>
@@ -1801,7 +1801,7 @@ export default function ProductsPage() {
                 + Add Brand
               </button>
             </div>
-            <div className="bg-[var(--surface-raised)] rounded-xl border border-[var(--line)] overflow-hidden shadow-sm">
+            <div className="overflow-x-auto rounded-xl border border-[var(--line)] bg-[var(--surface-raised)] shadow-sm">
               <table className="w-full text-sm">
                 <thead className="bg-[var(--mist)] border-b border-[var(--line)] text-left">
                   <tr>
@@ -2101,7 +2101,7 @@ export default function ProductsPage() {
                         {key === "sku" && formMode === "edit" && (
                           <span className="ml-1.5 font-normal text-[var(--ink-soft)]">(cannot be changed)</span>
                         )}
-                        {key === "sku" && formMode === "new" && (
+                        {key === "sku" && formMode !== "edit" && (
                           <span className="ml-1.5 font-normal text-[var(--ink-soft)]">
                             {skuSuggesting
                               ? "(generating…)"
@@ -2111,7 +2111,7 @@ export default function ProductsPage() {
                           </span>
                         )}
                       </label>
-                      <div className={key === "sku" && formMode === "new" ? "flex gap-2" : undefined}>
+                      <div className={key === "sku" && formMode !== "edit" ? "flex gap-2" : undefined}>
                         <input
                           type={type}
                           required={label.includes("*")}
@@ -2122,13 +2122,13 @@ export default function ProductsPage() {
                             setProductForm((f) => ({ ...f, [key]: e.target.value }));
                           }}
                           placeholder={
-                            key === "sku" && formMode === "new"
+                            key === "sku" && formMode !== "edit"
                               ? "Select category/brand → e.g. PLY-CEN-0001"
                               : undefined
                           }
                           className="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)] disabled:bg-[var(--mist)] disabled:text-[var(--ink-soft)] font-mono"
                         />
-                        {key === "sku" && formMode === "new" && (
+                        {key === "sku" && formMode !== "edit" && (
                           <button
                             type="button"
                             disabled={skuSuggesting || (!productForm.categoryId && !productForm.brandId)}

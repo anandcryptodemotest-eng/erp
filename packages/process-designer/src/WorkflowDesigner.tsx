@@ -29,10 +29,14 @@ import {
   type AssetRef,
 } from "@erp/workflow";
 
-export type WorkflowDesignerApi = (
-  path: string,
-  options?: RequestInit
-) => Promise<{ data?: unknown; error?: string; [k: string]: unknown }>;
+export type WorkflowDesignerApiResponse = {
+  data?: unknown;
+  error?: string;
+  validation?: DefinitionValidationResult;
+  [k: string]: unknown;
+};
+
+export type WorkflowDesignerApi = (path: string, options?: RequestInit) => Promise<WorkflowDesignerApiResponse>;
 
 export type WorkflowDesignerProps = {
   templateId: string;
@@ -565,7 +569,7 @@ export function WorkflowDesigner({ templateId: id, api, tenantId: tenantIdProp, 
         method: "PATCH",
         body: JSON.stringify({ definition: toSave }),
       });
-      setValidation(r.validation);
+      setValidation(r.validation ?? null);
       setMessage("Draft saved");
       await load();
     } catch (e: unknown) {
@@ -593,7 +597,7 @@ export function WorkflowDesigner({ templateId: id, api, tenantId: tenantIdProp, 
         body: JSON.stringify({ definition: toSave }),
       });
       const r = await api(`/api/workflow-templates/${id}/publish`, { method: "POST", body: "{}" });
-      setValidation(r.validation);
+      setValidation(r.validation ?? null);
       setMessage("Published — this tenant’s new orders use this version; open orders keep their snapshot");
       await load();
     } catch (e: unknown) {
@@ -856,7 +860,6 @@ export function WorkflowDesigner({ templateId: id, api, tenantId: tenantIdProp, 
                 nodesConnectable={!readOnly}
                 elementsSelectable
                 selectionMode={SelectionMode.Partial}
-              selectionMode={SelectionMode.Partial}
               deleteKeyCode={null}
               defaultEdgeOptions={{
                 markerEnd: { type: MarkerType.ArrowClosed },

@@ -83,7 +83,7 @@ export function captureException(
   }
   if (contextFields) {
     for (const [k, v] of Object.entries(cleanAttrs(contextFields))) {
-      span?.setAttribute(k, v);
+      if (v !== undefined) span?.setAttribute(k, v);
     }
   }
   log.error(contextFields?.message || "exception", {
@@ -96,7 +96,7 @@ export function addSpanAttributes(attrs: SpanAttrs): void {
   const span = trace.getActiveSpan();
   if (!span) return;
   for (const [k, v] of Object.entries(cleanAttrs(attrs))) {
-    span.setAttribute(k, v);
+    if (v !== undefined) span.setAttribute(k, v);
   }
 }
 

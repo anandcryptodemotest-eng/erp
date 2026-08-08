@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { normalizeCustomerPhone } from "@/lib/customer-phone";
 import { z } from "zod";
 
 /**
@@ -66,6 +67,7 @@ export async function POST(request: Request) {
           name: data.name,
           email: data.email ?? existing.email,
           phone: data.phone ?? existing.phone,
+          phoneNormalized: data.phone !== undefined ? normalizeCustomerPhone(data.phone) : existing.phoneNormalized,
           city: data.city ?? existing.city,
           isActive: true,
         },
@@ -83,6 +85,7 @@ export async function POST(request: Request) {
         name: data.name,
         email: data.email,
         phone: data.phone,
+        phoneNormalized: normalizeCustomerPhone(data.phone),
         city: data.city,
       },
       include: {

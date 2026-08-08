@@ -39,7 +39,7 @@ export default function AssignmentDetailPage({ params }: { params: Promise<{ id:
 
   const load = useCallback(async () => {
     const res = await api<{ data: Assignment }>("delivery", `/api/assignments/${id}`);
-    if (!res.error) setAssignment(res.data.data);
+    if (!res.error && res.data) setAssignment(res.data.data);
     setLoading(false);
   }, [id]);
 

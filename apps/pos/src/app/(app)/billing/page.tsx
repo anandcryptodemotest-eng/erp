@@ -38,10 +38,10 @@ export default function BillingPage() {
 
       await Promise.allSettled([
         api<{ data: Shift[] }>("accounting", `/api/shifts?status=OPEN&cashierId=${userId}&limit=1`).then((r) => {
-          if (!r.error && r.data.data.length > 0) setShift(r.data.data[0]);
+          if (!r.error && r.data && r.data.data.length > 0) setShift(r.data.data[0]);
         }),
         api<{ data: Warehouse[] }>("inventory", "/api/warehouses?limit=50").then((r) => {
-          if (!r.error) {
+          if (!r.error && r.data) {
             setWarehouses(r.data.data);
             if (r.data.data.length > 0) setWarehouseId(r.data.data[0].id);
           }
@@ -58,12 +58,12 @@ export default function BillingPage() {
   const searchProducts = useCallback(async (q: string) => {
     if (!q.trim()) { setResults([]); return; }
     const barcodeRes = await api<{ data: Product[] }>("inventory", `/api/products?barcode=${encodeURIComponent(q)}&limit=1`);
-    if (!barcodeRes.error && barcodeRes.data.data.length > 0) {
+    if (!barcodeRes.error && barcodeRes.data && barcodeRes.data.data.length > 0) {
       setResults(barcodeRes.data.data);
       return;
     }
     const res = await api<{ data: Product[] }>("inventory", `/api/products?search=${encodeURIComponent(q)}&limit=8`);
-    if (!res.error) setResults(res.data.data);
+    if (!res.error && res.data) setResults(res.data.data);
   }, []);
 
   useEffect(() => {
@@ -151,7 +151,7 @@ export default function BillingPage() {
       body: JSON.stringify(body),
     });
     setPlacing(false);
-    if (res.error) { setError(res.error); return; }
+    if (res.error || !res.data) { setError(res.error ?? "Bill creation failed"); return; }
     setLastBill(res.data.data);
     setLines([]);
     setShowPayment(false);

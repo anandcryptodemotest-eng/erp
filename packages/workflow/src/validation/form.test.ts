@@ -54,3 +54,16 @@ describe("validatePublish", () => {
     assert.equal(r.canPublish, true);
   });
 });
+
+describe("validateForm DispatchFulfillment", () => {
+  it("does not warn when DispatchFulfillment covers fields", () => {
+    const r = validateForm({
+      ...base,
+      layout: [
+        { widget: "DispatchFulfillment", props: {} },
+        { widget: "ActionButtons", props: {} },
+      ],
+    });
+    assert.equal(r.warnings.some((w) => w.code === "LAYOUT_MISSING_FORM_FIELDS"), false);
+  });
+});

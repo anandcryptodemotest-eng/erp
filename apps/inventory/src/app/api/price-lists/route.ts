@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { requirePriceListRead, requirePriceListWrite } from "@erp/auth";
 
 const createPriceListSchema = z.object({
   name: z.string().min(1),
@@ -13,6 +14,8 @@ const createPriceListSchema = z.object({
 export async function GET(request: Request) {
   const tenantId = request.headers.get("x-tenant-id");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
+  const denied = requirePriceListRead(request);
+  if (denied) return denied;
 
   const url = new URL(request.url);
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1"));
@@ -31,11 +34,9 @@ export async function GET(request: Request) {
 // POST /api/price-lists
 export async function POST(request: Request) {
   const tenantId = request.headers.get("x-tenant-id");
-  const role = request.headers.get("x-user-role");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
-  if (role !== "ADMIN" && role !== "MANAGER") {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
-  }
+  const denied = requirePriceListWrite(request);
+  if (denied) return denied;
 
   try {
     const body = await request.json();

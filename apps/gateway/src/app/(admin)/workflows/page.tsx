@@ -73,7 +73,7 @@ export default function WorkflowTemplatesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 md:p-8">
       <div>
         <PageHeader title="Workflow templates" />
         <p className="-mt-4 mb-6 text-sm text-[var(--ink-soft)]">

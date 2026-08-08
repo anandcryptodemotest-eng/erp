@@ -147,6 +147,7 @@ export function ProcessStudioHub(props: {
   const cards = [
     { href: workflowsHref, title: "Workflows", body: "Design and publish order workflows" },
     { href: formsHref, title: "Forms", body: "Task and capture forms used by workflows" },
+    { href: "/process/documents", title: "Documents", body: "Print templates — seed, browse, assign to tenants" },
   ];
   return (
     <div className="space-y-4">

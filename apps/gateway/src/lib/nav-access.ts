@@ -1,6 +1,13 @@
 /**
  * Admin sidebar access — configured by role (not scattered if-checks).
  *
+ * Navigation ≠ security. These keys only control sidebar visibility and
+ * client route gating. JWT / role / service authorization remains independent.
+ *
+ * Nav keys (user navigation) ≠ tenant license modules (sales / inventory / accounting).
+ *
+ * Canonical workbench key: `order_desk`. `oms` is a legacy path/override alias only.
+ *
  * Trading journey (default): Customer mobile order → SE review → stock/procurement
  * → pricing → dispatch. CRM (Leads / Deals / Quotes / Sales Flow) is hidden until
  * re-enabled via role config or per-user `navModules`.
@@ -18,6 +25,7 @@
 
 export type NavModuleKey =
   | "dashboard"
+  | "analytics"
   | "customers"
   | "sales_flow"
   | "leads"
@@ -25,7 +33,11 @@ export type NavModuleKey =
   | "quotes"
   | "orders"
   | "products"
-  | "oms"
+  | "categories"
+  | "brands"
+  | "attributes"
+  | "price_lists"
+  | "order_desk"
   | "workflows"
   | "configuration"
   | "administration"
@@ -35,10 +47,12 @@ export type NavModuleKey =
   | "employees"
   | "payroll"
   | "invoices"
-  | "returns";
+  | "returns"
+  | "communication";
 
 export const ALL_NAV_MODULES: NavModuleKey[] = [
   "dashboard",
+  "analytics",
   "customers",
   "sales_flow",
   "leads",
@@ -46,7 +60,11 @@ export const ALL_NAV_MODULES: NavModuleKey[] = [
   "quotes",
   "orders",
   "products",
-  "oms",
+  "categories",
+  "brands",
+  "attributes",
+  "price_lists",
+  "order_desk",
   "workflows",
   "configuration",
   "administration",
@@ -57,7 +75,17 @@ export const ALL_NAV_MODULES: NavModuleKey[] = [
   "payroll",
   "invoices",
   "returns",
+  "communication",
 ];
+
+const NAV_KEY_SET = new Set<string>(ALL_NAV_MODULES);
+
+/** Map stored/legacy keys onto the canonical nav vocabulary. `oms` is never an independent permission. */
+export function normalizeNavKey(key: string): NavModuleKey | null {
+  if (key === "oms") return "order_desk";
+  if (NAV_KEY_SET.has(key)) return key as NavModuleKey;
+  return null;
+}
 
 /**
  * Default face for trading tenants — no CRM pipeline.
@@ -65,13 +93,19 @@ export const ALL_NAV_MODULES: NavModuleKey[] = [
  */
 export const TRADING_JOURNEY_NAV: NavModuleKey[] = [
   "dashboard",
+  "analytics",
   "customers",
   "products",
-  "oms",
+  "categories",
+  "brands",
+  "attributes",
+  "price_lists",
+  "order_desk",
   "orders",
   "vendors",
   "purchase_orders",
   "invoices",
+  "communication",
 ];
 
 /** CRM modules hidden in the trading journey (still routable if granted explicitly). */
@@ -85,17 +119,39 @@ export const CRM_NAV_MODULES: NavModuleKey[] = [
 /** Process Owner permission set — business configuration (workflows / forms). */
 export const PROCESS_OWNER_NAV: NavModuleKey[] = [
   "dashboard",
-  "oms",
+  "order_desk",
   "workflows",
   "configuration",
 ];
 
-/** Catalog Manager permission set — master data. */
+/** Catalog Manager — master data, no Order Desk. */
 export const CATALOG_MANAGER_NAV: NavModuleKey[] = [
   "dashboard",
   "products",
-  "oms",
+  "categories",
+  "brands",
+  "attributes",
+  "price_lists",
+  "communication",
 ];
+
+const SALES_NAV: NavModuleKey[] = [
+  "dashboard",
+  "products",
+  "customers",
+  "order_desk",
+  "communication",
+];
+
+const PRICING_NAV: NavModuleKey[] = [
+  "dashboard",
+  "products",
+  "price_lists",
+  "order_desk",
+  "communication",
+];
+
+const DESK_ONLY_NAV: NavModuleKey[] = ["dashboard", "order_desk", "communication"];
 
 /** Role → allowed module keys. */
 export const DEFAULT_ROLE_NAV: Record<string, NavModuleKey[] | "*"> = {
@@ -106,23 +162,35 @@ export const DEFAULT_ROLE_NAV: Record<string, NavModuleKey[] | "*"> = {
   MANAGER: TRADING_JOURNEY_NAV,
   BRANCH_ADMIN: TRADING_JOURNEY_NAV,
 
-  /** Named permission sets (Tenant Operating Model) */
   PROCESS_OWNER: PROCESS_OWNER_NAV,
   CATALOG_MANAGER: CATALOG_MANAGER_NAV,
 
-  SALES_EXECUTIVE: ["dashboard", "customers", "products", "oms"],
-  SALES_REP: ["dashboard", "customers", "products", "oms"],
+  SALES: SALES_NAV,
+  SALES_EXECUTIVE: SALES_NAV,
+  SALES_REP: SALES_NAV,
 
-  PRICING_EXECUTIVE: ["dashboard", "products", "oms"],
-  DISPATCH_EXECUTIVE: ["dashboard", "oms"],
-  DELIVERY_EXECUTIVE: ["dashboard", "oms"],
+  PRICING: PRICING_NAV,
+  PRICING_EXECUTIVE: PRICING_NAV,
 
-  PROCUREMENT_OFFICER: ["dashboard", "products", "vendors", "purchase_orders", "oms", "orders"],
+  DISPATCH: DESK_ONLY_NAV,
+  DISPATCH_EXECUTIVE: DESK_ONLY_NAV,
+  DELIVERY: DESK_ONLY_NAV,
+  DELIVERY_EXECUTIVE: DESK_ONLY_NAV,
 
-  ACCOUNTANT: ["dashboard", "customers", "invoices", "oms"],
-  HR_MANAGER: ["dashboard", "employees", "payroll"],
+  PROCUREMENT_OFFICER: [
+    "dashboard",
+    "products",
+    "vendors",
+    "purchase_orders",
+    "order_desk",
+    "orders",
+    "communication",
+  ],
 
-  VIEWER: ["dashboard", "customers", "products", "oms", "orders"],
+  ACCOUNTANT: ["dashboard", "customers", "invoices", "order_desk", "communication"],
+  HR_MANAGER: ["dashboard", "employees", "payroll", "communication"],
+
+  VIEWER: ["dashboard", "customers", "products", "order_desk", "orders", "communication"],
   USER: ["dashboard"],
 
   CUSTOMER: [],
@@ -130,14 +198,16 @@ export const DEFAULT_ROLE_NAV: Record<string, NavModuleKey[] | "*"> = {
 
 export function modulesForRole(role: string | null | undefined): Set<NavModuleKey> {
   if (!role) return new Set(["dashboard"]);
-  const cfg = DEFAULT_ROLE_NAV[role] ?? (["dashboard", "oms"] as NavModuleKey[]);
+  const cfg = DEFAULT_ROLE_NAV[role] ?? (["dashboard", "order_desk"] as NavModuleKey[]);
   if (cfg === "*") return new Set(ALL_NAV_MODULES);
-  return new Set(cfg);
+  const modules = new Set(cfg);
+  if (role !== "CUSTOMER") modules.add("communication");
+  return modules;
 }
 
 /**
  * Resolve effective modules: optional per-user override wins over role defaults.
- * Override is a list of module keys (or ["*"]).
+ * Override is a list of module keys (or ["*"]). Legacy `oms` is mapped to `order_desk`.
  */
 export function resolveNavModules(
   role: string | null | undefined,
@@ -149,10 +219,9 @@ export function resolveNavModules(
     allowed = new Set(ALL_NAV_MODULES);
   } else if (userOverride && userOverride.length > 0) {
     allowed = new Set<NavModuleKey>();
-    for (const key of userOverride) {
-      if ((ALL_NAV_MODULES as string[]).includes(key)) {
-        allowed.add(key as NavModuleKey);
-      }
+    for (const raw of userOverride) {
+      const key = normalizeNavKey(raw);
+      if (key) allowed.add(key);
     }
     if (allowed.size === 0) allowed = modulesForRole(role);
   } else {
@@ -189,71 +258,84 @@ export function applyProcessStudioCapability(
 
 export function canAccessModule(
   allowed: Set<NavModuleKey>,
-  moduleKey: NavModuleKey | undefined
+  moduleKey: string | undefined
 ): boolean {
   if (!moduleKey) return true;
+  const key = normalizeNavKey(moduleKey);
+  if (!key) return false;
   if (
-    (moduleKey === "leads" ||
-      moduleKey === "opportunities" ||
-      moduleKey === "quotes" ||
-      moduleKey === "orders") &&
+    (key === "leads" || key === "opportunities" || key === "quotes" || key === "orders") &&
     allowed.has("sales_flow")
   ) {
     return true;
   }
-  return allowed.has(moduleKey);
+  return allowed.has(key);
 }
 
-/** First landing path for a role after login — Sales Desk for trading journey. */
+const HREF_BY_KEY: Partial<Record<NavModuleKey, string>> = {
+  dashboard: "/dashboard",
+  analytics: "/analytics",
+  customers: "/customers",
+  sales_flow: "/leads",
+  leads: "/leads",
+  opportunities: "/opportunities",
+  quotes: "/quotes",
+  orders: "/orders",
+  products: "/products",
+  categories: "/categories",
+  brands: "/brands",
+  attributes: "/attributes",
+  price_lists: "/price-lists",
+  order_desk: "/sales-desk",
+  workflows: "/workflows",
+  configuration: "/configuration",
+  administration: "/administration",
+  users: "/users",
+  vendors: "/vendors",
+  purchase_orders: "/purchase-orders",
+  employees: "/employees",
+  payroll: "/payroll",
+  invoices: "/invoices",
+  returns: "/returns",
+  communication: "/messages",
+};
+
+/** First landing path after login — dashboard first, never Order Desk by default. */
 export function defaultHomePath(allowed: Set<NavModuleKey>): string {
-  if (allowed.has("oms") && !allowed.has("sales_flow")) {
-    return "/sales-desk";
-  }
   if (allowed.has("dashboard")) return "/dashboard";
-  if (allowed.has("oms")) return "/sales-desk";
   const first = ALL_NAV_MODULES.find((m) => allowed.has(m));
-  const hrefByKey: Partial<Record<NavModuleKey, string>> = {
-    dashboard: "/dashboard",
-    customers: "/customers",
-    sales_flow: "/leads",
-    leads: "/leads",
-    opportunities: "/opportunities",
-    quotes: "/quotes",
-    orders: "/orders",
-    products: "/products",
-    oms: "/sales-desk",
-    workflows: "/workflows",
-    configuration: "/configuration",
-    administration: "/administration",
-    users: "/users",
-    vendors: "/vendors",
-    purchase_orders: "/purchase-orders",
-    employees: "/employees",
-    payroll: "/payroll",
-    invoices: "/invoices",
-    returns: "/returns",
-  };
-  return (first && hrefByKey[first]) || "/dashboard";
+  return (first && HREF_BY_KEY[first]) || "/dashboard";
 }
 
+/**
+ * Path → nav module. `/sales-desk` and `/oms` both map to `order_desk`.
+ * Catalog screens are split; they are not one `products` bucket.
+ */
 export function pathToModuleKey(pathname: string): NavModuleKey | null {
-  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) return "dashboard";
-  if (pathname.startsWith("/customers")) return "customers";
-  if (pathname.startsWith("/leads")) return "leads";
-  if (pathname.startsWith("/opportunities")) return "opportunities";
-  if (pathname.startsWith("/quotes")) return "quotes";
-  if (pathname.startsWith("/orders")) return "orders";
-  if (pathname.startsWith("/products") || pathname.startsWith("/attributes") || pathname.startsWith("/categories") || pathname.startsWith("/brands") || pathname.startsWith("/price-lists")) return "products";
-  if (pathname.startsWith("/sales-desk") || pathname.startsWith("/oms")) return "oms";
-  if (pathname.startsWith("/workflows")) return "workflows";
-  if (pathname.startsWith("/configuration") || pathname.startsWith("/forms")) return "configuration";
-  if (pathname.startsWith("/administration")) return "administration";
-  if (pathname.startsWith("/users")) return "users";
-  if (pathname.startsWith("/vendors")) return "vendors";
-  if (pathname.startsWith("/purchase-orders")) return "purchase_orders";
-  if (pathname.startsWith("/employees")) return "employees";
-  if (pathname.startsWith("/payroll")) return "payroll";
-  if (pathname.startsWith("/invoices")) return "invoices";
-  if (pathname.startsWith("/returns")) return "returns";
+  const path = pathname.startsWith("/admin") ? pathname.slice("/admin".length) || "/" : pathname;
+  if (path === "/dashboard" || path.startsWith("/dashboard/")) return "dashboard";
+  if (path.startsWith("/analytics")) return "analytics";
+  if (path.startsWith("/customers")) return "customers";
+  if (path.startsWith("/leads")) return "leads";
+  if (path.startsWith("/opportunities")) return "opportunities";
+  if (path.startsWith("/quotes")) return "quotes";
+  if (path.startsWith("/orders")) return "orders";
+  if (path.startsWith("/categories")) return "categories";
+  if (path.startsWith("/brands")) return "brands";
+  if (path.startsWith("/attributes")) return "attributes";
+  if (path.startsWith("/price-lists")) return "price_lists";
+  if (path.startsWith("/products")) return "products";
+  if (path.startsWith("/sales-desk") || path.startsWith("/oms")) return "order_desk";
+  if (path.startsWith("/workflows")) return "workflows";
+  if (path.startsWith("/configuration") || path.startsWith("/forms")) return "configuration";
+  if (path.startsWith("/administration")) return "administration";
+  if (path.startsWith("/users")) return "users";
+  if (path.startsWith("/vendors")) return "vendors";
+  if (path.startsWith("/purchase-orders")) return "purchase_orders";
+  if (path.startsWith("/employees")) return "employees";
+  if (path.startsWith("/payroll")) return "payroll";
+  if (path.startsWith("/invoices")) return "invoices";
+  if (path.startsWith("/returns")) return "returns";
+  if (path.startsWith("/messages") || path.startsWith("/communication")) return "communication";
   return null;
 }

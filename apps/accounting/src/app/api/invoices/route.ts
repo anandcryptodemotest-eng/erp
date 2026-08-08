@@ -24,8 +24,14 @@ export async function GET(request: Request) {
   const skip = (page - 1) * limit;
   const type = url.searchParams.get("type") ?? undefined;
   const status = url.searchParams.get("status") ?? undefined;
+  const sourceRef = url.searchParams.get("sourceRef") ?? undefined;
 
-  const where = { tenantId, ...(type && { type }), ...(status && { status }) };
+  const where = {
+    tenantId,
+    ...(type && { type }),
+    ...(status && { status }),
+    ...(sourceRef && { sourceRef }),
+  };
   const [invoices, total] = await Promise.all([
     prisma.invoice.findMany({
       where,

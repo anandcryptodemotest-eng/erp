@@ -1,7 +1,6 @@
-// Service URL map — delivery-app calls gateway (auth) and delivery (assignments/earnings)
+// Browser requests stay same-origin; the app server rewrites them through Gateway.
 const SERVICE_URLS: Record<string, string> = {
-  gateway: process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:3010",
-  delivery: process.env.NEXT_PUBLIC_DELIVERY_URL ?? "http://localhost:3006",
+  delivery: "/api/delivery",
 };
 
 const TOKEN_KEY = "dex_token";        // delivery executive token

@@ -2,6 +2,7 @@
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "../utils";
+import "./chip.css";
 
 /** @maturity beta */
 export function Chip({
@@ -13,14 +14,7 @@ export function Chip({
   return (
     <button
       type="button"
-      className={cn(
-        "inline-flex min-h-[var(--touch-min)] items-center rounded-[var(--radius-full)] border px-4 text-sm font-semibold transition-[background,border-color,color] duration-[var(--motion-fast)]",
-        active
-          ? "border-[var(--ink)] bg-[var(--ink)] text-white"
-          : "border-[var(--line)] bg-white text-[var(--ink-soft)] hover:border-[var(--forest-mid)]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forest)] focus-visible:ring-offset-2",
-        className
-      )}
+      className={cn("erp-chip", active && "is-active", className)}
       aria-pressed={active}
       {...props}
     >
@@ -40,9 +34,9 @@ export function ChipGroup({
   children: ReactNode;
 }) {
   return (
-    <div className={cn("space-y-2", className)}>
-      {label ? <div className="text-sm font-semibold text-[var(--ink)]">{label}</div> : null}
-      <div className="flex flex-wrap gap-2" role="group" aria-label={label}>
+    <div className={cn("space-y-1.5", className)}>
+      {label ? <div className="erp-chip-group-label">{label}</div> : null}
+      <div className="erp-chip-group-options" role="group" aria-label={label}>
         {children}
       </div>
     </div>

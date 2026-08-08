@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { livePayload } from "@erp/telemetry";
+import { livePayload } from "@erp/telemetry/health";
 
 export const dynamic = "force-dynamic";
 

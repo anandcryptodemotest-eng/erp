@@ -103,7 +103,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         totalRefund: totalRefundWithTax,
         refundMethod: parsed.data.refundMethod,
         processedBy: userId,
-        items: { create: returnItems as unknown as Record<string, unknown>[] },
+        items: { create: returnItems },
       },
       include: { items: true },
     });

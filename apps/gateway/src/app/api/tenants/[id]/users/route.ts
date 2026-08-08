@@ -1,7 +1,7 @@
 import { createLogger } from "@erp/logger";
 import { NextResponse } from "next/server";
 import { randomBytes, createHash } from "crypto";
-import bcrypt from "bcryptjs";
+import { hashPassword } from "@/lib/identity/password";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, extractToken } from "@erp/auth";
 import { z } from "zod";
@@ -9,7 +9,7 @@ import { z } from "zod";
 const log = createLogger({ service: "gateway" });
 
 /** Tenant roles used by OMS / admin (stored as TenantUser.role string) */
-export const TENANT_ROLES = [
+const TENANT_ROLES = [
   "ADMIN",
   "MANAGER",
   "PROCESS_OWNER",
@@ -52,6 +52,9 @@ async function requireAdmin(request: Request, tenantId: string) {
   if (!token) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   const auth = await verifyToken(token);
   if (!auth) return { error: NextResponse.json({ error: "Invalid token" }, { status: 401 }) };
+  if (auth.tenantId !== tenantId) {
+    return { error: NextResponse.json({ error: "Tenant access denied" }, { status: 403 }) };
+  }
 
   const caller = await prisma.tenantUser.findUnique({
     where: { tenantId_userId: { tenantId, userId: auth.userId } },
@@ -131,7 +134,7 @@ export async function POST(request: Request, { params }: Params) {
     // Create user immediately with password (admin onboarding)
     if (body?.action === "create") {
       const { email, name, password, role } = createSchema.parse(body);
-      const hashed = await bcrypt.hash(password, 10);
+      const hashed = await hashPassword(password);
 
       let user = await prisma.user.findUnique({ where: { email } });
       if (!user) {
@@ -139,16 +142,28 @@ export async function POST(request: Request, { params }: Params) {
           data: {
             email,
             name: name ?? email.split("@")[0]!,
-            password: hashed,
-            role: "USER",
+            emailVerified: false,
           },
+        });
+        await prisma.authCredential.create({
+          data: { userId: user.id, type: "PASSWORD", passwordHash: hashed },
         });
       } else {
         // Reset password when admin re-provisions
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { password: hashed, ...(name ? { name } : {}) },
+        const existingCred = await prisma.authCredential.findFirst({
+          where: { userId: user.id, type: "PASSWORD" },
         });
+        if (existingCred) {
+          await prisma.authCredential.update({
+            where: { id: existingCred.id },
+            data: { passwordHash: hashed },
+          });
+        } else {
+          await prisma.authCredential.create({
+            data: { userId: user.id, type: "PASSWORD", passwordHash: hashed },
+          });
+        }
+        if (name) await prisma.user.update({ where: { id: user.id }, data: { name } });
       }
 
       const existing = await prisma.tenantUser.findUnique({

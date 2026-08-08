@@ -12,3 +12,4 @@ export {
   type WorkspaceFilterBarProps,
   type WorkspaceBottomBarProps,
 } from "./WorkspaceLayout";
+export { WorkspaceHero, type WorkspaceHeroProps } from "./WorkspaceHero";

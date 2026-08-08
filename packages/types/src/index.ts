@@ -90,7 +90,8 @@ export type ModuleId =
   | "accounting"
   | "hr"
   | "procurement"
-  | "delivery";
+  | "delivery"
+  | "communication";
 
 export interface ModuleInfo {
   id: ModuleId;
@@ -400,7 +401,17 @@ export type ServiceEvent =
   | { type: "PAYMENT_RECEIVED"; payload: { invoiceId: string; amount: number } }
   | { type: "PO_RECEIVED"; payload: { poId: string; items: { productId: string; qty: number }[] } }
   | { type: "EMPLOYEE_CREATED"; payload: { employeeId: string } }
-  | { type: "PAYROLL_PROCESSED"; payload: { period: string; totalAmount: number } };
+  | { type: "PAYROLL_PROCESSED"; payload: { period: string; totalAmount: number } }
+  // ── Communication platform events (namespaced) ──
+  | { type: "Communication.MessageCreated"; payload: { conversationId: string; messageId: string; senderId: string; senderType: string; recipientIds: string[]; contextModule: string; contextEntity: string; contextId: string | null; messageType: string; text: string | null; createdAt: string } }
+  | { type: "Communication.MessageUpdated"; payload: { conversationId: string; messageId: string; senderId: string } }
+  | { type: "Communication.MessageDeleted"; payload: { conversationId: string; messageId: string; deletedBy: string } }
+  | { type: "Communication.ReactionAdded"; payload: { messageId: string; userId: string; emoji: string } }
+  | { type: "Communication.ReactionRemoved"; payload: { messageId: string; userId: string; emoji: string } }
+  | { type: "Communication.PresenceChanged"; payload: { userId: string; status: "ONLINE" | "AWAY" | "OFFLINE"; lastSeenAt: string | null } }
+  | { type: "Communication.TypingStarted"; payload: { conversationId: string; userId: string } }
+  | { type: "Communication.TypingStopped"; payload: { conversationId: string; userId: string } }
+  | { type: "Communication.SearchIndexed"; payload: { messageId: string; conversationId: string; text: string; senderId: string; createdAt: string } };
 
 // ==================== GROCERY / DELIVERY ====================
 
@@ -429,11 +440,29 @@ export interface CartItem {
   variantId?: string;
   name: string;
   sku: string;
+  /** Commercial unit price (per piece/sheet/pack — not the measured rate). */
   price: number;
   qty: number;
   imageUrl?: string;
   /** Selected catalog attributes (size, thickness, etc.) for display / order notes */
   selectedAttributes?: Record<string, string | number | boolean>;
+  /** Pricing basis: PER_EACH | PER_AREA | PER_WEIGHT | PER_VOLUME | … */
+  pricingBasis?: string;
+  /** Measured rate amount (e.g. ₹50) when priced by measure */
+  rateAmount?: number;
+  /** Rate UOM (e.g. sq_ft, kg) */
+  rateUom?: string;
+  /** Measure per commercial unit (e.g. 18 sq_ft for a 6×3 sheet) */
+  measureQuantity?: number;
+  measureUom?: string;
+  /** Total measured qty across line (measure × qty) */
+  resolvedQuantity?: number;
+  /** Cached line total (price × qty); recomputed when qty changes if omitted */
+  lineTotal?: number;
+  /** Human-readable bill rows for this line */
+  billLines?: { label: string; value: string }[];
+  /** Product GST rate (fraction, e.g. 0.18). Omitted/null → 0% at estimate. */
+  taxRate?: number | null;
 }
 
 export interface CartSummary {
@@ -535,3 +564,20 @@ export interface Bill {
   billedBy: string;
   createdAt: string;
 }
+
+export {
+  FULFILLMENT_MODES,
+  PORTER_BOOKING_STATUSES,
+  DEFAULT_PORTER_BOOK_URL,
+  parseFulfillmentMode,
+  parsePorterBookingStatus,
+  applyPorterBookingEvent,
+  canCompleteDispatch,
+  normalizeDispatchPayload,
+  type FulfillmentMode,
+  type PorterBookingStatus,
+  type PorterBookingEvent,
+  type DispatchCompleteInput,
+  type DispatchCompleteResult,
+  type NormalizedDispatchPayload,
+} from "./fulfillment-dispatch";

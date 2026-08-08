@@ -58,6 +58,32 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (parsed.data.status === "DELIVERED") timestamps.deliveredAt = now;
   if (parsed.data.status === "FAILED") timestamps.failedAt = now;
 
+  // When delivered, notify sales service to advance the order status
+  if (parsed.data.status === "DELIVERED" && existing.orderId) {
+    const userId = request.headers.get("x-user-id") ?? "";
+    const omsDelivery = await serviceClient.call("sales", `/api/orders/${existing.orderId}?action=deliver-oms`, {
+      method: "PATCH",
+      body: {},
+      tenantId,
+      userId,
+    });
+    if (omsDelivery.status >= 400) {
+      const fallbackDelivery = await serviceClient.call("sales", `/api/orders/${existing.orderId}?action=delivered`, {
+        method: "PATCH",
+        body: {},
+        tenantId,
+        userId,
+      });
+      if (fallbackDelivery.status >= 400) {
+        const errBody = fallbackDelivery.data as { error?: string } | undefined;
+        return NextResponse.json(
+          { error: errBody?.error ?? fallbackDelivery.error ?? "Sales delivery update failed" },
+          { status: 502 }
+        );
+      }
+    }
+  }
+
   const assignment = await prisma.deliveryAssignment.update({
     where: { id },
     data: {
@@ -67,26 +93,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       ...timestamps,
     },
   });
-
-  // When delivered, notify sales service to advance the order status
-  if (parsed.data.status === "DELIVERED" && assignment.orderId) {
-    const tenantId = request.headers.get("x-tenant-id")!;
-    const userId = request.headers.get("x-user-id") ?? "";
-    const omsDelivery = await serviceClient.call("sales", `/api/orders/${assignment.orderId}?action=deliver-oms`, {
-      method: "PATCH",
-      body: {},
-      tenantId,
-      userId,
-    });
-    if (omsDelivery.status >= 400) {
-      await serviceClient.call("sales", `/api/orders/${assignment.orderId}?action=delivered`, {
-        method: "PATCH",
-        body: {},
-        tenantId,
-        userId,
-      });
-    }
-  }
 
   return NextResponse.json({ data: assignment });
 }

@@ -10,19 +10,73 @@ datasource db {
 
 // Gateway owns: Users, Tenants, Licenses, Sessions
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  password  String?
-  role      String   @default("USER")
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String?
+  emailVerified   Boolean   @default(false)
+  phoneNormalized String?   @unique
+  phoneVerifiedAt DateTime?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
+  credentials   AuthCredential[]
   tenants       TenantUser[]
   refreshTokens RefreshToken[]
   resetTokens   PasswordResetToken[]
   notifications Notification[]
+  dashboards    DashboardPreference[]
+}
+
+/**
+ * Per-user dashboard layout preference. Config is a JSON array of placed
+ * widgets ({ type, x, y, w, h, config? }). Storing a widget here NEVER grants
+ * access — the server-side resolver re-filters against the user's current
+ * modules + capabilities on every read.
+ */
+model DashboardPreference {
+  id        String   @id @default(cuid())
+  userId    String
+  portal    String   @default("ADMIN") // ADMIN | CUSTOMER
+  config    Json     // DashboardPlacement[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, portal])
+  @@index([userId])
+}
+
+enum CredentialType {
+  PASSWORD
+  GOOGLE
+  PASSKEY
+  PHONE
+}
+
+/**
+ * Extensible authentication credential. A user can hold at most one credential
+ * of a given type (one PASSWORD, one GOOGLE, one PASSKEY).
+ *
+ * providerId stores the provider subject (e.g. Google `sub`); future providers
+ * (Microsoft, Apple, SAML) plug in as new CredentialType values — no schema change.
+ */
+model AuthCredential {
+  id           String         @id @default(cuid())
+  userId       String
+  type         CredentialType
+  providerId   String? // Google `sub` / future MS or Apple subject
+  passwordHash String? // Argon2id (PASSWORD type only)
+  lastUsedAt   DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([type, providerId]) // one Google account per provider subject
+  @@unique([userId, type])     // one PASSWORD / one GOOGLE / one PASSKEY per user
+  @@index([userId])
 }
 
 model Tenant {
@@ -36,14 +90,19 @@ model Tenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users         TenantUser[]
-  domains       TenantDomain[]
-  licenses      ModuleLicense[]
-  settings      TenantSetting[]
-  capabilities  TenantCapability[]
-  invitations   Invitation[]
-  notifications Notification[]
-  branches      Branch[]
+  users                 TenantUser[]
+  domains               TenantDomain[]
+  licenses              ModuleLicense[]
+  settings              TenantSetting[]
+  capabilities          TenantCapability[]
+  invitations           Invitation[]
+  notifications         Notification[]
+  branches              Branch[]
+  auditEvents           AuditEvent[]
+  reconciliationRecords ReconciliationRecord[]
+  integrations          TenantIntegration[]
+  integrationSecrets    TenantIntegrationSecret[]
+  otpChallenges         OtpChallenge[]
 }
 
 model TenantDomain {
@@ -158,13 +217,73 @@ model TenantSetting {
   @@unique([tenantId, key])
 }
 
+/// Per-tenant external connector (non-secret config + status). Secrets live in TenantIntegrationSecret.
+model TenantIntegration {
+  id           String   @id @default(cuid())
+  tenantId     String
+  provider     String // FAST2SMS_WHATSAPP
+  status       String   @default("DISCONNECTED") // DISCONNECTED | CONNECTED | ERROR
+  config       Json? // wabaId, phoneNumberId, templates snapshot, …
+  lastError    String?
+  lastSyncedAt DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, provider])
+  @@index([tenantId])
+}
+
+/// Encrypted connector secrets (AES-256-GCM). Never expose ciphertext via APIs.
+model TenantIntegrationSecret {
+  id         String   @id @default(cuid())
+  tenantId   String
+  provider   String // FAST2SMS_WHATSAPP
+  keyName    String // api_key
+  ciphertext String
+  iv         String
+  authTag    String
+  lastFour   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, provider, keyName])
+  @@index([tenantId])
+}
+
+model OtpChallenge {
+  id                String    @id @default(cuid())
+  tenantId          String
+  phoneNormalized   String
+  codeHash          String
+  purpose           String // LOGIN | VERIFY_LINK | REGISTER_CUSTOMER
+  expiresAt         DateTime
+  attemptCount      Int       @default(0)
+  consumedAt        DateTime?
+  providerRequestId String?
+  createdAt         DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, phoneNormalized, createdAt])
+  @@index([tenantId, phoneNormalized, purpose])
+}
+
 model RefreshToken {
-  id        String   @id @default(cuid())
-  userId    String
-  tokenHash String   @unique
-  expiresAt DateTime
-  isRevoked Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  isRevoked  Boolean   @default(false)
+  revokedAt  DateTime?
+  lastUsedAt DateTime?
+  device     String?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -337,6 +456,51 @@ model PlatformAuditLog {
   @@index([createdAt])
   @@index([operatorId, createdAt])
   @@index([entityType, entityId])
+}
+
+model AuditEvent {
+  id            String   @id @default(cuid())
+  tenantId      String
+  actorId       String?
+  actorRole     String?
+  action        String
+  entityType    String
+  entityId      String?
+  metadata      Json?
+  requestId     String?
+  correlationId String?
+  ip            String?
+  userAgent     String?
+  createdAt     DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, entityType, entityId])
+  @@index([tenantId, action, createdAt])
+}
+
+model ReconciliationRecord {
+  id            String   @id @default(cuid())
+  tenantId      String
+  operation     String
+  targetService String
+  path          String
+  method        String   @default("POST")
+  payload       Json?
+  idempotencyKey String
+  status        String   @default("PENDING") // PENDING | FAILED | SUCCEEDED
+  attempts      Int      @default(0)
+  lastError     String?
+  nextRetryAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, status, nextRetryAt])
+  @@index([tenantId, createdAt])
 }
 
 // ── Platform: Asset Store (first-class capability, not owned by Communication) ──

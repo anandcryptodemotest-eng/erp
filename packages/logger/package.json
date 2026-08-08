@@ -2,12 +2,14 @@
   "name": "@erp/logger",
   "version": "1.0.0",
   "private": true,
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./ids": "./src/ids.ts"
+    ".": "./dist/index.js",
+    "./ids": "./dist/ids.js"
   },
+  "files": ["dist"],
   "scripts": {
     "build": "tsc",
     "test": "node --import tsx --test src/logger.test.ts"

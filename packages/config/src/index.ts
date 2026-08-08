@@ -70,6 +70,15 @@ export const services: Record<ModuleId, ModuleInfo> = {
     subdomain: "delivery",
     dependencies: ["core", "sales", "hr"],
   },
+  communication: {
+    id: "communication",
+    name: "Communication",
+    description: "Tenant messaging, conversations, presence, and notifications",
+    port: 3008,
+    healthEndpoint: "/health/live",
+    subdomain: "communication",
+    dependencies: ["core"],
+  },
 };
 
 /**

@@ -30,7 +30,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const userId = getUserId();
     if (userId) {
       api<{ data: Shift[] }>("accounting", `/api/shifts?status=OPEN&cashierId=${userId}&limit=1`).then((r) => {
-        if (!r.error && r.data.data.length > 0) setShift(r.data.data[0]);
+        if (!r.error && r.data && r.data.data.length > 0) setShift(r.data.data[0]);
       });
     }
   }, [router]);

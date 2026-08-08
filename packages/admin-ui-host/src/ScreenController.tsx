@@ -17,6 +17,7 @@ import type {
   CommentItem,
   AttachmentItem,
   HostApis,
+  TaskDocumentMeta,
 } from "@erp/ui-runtime";
 import { TaskScreenRuntime, normalizeScreenDefinition } from "./TaskScreenRuntime";
 
@@ -35,6 +36,16 @@ export function stepUiToScreen(
   act: { action: string; label: string },
   ui?: StepUiLike | null
 ): ScreenDefinition {
+  let layout = ui?.layout;
+  if (
+    act.action === "dispatch" &&
+    layout?.some((w) => w.widget === "FormFields") &&
+    !layout.some((w) => w.widget === "DispatchFulfillment")
+  ) {
+    layout = layout.map((w) =>
+      w.widget === "FormFields" ? { widget: "DispatchFulfillment", props: w.props ?? {} } : w
+    );
+  }
   return normalizeScreenDefinition({
     key: ui?.formId ?? act.action,
     id: ui?.formId,
@@ -44,7 +55,7 @@ export function stepUiToScreen(
     theme: ui?.theme,
     themeId: ui?.themeId,
     confirmLabel: ui?.confirmLabel,
-    layout: ui?.layout,
+    layout,
   });
 }
 
@@ -69,6 +80,9 @@ export function ScreenController(props: {
   comments?: CommentItem[];
   attachments?: AttachmentItem[];
   hostApis?: HostApis;
+  /** Domain documents linked to this task entity (invoice, etc.). */
+  documents?: Record<string, TaskDocumentMeta>;
+  variables?: Record<string, unknown>;
 }): ReactNode {
   if (!props.ui?.layout?.length) {
     return (
@@ -110,6 +124,8 @@ export function ScreenController(props: {
       comments={props.comments}
       attachments={props.attachments}
       hostApis={props.hostApis}
+      documents={props.documents}
+      variables={props.variables}
     />
   );
 }

@@ -1,0 +1,750 @@
+{
+  "version": 1,
+  "basePath": "/admin",
+  "generatedFrom": "apps/gateway/.next/routes-manifest.json",
+  "services": {
+    "gateway": "http://localhost:3010",
+    "sales": "http://localhost:3001",
+    "inventory": "http://localhost:3002",
+    "accounting": "http://localhost:3003",
+    "hr": "http://localhost:3004",
+    "procurement": "http://localhost:3005",
+    "delivery": "http://localhost:3006"
+  },
+  "summary": {
+    "total": 91,
+    "verified": 90,
+    "catchAll": 1,
+    "missing": 0
+  },
+  "routes": [
+    {
+      "phase": "beforeFiles",
+      "source": "/api/reports/sales/:path*",
+      "destination": "http://localhost:3001/api/reports/sales/:path*",
+      "service": "sales",
+      "targetPath": "/api/reports/sales",
+      "status": "verified"
+    },
+    {
+      "phase": "beforeFiles",
+      "source": "/api/reports/sales",
+      "destination": "http://localhost:3001/api/reports/sales",
+      "service": "sales",
+      "targetPath": "/api/reports/sales",
+      "status": "verified"
+    },
+    {
+      "phase": "beforeFiles",
+      "source": "/api/reports/stock",
+      "destination": "http://localhost:3002/api/reports/stock",
+      "service": "inventory",
+      "targetPath": "/api/reports/stock",
+      "status": "verified"
+    },
+    {
+      "phase": "beforeFiles",
+      "source": "/api/reports/reconciliation/:path*",
+      "destination": "http://localhost:3003/api/reports/reconciliation/:path*",
+      "service": "accounting",
+      "targetPath": "/api/reports/reconciliation",
+      "status": "verified"
+    },
+    {
+      "phase": "beforeFiles",
+      "source": "/api/reports/reconciliation",
+      "destination": "http://localhost:3003/api/reports/reconciliation",
+      "service": "accounting",
+      "targetPath": "/api/reports/reconciliation",
+      "status": "verified"
+    },
+    {
+      "phase": "beforeFiles",
+      "source": "/api/reports/delivery/:path*",
+      "destination": "http://localhost:3006/api/reports/:path*",
+      "service": "delivery",
+      "targetPath": "/api/reports",
+      "status": "verified"
+    },
+    {
+      "phase": "beforeFiles",
+      "source": "/api/reports/delivery",
+      "destination": "http://localhost:3006/api/reports",
+      "service": "delivery",
+      "targetPath": "/api/reports",
+      "status": "verified"
+    },
+    {
+      "phase": "beforeFiles",
+      "source": "/api/:path*",
+      "destination": "http://localhost:3010/admin/api/:path*",
+      "service": "gateway",
+      "targetPath": "/api",
+      "status": "catch-all"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/customers/:path*",
+      "destination": "http://localhost:3001/api/customers/:path*",
+      "service": "sales",
+      "targetPath": "/api/customers",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/orders/:path*",
+      "destination": "http://localhost:3001/api/orders/:path*",
+      "service": "sales",
+      "targetPath": "/api/orders",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/orders",
+      "destination": "http://localhost:3001/api/orders",
+      "service": "sales",
+      "targetPath": "/api/orders",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/order-documents/:path*",
+      "destination": "http://localhost:3001/api/order-documents/:path*",
+      "service": "sales",
+      "targetPath": "/api/order-documents",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/order-documents",
+      "destination": "http://localhost:3001/api/order-documents",
+      "service": "sales",
+      "targetPath": "/api/order-documents",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/sales-requests/:path*",
+      "destination": "http://localhost:3001/api/sales-requests/:path*",
+      "service": "sales",
+      "targetPath": "/api/sales-requests",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/sales-requests",
+      "destination": "http://localhost:3001/api/sales-requests",
+      "service": "sales",
+      "targetPath": "/api/sales-requests",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/order-workflows/:path*",
+      "destination": "http://localhost:3001/api/order-workflows/:path*",
+      "service": "sales",
+      "targetPath": "/api/order-workflows",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/order-workflows",
+      "destination": "http://localhost:3001/api/order-workflows",
+      "service": "sales",
+      "targetPath": "/api/order-workflows",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/workflow-templates/:path*",
+      "destination": "http://localhost:3001/api/workflow-templates/:path*",
+      "service": "sales",
+      "targetPath": "/api/workflow-templates",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/workflow-templates",
+      "destination": "http://localhost:3001/api/workflow-templates",
+      "service": "sales",
+      "targetPath": "/api/workflow-templates",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/workflow-forms/:path*",
+      "destination": "http://localhost:3001/api/workflow-forms/:path*",
+      "service": "sales",
+      "targetPath": "/api/workflow-forms",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/workflow-forms",
+      "destination": "http://localhost:3001/api/workflow-forms",
+      "service": "sales",
+      "targetPath": "/api/workflow-forms",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/workflow-documents/:path*",
+      "destination": "http://localhost:3001/api/workflow-documents/:path*",
+      "service": "sales",
+      "targetPath": "/api/workflow-documents",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/workflow-documents",
+      "destination": "http://localhost:3001/api/workflow-documents",
+      "service": "sales",
+      "targetPath": "/api/workflow-documents",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/workflow-tasks/:path*",
+      "destination": "http://localhost:3001/api/workflow-tasks/:path*",
+      "service": "sales",
+      "targetPath": "/api/workflow-tasks",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/workflow-tasks",
+      "destination": "http://localhost:3001/api/workflow-tasks",
+      "service": "sales",
+      "targetPath": "/api/workflow-tasks",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/quotes/:path*",
+      "destination": "http://localhost:3001/api/quotes/:path*",
+      "service": "sales",
+      "targetPath": "/api/quotes",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/quotes",
+      "destination": "http://localhost:3001/api/quotes",
+      "service": "sales",
+      "targetPath": "/api/quotes",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/leads/:path*",
+      "destination": "http://localhost:3001/api/leads/:path*",
+      "service": "sales",
+      "targetPath": "/api/leads",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/leads",
+      "destination": "http://localhost:3001/api/leads",
+      "service": "sales",
+      "targetPath": "/api/leads",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/opportunities/:path*",
+      "destination": "http://localhost:3001/api/opportunities/:path*",
+      "service": "sales",
+      "targetPath": "/api/opportunities",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/opportunities",
+      "destination": "http://localhost:3001/api/opportunities",
+      "service": "sales",
+      "targetPath": "/api/opportunities",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/returns/:path*",
+      "destination": "http://localhost:3001/api/returns/:path*",
+      "service": "sales",
+      "targetPath": "/api/returns",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/returns",
+      "destination": "http://localhost:3001/api/returns",
+      "service": "sales",
+      "targetPath": "/api/returns",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/bills/:path*",
+      "destination": "http://localhost:3003/api/bills/:path*",
+      "service": "accounting",
+      "targetPath": "/api/bills",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/bills",
+      "destination": "http://localhost:3003/api/bills",
+      "service": "accounting",
+      "targetPath": "/api/bills",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/shifts/:path*",
+      "destination": "http://localhost:3003/api/shifts/:path*",
+      "service": "accounting",
+      "targetPath": "/api/shifts",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/shifts",
+      "destination": "http://localhost:3003/api/shifts",
+      "service": "accounting",
+      "targetPath": "/api/shifts",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/products/:path*",
+      "destination": "http://localhost:3002/api/products/:path*",
+      "service": "inventory",
+      "targetPath": "/api/products",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/products",
+      "destination": "http://localhost:3002/api/products",
+      "service": "inventory",
+      "targetPath": "/api/products",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/categories/:path*",
+      "destination": "http://localhost:3002/api/products/categories/:path*",
+      "service": "inventory",
+      "targetPath": "/api/products/categories",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/categories",
+      "destination": "http://localhost:3002/api/products/categories",
+      "service": "inventory",
+      "targetPath": "/api/products/categories",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/warehouses/:path*",
+      "destination": "http://localhost:3002/api/warehouses/:path*",
+      "service": "inventory",
+      "targetPath": "/api/warehouses",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/warehouses",
+      "destination": "http://localhost:3002/api/warehouses",
+      "service": "inventory",
+      "targetPath": "/api/warehouses",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/stock/:path*",
+      "destination": "http://localhost:3002/api/stock/:path*",
+      "service": "inventory",
+      "targetPath": "/api/stock",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/stock",
+      "destination": "http://localhost:3002/api/stock",
+      "service": "inventory",
+      "targetPath": "/api/stock",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/price-lists/:path*",
+      "destination": "http://localhost:3002/api/price-lists/:path*",
+      "service": "inventory",
+      "targetPath": "/api/price-lists",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/price-lists",
+      "destination": "http://localhost:3002/api/price-lists",
+      "service": "inventory",
+      "targetPath": "/api/price-lists",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/pricing/:path*",
+      "destination": "http://localhost:3002/api/pricing/:path*",
+      "service": "inventory",
+      "targetPath": "/api/pricing",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/pricing",
+      "destination": "http://localhost:3002/api/pricing",
+      "service": "inventory",
+      "targetPath": "/api/pricing",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/brands/:path*",
+      "destination": "http://localhost:3002/api/brands/:path*",
+      "service": "inventory",
+      "targetPath": "/api/brands",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/brands",
+      "destination": "http://localhost:3002/api/brands",
+      "service": "inventory",
+      "targetPath": "/api/brands",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/attribute-definitions/:path*",
+      "destination": "http://localhost:3002/api/attribute-definitions/:path*",
+      "service": "inventory",
+      "targetPath": "/api/attribute-definitions",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/attribute-definitions",
+      "destination": "http://localhost:3002/api/attribute-definitions",
+      "service": "inventory",
+      "targetPath": "/api/attribute-definitions",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/attribute-templates/:path*",
+      "destination": "http://localhost:3002/api/attribute-templates/:path*",
+      "service": "inventory",
+      "targetPath": "/api/attribute-templates",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/attribute-templates",
+      "destination": "http://localhost:3002/api/attribute-templates",
+      "service": "inventory",
+      "targetPath": "/api/attribute-templates",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/catalog/:path*",
+      "destination": "http://localhost:3002/api/catalog/:path*",
+      "service": "inventory",
+      "targetPath": "/api/catalog",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/catalog",
+      "destination": "http://localhost:3002/api/catalog",
+      "service": "inventory",
+      "targetPath": "/api/catalog",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/accounts/:path*",
+      "destination": "http://localhost:3003/api/accounts/:path*",
+      "service": "accounting",
+      "targetPath": "/api/accounts",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/accounts",
+      "destination": "http://localhost:3003/api/accounts",
+      "service": "accounting",
+      "targetPath": "/api/accounts",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/journals/:path*",
+      "destination": "http://localhost:3003/api/journals/:path*",
+      "service": "accounting",
+      "targetPath": "/api/journals",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/journals",
+      "destination": "http://localhost:3003/api/journals",
+      "service": "accounting",
+      "targetPath": "/api/journals",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/invoices/:path*",
+      "destination": "http://localhost:3003/api/invoices/:path*",
+      "service": "accounting",
+      "targetPath": "/api/invoices",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/invoices",
+      "destination": "http://localhost:3003/api/invoices",
+      "service": "accounting",
+      "targetPath": "/api/invoices",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/credit-notes/:path*",
+      "destination": "http://localhost:3003/api/credit-notes/:path*",
+      "service": "accounting",
+      "targetPath": "/api/credit-notes",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/credit-notes",
+      "destination": "http://localhost:3003/api/credit-notes",
+      "service": "accounting",
+      "targetPath": "/api/credit-notes",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/debit-notes/:path*",
+      "destination": "http://localhost:3003/api/debit-notes/:path*",
+      "service": "accounting",
+      "targetPath": "/api/debit-notes",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/debit-notes",
+      "destination": "http://localhost:3003/api/debit-notes",
+      "service": "accounting",
+      "targetPath": "/api/debit-notes",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/tax-rates/:path*",
+      "destination": "http://localhost:3003/api/tax-rates/:path*",
+      "service": "accounting",
+      "targetPath": "/api/tax-rates",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/tax-rates",
+      "destination": "http://localhost:3003/api/tax-rates",
+      "service": "accounting",
+      "targetPath": "/api/tax-rates",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/employees/:path*",
+      "destination": "http://localhost:3004/api/employees/:path*",
+      "service": "hr",
+      "targetPath": "/api/employees",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/employees",
+      "destination": "http://localhost:3004/api/employees",
+      "service": "hr",
+      "targetPath": "/api/employees",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/payroll/:path*",
+      "destination": "http://localhost:3004/api/payroll/:path*",
+      "service": "hr",
+      "targetPath": "/api/payroll",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/payroll",
+      "destination": "http://localhost:3004/api/payroll",
+      "service": "hr",
+      "targetPath": "/api/payroll",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/leaves/:path*",
+      "destination": "http://localhost:3004/api/leave/:path*",
+      "service": "hr",
+      "targetPath": "/api/leave",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/leaves",
+      "destination": "http://localhost:3004/api/leave",
+      "service": "hr",
+      "targetPath": "/api/leave",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/tax-slabs/:path*",
+      "destination": "http://localhost:3004/api/tax-slabs/:path*",
+      "service": "hr",
+      "targetPath": "/api/tax-slabs",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/tax-slabs",
+      "destination": "http://localhost:3004/api/tax-slabs",
+      "service": "hr",
+      "targetPath": "/api/tax-slabs",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/vendors/:path*",
+      "destination": "http://localhost:3005/api/vendors/:path*",
+      "service": "procurement",
+      "targetPath": "/api/vendors",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/vendors",
+      "destination": "http://localhost:3005/api/vendors",
+      "service": "procurement",
+      "targetPath": "/api/vendors",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/product-vendors/:path*",
+      "destination": "http://localhost:3005/api/product-vendors/:path*",
+      "service": "procurement",
+      "targetPath": "/api/product-vendors",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/product-vendors",
+      "destination": "http://localhost:3005/api/product-vendors",
+      "service": "procurement",
+      "targetPath": "/api/product-vendors",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/vendor-requests/:path*",
+      "destination": "http://localhost:3005/api/vendor-requests/:path*",
+      "service": "procurement",
+      "targetPath": "/api/vendor-requests",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/vendor-requests",
+      "destination": "http://localhost:3005/api/vendor-requests",
+      "service": "procurement",
+      "targetPath": "/api/vendor-requests",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/purchase-orders/:path*",
+      "destination": "http://localhost:3005/api/purchase-orders/:path*",
+      "service": "procurement",
+      "targetPath": "/api/purchase-orders",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/purchase-orders",
+      "destination": "http://localhost:3005/api/purchase-orders",
+      "service": "procurement",
+      "targetPath": "/api/purchase-orders",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/purchase-returns/:path*",
+      "destination": "http://localhost:3005/api/returns/:path*",
+      "service": "procurement",
+      "targetPath": "/api/returns",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/purchase-returns",
+      "destination": "http://localhost:3005/api/returns",
+      "service": "procurement",
+      "targetPath": "/api/returns",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/delivery-zones/:path*",
+      "destination": "http://localhost:3006/api/zones/:path*",
+      "service": "delivery",
+      "targetPath": "/api/zones",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/delivery-zones",
+      "destination": "http://localhost:3006/api/zones",
+      "service": "delivery",
+      "targetPath": "/api/zones",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/assignments/:path*",
+      "destination": "http://localhost:3006/api/assignments/:path*",
+      "service": "delivery",
+      "targetPath": "/api/assignments",
+      "status": "verified"
+    },
+    {
+      "phase": "afterFiles",
+      "source": "/admin/api/assignments",
+      "destination": "http://localhost:3006/api/assignments",
+      "service": "delivery",
+      "targetPath": "/api/assignments",
+      "status": "verified"
+    }
+  ]
+}

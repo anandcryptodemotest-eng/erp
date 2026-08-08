@@ -80,6 +80,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           quantity: item.quantity,
         })),
         reference: `SR-${salesReturn.id}`,
+        idempotencyKey: `SALES-RETURN-${salesReturn.id}`,
         notes: `Sales return ${salesReturn.returnNumber} restocked`,
       };
 
@@ -90,7 +91,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         userId,
       });
 
-      if (receiveResult.status !== 201) {
+      if (receiveResult.status < 200 || receiveResult.status >= 300) {
         const errBody = receiveResult.data as { error?: string } | undefined;
         return NextResponse.json({ error: errBody?.error ?? "Stock restock failed" }, { status: 500 });
       }
@@ -103,7 +104,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           method: "POST",
           body: {
             entityId: salesReturn.customerId,
-            sourceRef: salesReturn.orderId,
+            sourceRef: salesReturn.id,
             date: today.toISOString().split("T")[0],
             amount: salesReturn.total,
             notes: `Auto-generated from sales return ${salesReturn.returnNumber}`,
@@ -113,9 +114,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         }
       );
 
-      const creditNoteId = cnRes.status === 201
-        ? (cnRes.data as { data: { id: string } }).data?.id
-        : undefined;
+      if (cnRes.status < 200 || cnRes.status >= 300) {
+        const errBody = cnRes.data as { error?: string } | undefined;
+        return NextResponse.json(
+          { error: errBody?.error ?? cnRes.error ?? "Credit note creation failed" },
+          { status: 502 }
+        );
+      }
+      const creditNoteId = (cnRes.data as { data?: { id?: string } }).data?.id;
+      if (!creditNoteId) {
+        return NextResponse.json({ error: "Credit note response was incomplete" }, { status: 502 });
+      }
 
       const updated = await prisma.salesReturn.update({
         where: { id },

@@ -51,11 +51,14 @@ export function normalizeLineItems(
   });
 }
 
+/**
+ * Apply product GST only when taxRate is explicitly set on the product.
+ * Unconfigured → 0% (do not invent rates from env / category suggestions).
+ */
 export async function applyInventoryTaxRates(
   items: Omit<ResolvedLine, "taxRate">[],
   opts: { tenantId: string; userId: string }
 ): Promise<ResolvedLine[]> {
-  const fallbackRate = parseFloat(process.env.TAX_RATE ?? "0");
   const out: ResolvedLine[] = [];
   for (const line of items) {
     const res = await serviceClient.call<{ data?: { taxRate?: number | null } }>(
@@ -66,7 +69,7 @@ export async function applyInventoryTaxRates(
     const rate = res.data?.data?.taxRate;
     out.push({
       ...line,
-      taxRate: typeof rate === "number" && Number.isFinite(rate) ? rate : fallbackRate,
+      taxRate: typeof rate === "number" && Number.isFinite(rate) && rate >= 0 ? rate : 0,
     });
   }
   return out;

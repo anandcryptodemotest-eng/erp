@@ -1,4 +1,5 @@
 import { createLogger } from "@erp/logger";
+import { getServiceSecret } from "@erp/auth";
 
 const log = createLogger({ service: "sales" });
 /** Best-effort in-app notification to the portal user linked on the customer. */
@@ -13,7 +14,7 @@ export async function notifyPortalCustomer(opts: {
   if (!opts.portalUserId) return;
   const gateway =
     process.env.GATEWAY_SERVICE_URL ?? process.env.CORE_SERVICE_URL ?? "http://localhost:3010";
-  const serviceSecret = process.env.SERVICE_SECRET || "dev-service-secret";
+  const serviceSecret = getServiceSecret();
   try {
     await fetch(`${gateway}/api/notifications/push`, {
       method: "POST",

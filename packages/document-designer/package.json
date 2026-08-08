@@ -1,0 +1,28 @@
+{
+  "name": "@erp/document-designer",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./src/index.tsx",
+  "types": "./src/index.tsx",
+  "exports": {
+    ".": "./src/index.tsx",
+    "./document-designer.css": "./src/document-designer.css"
+  },
+  "scripts": {
+    "lint": "tsc --noEmit",
+    "test": "tsx --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@erp/documents": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

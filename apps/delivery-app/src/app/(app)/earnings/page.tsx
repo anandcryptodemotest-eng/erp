@@ -29,7 +29,7 @@ export default function EarningsPage() {
       "delivery",
       `/api/earnings?executiveId=${userId}&period=${selectedPeriod}&limit=100`
     );
-    if (!res.error) setLogs(res.data.data);
+    if (!res.error && res.data) setLogs(res.data.data);
     setLoading(false);
   }, [selectedPeriod]);
 

@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "e2e:oms": "tsx e2e-oms-journey.ts",
-    "seed:demo": "tsx seed-client-demo.ts"
+    "e2e:portal": "tsx e2e-portal-oms.ts",
+    "e2e:greenfield": "tsx e2e-greenfield.ts",
+    "seed:demo": "tsx seed-client-demo.ts",
+    "clear:catalog": "tsx clear-demo-catalog.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

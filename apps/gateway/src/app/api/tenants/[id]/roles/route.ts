@@ -39,6 +39,9 @@ async function requireRolesReader(request: Request, tenantId: string) {
 
   const auth = await verifyToken(token);
   if (!auth) return { error: NextResponse.json({ error: "Invalid token" }, { status: 401 }) };
+  if (auth.tenantId !== tenantId) {
+    return { error: NextResponse.json({ error: "Tenant access denied" }, { status: 403 }) };
+  }
   const caller = await prisma.tenantUser.findUnique({
     where: { tenantId_userId: { tenantId, userId: auth.userId } },
   });
@@ -53,6 +56,9 @@ async function requireMember(request: Request, tenantId: string) {
   if (!token) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   const auth = await verifyToken(token);
   if (!auth) return { error: NextResponse.json({ error: "Invalid token" }, { status: 401 }) };
+  if (auth.tenantId !== tenantId) {
+    return { error: NextResponse.json({ error: "Tenant access denied" }, { status: 403 }) };
+  }
   const caller = await prisma.tenantUser.findUnique({
     where: { tenantId_userId: { tenantId, userId: auth.userId } },
   });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
-import { ChevronLeft, ChevronRight, LogOut, Menu } from "../icons";
+import { ChevronLeft, ChevronRight, LogOut, Menu, X } from "../icons";
 import { cn } from "../utils";
 
 export type AdminNavItem = {
@@ -76,6 +76,7 @@ function NavIcon({ icon, active }: { icon?: ReactNode; active: boolean }) {
 type SidebarBodyProps = {
   collapsed: boolean;
   onToggleCollapsed: () => void;
+  onClose?: () => void;
   brandEyebrow: string;
   brandTitle: string;
   brandContext?: string;
@@ -94,6 +95,7 @@ type SidebarBodyProps = {
 function SidebarBody({
   collapsed,
   onToggleCollapsed,
+  onClose,
   brandEyebrow,
   brandTitle,
   brandContext,
@@ -121,14 +123,25 @@ function SidebarBody({
             {brandContext ? <p className="admin-sidebar__context">{brandContext}</p> : null}
           </div>
         )}
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          className="admin-shell__collapse-btn"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </button>
+        {onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className="admin-shell__close-btn"
+            aria-label="Close menu"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            className="admin-shell__collapse-btn"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </button>
+        )}
       </div>
 
       {!collapsed && search ? (
@@ -253,6 +266,20 @@ export function AdminShell({
     setMobileOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [mobileOpen]);
+
   const activeTitle =
     headerTitle ??
     groups.flatMap((g) => g.items).find((item) => isActivePath(pathname, item.href))?.label ??
@@ -284,15 +311,18 @@ export function AdminShell({
         <SidebarBody {...sidebarProps} />
       </div>
 
-      <div className={cn("admin-shell__drawer", mobileOpen && "is-open")}>
+      <div
+        className={cn("admin-shell__drawer", mobileOpen && "is-open")}
+        aria-hidden={!mobileOpen}
+      >
         <button
           type="button"
           className="admin-shell__drawer-backdrop"
           onClick={() => setMobileOpen(false)}
-          aria-label="Close sidebar"
+          aria-label="Close menu"
         />
-        <div className="admin-shell__drawer-panel">
-          <SidebarBody {...sidebarProps} />
+        <div className="admin-shell__drawer-panel" role="dialog" aria-modal="true" aria-label="Navigation">
+          <SidebarBody {...sidebarProps} collapsed={false} onClose={() => setMobileOpen(false)} />
         </div>
       </div>
 
@@ -302,9 +332,10 @@ export function AdminShell({
             type="button"
             className="admin-shell__menu-btn"
             onClick={() => setMobileOpen(true)}
-            aria-label="Open sidebar"
+            aria-label="Open menu"
+            aria-expanded={mobileOpen}
           >
-            <Menu className="h-4 w-4" />
+            <Menu className="h-5 w-5" />
           </button>
           {headerLeft ?? <span className="admin-main__crumb">{brandTitle}</span>}
           <span className="admin-main__sep" aria-hidden>

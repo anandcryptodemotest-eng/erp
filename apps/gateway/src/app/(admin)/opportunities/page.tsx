@@ -95,7 +95,7 @@ export default function OpportunitiesPage() {
   }, {} as Record<OpportunityStage, number>);
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <LeadToCashGuide current="opportunities" />
       <LeadToCashUnderstanding current="opportunities" />
 

@@ -19,6 +19,7 @@ import {
   type CommentItem,
   type AttachmentItem,
   type HostApis,
+  type TaskDocumentMeta,
 } from "@erp/ui-runtime";
 import { bootstrapAdminRuntime } from "./bootstrap";
 
@@ -41,6 +42,8 @@ export function TaskScreenRuntime(props: {
   comments?: CommentItem[];
   attachments?: AttachmentItem[];
   hostApis?: HostApis;
+  documents?: Record<string, TaskDocumentMeta>;
+  variables?: Record<string, unknown>;
   /** When true, skip auto-bootstrap (caller already ran bootstrapAdminRuntime). */
   skipBootstrap?: boolean;
 }): ReactNode {
@@ -94,7 +97,7 @@ export function TaskScreenRuntime(props: {
       canComplete: props.canComplete && !props.busy,
       roles: [],
     },
-    variables: {},
+    variables: { ...(props.variables ?? {}) },
     fieldValues: props.fieldValues,
     setFieldValue: props.setFieldValue,
     screen,
@@ -106,6 +109,7 @@ export function TaskScreenRuntime(props: {
     timeline: props.timeline,
     comments: props.comments,
     attachments: props.attachments,
+    documents: props.documents,
     hostApis: props.hostApis,
   };
   context.variables.__requestComplete = () => requestComplete(context);

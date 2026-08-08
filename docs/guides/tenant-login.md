@@ -22,6 +22,34 @@ Returns `{ slug, displayName, active, branding: { logo, accent, theme } }` or **
 
 `POST /api/auth` with `{ action: "login", email, password, tenantSlug? }`
 
+WhatsApp OTP (Fast2SMS, per tenant):
+
+| Action | Body |
+|--------|------|
+| `POST /api/auth?action=otp-start` | `{ phone, tenantSlug, purpose: "LOGIN" \| "VERIFY_LINK", portal?: "CUSTOMER" \| "ADMIN" }` |
+| `POST /api/auth?action=otp-verify` | `{ phone, code, tenantSlug, portal, name? }` |
+| `POST /api/auth?action=otp-link` | Authenticated `{ phone, code }` |
+| `GET /api/auth/phone` | Authenticated verification status |
+
+Tenant must have Fast2SMS configured under Administration → Integrations. `tenantSlug` is **required** for OTP. Customer verify may create a portal user; staff verify requires an existing PHONE credential and non-CUSTOMER membership.
+
+OTP send order: WhatsApp AUTH Copy Code → Fast2SMS simple `message_id` → SMS `/dev/otp/send` (`smsOtpId`). Create Copy Code from Integrations ([Fast2SMS docs](https://docs.fast2sms.com/reference/createcopycodetemplate)) or the Fast2SMS panel, then sync.
+
+Admin Fast2SMS APIs (tenant admin JWT):
+
+| Method | Path |
+|--------|------|
+| `GET`/`PUT` | `/api/integrations/whatsapp` (status / API key) |
+| `POST` | `/api/integrations/whatsapp/sync` |
+| `PUT` | `/api/integrations/whatsapp/defaults` |
+| `POST` | `/api/integrations/whatsapp/templates` (`kind`: `copy_code` \| `text` \| `custom`) |
+| `POST` | `/api/integrations/whatsapp/test` (OTP) |
+| `POST` | `/api/integrations/whatsapp/send` (`otp` \| `simple` \| `session`) |
+| `GET` | `/api/integrations/whatsapp/reports?requestId=` |
+| `GET` | `/api/integrations/whatsapp/logs` |
+| `GET`/`PUT`/`DELETE` | `/api/integrations/whatsapp/webhooks` |
+| `GET` | `/api/integrations/whatsapp/dlt?type=sender\|template` |
+
 | URL / body tenant | Memberships | Result |
 |-------------------|-------------|--------|
 | Specified + member | — | **200** for that tenant |

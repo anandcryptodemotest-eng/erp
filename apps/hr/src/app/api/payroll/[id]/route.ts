@@ -42,7 +42,36 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "Only DRAFT payroll records can be processed" }, { status: 409 });
     }
 
-    // Create payslip and mark as PROCESSED in one transaction
+    // Post salary expense journal entry to accounting
+    const today = new Date().toISOString().split("T")[0];
+    const journalResult = await serviceClient.call("accounting", "/api/journals", {
+      method: "POST",
+      body: {
+        date: today,
+        reference: `PAYROLL-${record.id}`,
+        sourceRef: `PAYROLL-${record.id}`,
+        description: `Salary expense for ${record.period} — ${record.employeeId}`,
+        lines: [
+          { accountCode: "6000", description: "Salary Expense", debit: record.basicSalary + record.allowances, credit: 0 },
+          { accountCode: "2100", description: "Salary Payable", debit: 0, credit: record.netPay },
+          { accountCode: "2110", description: "Tax Deducted at Source", debit: 0, credit: record.tax },
+          ...(record.deductions > 0
+            ? [{ accountCode: "2120", description: "Other Deductions Payable", debit: 0, credit: record.deductions }]
+            : []),
+        ],
+      },
+      tenantId,
+      userId,
+    });
+    if (journalResult.status < 200 || journalResult.status >= 300 || journalResult.error) {
+      const body = journalResult.data as { error?: string } | undefined;
+      return NextResponse.json(
+        { error: body?.error ?? journalResult.error ?? "Accounting journal failed" },
+        { status: 502 }
+      );
+    }
+
+    // Accounting is idempotent by sourceRef, so a retry can safely finish this local transition.
     const updated = await prisma.$transaction(async (tx) => {
       await tx.payslip.create({
         data: {
@@ -63,27 +92,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       });
     });
 
-    // Post salary expense journal entry to accounting
-    const today = new Date().toISOString().split("T")[0];
-    await serviceClient.call("accounting", "/api/journals", {
-      method: "POST",
-      body: {
-        date: today,
-        reference: `PAYROLL-${record.id}`,
-        description: `Salary expense for ${record.period} — ${record.employeeId}`,
-        lines: [
-          { accountCode: "6000", description: "Salary Expense", debit: record.basicSalary + record.allowances, credit: 0 },
-          { accountCode: "2100", description: "Salary Payable", debit: 0, credit: record.netPay },
-          { accountCode: "2110", description: "Tax Deducted at Source", debit: 0, credit: record.tax },
-          ...(record.deductions > 0
-            ? [{ accountCode: "2120", description: "Other Deductions Payable", debit: 0, credit: record.deductions }]
-            : []),
-        ],
-      },
-      tenantId,
-      userId,
-    });
-
     return NextResponse.json({ data: updated });
   }
 
@@ -91,18 +99,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (record.status !== "PROCESSED") {
       return NextResponse.json({ error: "Only PROCESSED payroll records can be paid" }, { status: 409 });
     }
-    const updated = await prisma.payrollRecord.update({
-      where: { id },
-      data: { status: "PAID", paidAt: new Date() },
-    });
-
     // Post bank payment journal entry to accounting
     const payDate = new Date().toISOString().split("T")[0];
-    await serviceClient.call("accounting", "/api/journals", {
+    const journalResult = await serviceClient.call("accounting", "/api/journals", {
       method: "POST",
       body: {
         date: payDate,
         reference: `PAYROLL-PAY-${record.id}`,
+        sourceRef: `PAYROLL-PAY-${record.id}`,
         description: `Salary disbursement for ${record.period} — ${record.employeeId}`,
         lines: [
           { accountCode: "2100", description: "Salary Payable", debit: record.netPay, credit: 0 },
@@ -111,6 +115,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       },
       tenantId,
       userId,
+    });
+    if (journalResult.status < 200 || journalResult.status >= 300 || journalResult.error) {
+      const body = journalResult.data as { error?: string } | undefined;
+      return NextResponse.json(
+        { error: body?.error ?? journalResult.error ?? "Accounting journal failed" },
+        { status: 502 }
+      );
+    }
+
+    const updated = await prisma.payrollRecord.update({
+      where: { id },
+      data: { status: "PAID", paidAt: new Date() },
     });
 
     return NextResponse.json({ data: updated });

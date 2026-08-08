@@ -17,13 +17,17 @@ type PickerTenant = { slug: string; name: string; id: string };
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const urlTenant = (searchParams.get("tenant") ?? "").trim().toLowerCase();
+  const urlTenant = (searchParams.get("tenant") ?? searchParams.get("t") ?? "").trim().toLowerCase();
 
   const [form, setForm] = useState({
     email: "",
     password: "",
     tenantSlug: urlTenant,
+    phone: "",
+    otp: "",
   });
+  const [authMethod, setAuthMethod] = useState<"password" | "otp">("password");
+  const [otpSentTo, setOtpSentTo] = useState<string | null>(null);
   const [resolved, setResolved] = useState<PublicTenant | null>(null);
   const [orgError, setOrgError] = useState<string | null>(null);
   const [resolving, setResolving] = useState(false);
@@ -62,7 +66,22 @@ function LoginForm() {
   }, []);
 
   useEffect(() => {
-    if (urlTenant) void resolveSlug(urlTenant);
+    if (urlTenant) {
+      void resolveSlug(urlTenant);
+      return;
+    }
+    if (typeof window === "undefined") return;
+    const host = window.location.hostname;
+    // Shared IP is mapped to Trustwood; do not auto-bind admin login to it.
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return;
+    void fetch(
+      `/api/public/tenants/resolve?hostname=${encodeURIComponent(host)}&portalType=ADMIN`
+    )
+      .then(async (res) => (res.ok ? ((await res.json()) as { data?: { slug?: string } }) : null))
+      .then((json) => {
+        if (json?.data?.slug) void resolveSlug(json.data.slug);
+      })
+      .catch(() => undefined);
   }, [urlTenant, resolveSlug]);
 
   const displayName = resolved?.displayName ?? "ERP Admin";
@@ -70,7 +89,79 @@ function LoginForm() {
   const loginDisabled =
     loading || resolving || Boolean(orgError) || (fromUrl && !resolved);
 
+  async function applySession(json: {
+    data: {
+      accessToken: string;
+      tenant: { id: string };
+      user?: { id?: string; email?: string; name?: string | null; role?: string };
+      navModules?: string[];
+      capabilities?: string[];
+    };
+  }) {
+    const user = {
+      id: json.data.user?.id as string | undefined,
+      email: json.data.user?.email as string,
+      name: (json.data.user?.name as string | null) ?? null,
+      role: (json.data.user?.role as string) ?? "USER",
+      navModules: (json.data.navModules as string[] | undefined) ?? null,
+      capabilities: (json.data.capabilities as string[] | undefined) ?? null,
+    };
+    saveAuth(json.data.accessToken, json.data.tenant.id, user);
+    const home = defaultHomePath(
+      resolveNavModules(user.role, user.navModules, user.capabilities)
+    );
+    router.push(home);
+  }
+
+  async function completeOtpLogin(tenantSlug: string) {
+    if (!tenantSlug) {
+      setError("Choose an organization before WhatsApp sign-in");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      if (!otpSentTo) {
+        const res = await fetch("/api/auth?action=otp-start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone: form.phone,
+            tenantSlug,
+            purpose: "LOGIN",
+            portal: "ADMIN",
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? "Could not send OTP");
+        setOtpSentTo(json.data?.phone ?? form.phone);
+        return;
+      }
+      const res = await fetch("/api/auth?action=otp-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: form.phone,
+          code: form.otp,
+          tenantSlug,
+          portal: "ADMIN",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "OTP login failed");
+      await applySession(json);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function completeLogin(tenantSlug: string) {
+    if (authMethod === "otp") {
+      await completeOtpLogin(tenantSlug);
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -92,20 +183,7 @@ function LoginForm() {
         return;
       }
       if (!res.ok) throw new Error(json.error ?? "Login failed");
-
-      const user = {
-        id: json.data.user?.id as string | undefined,
-        email: json.data.user?.email as string,
-        name: (json.data.user?.name as string | null) ?? null,
-        role: (json.data.user?.role as string) ?? "USER",
-        navModules: (json.data.navModules as string[] | undefined) ?? null,
-        capabilities: (json.data.capabilities as string[] | undefined) ?? null,
-      };
-      saveAuth(json.data.accessToken, json.data.tenant.id, user);
-      const home = defaultHomePath(
-        resolveNavModules(user.role, user.navModules, user.capabilities)
-      );
-      router.push(home);
+      await applySession(json);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -137,7 +215,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="relative flex min-h-dvh items-center justify-center px-4 py-10">
+    <div className="relative flex min-h-dvh items-center justify-center px-4 py-10 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -218,20 +296,77 @@ function LoginForm() {
               {orgError && (
                 <div className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600">{orgError}</div>
               )}
-              <Field
-                label="Email"
-                type="email"
-                value={form.email}
-                onChange={(v) => setForm((f) => ({ ...f, email: v }))}
-                required
-              />
-              <Field
-                label="Password"
-                type="password"
-                value={form.password}
-                onChange={(v) => setForm((f) => ({ ...f, password: v }))}
-                required
-              />
+              <div className="flex gap-2 text-xs font-semibold">
+                <button
+                  type="button"
+                  className={`rounded-full px-3 py-1.5 ${
+                    authMethod === "password"
+                      ? "bg-[var(--ink)] text-white"
+                      : "bg-[var(--mist)] text-[var(--ink-soft)]"
+                  }`}
+                  onClick={() => {
+                    setAuthMethod("password");
+                    setOtpSentTo(null);
+                    setError("");
+                  }}
+                >
+                  Email
+                </button>
+                <button
+                  type="button"
+                  className={`rounded-full px-3 py-1.5 ${
+                    authMethod === "otp"
+                      ? "bg-[var(--ink)] text-white"
+                      : "bg-[var(--mist)] text-[var(--ink-soft)]"
+                  }`}
+                  onClick={() => {
+                    setAuthMethod("otp");
+                    setError("");
+                  }}
+                >
+                  WhatsApp
+                </button>
+              </div>
+              {authMethod === "otp" ? (
+                <>
+                  <Field
+                    label="WhatsApp number"
+                    type="tel"
+                    value={form.phone}
+                    onChange={(v) => {
+                      setForm((f) => ({ ...f, phone: v }));
+                      setOtpSentTo(null);
+                    }}
+                    required
+                  />
+                  {otpSentTo ? (
+                    <Field
+                      label="6-digit code"
+                      type="text"
+                      value={form.otp}
+                      onChange={(v) => setForm((f) => ({ ...f, otp: v }))}
+                      required
+                    />
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  <Field
+                    label="Email"
+                    type="email"
+                    value={form.email}
+                    onChange={(v) => setForm((f) => ({ ...f, email: v }))}
+                    required
+                  />
+                  <Field
+                    label="Password"
+                    type="password"
+                    value={form.password}
+                    onChange={(v) => setForm((f) => ({ ...f, password: v }))}
+                    required
+                  />
+                </>
+              )}
               {error && !picker && (
                 <div className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600">{error}</div>
               )}
@@ -240,7 +375,13 @@ function LoginForm() {
                 disabled={loginDisabled}
                 className="btn-dark btn-dark-block disabled:opacity-60"
               >
-                {loading ? "Signing in…" : "Sign In"}
+                {loading
+                  ? "Signing in…"
+                  : authMethod === "otp"
+                    ? otpSentTo
+                      ? "Verify code"
+                      : "Send WhatsApp code"
+                    : "Sign In"}
               </button>
             </form>
           )}

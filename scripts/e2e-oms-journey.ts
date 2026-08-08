@@ -160,11 +160,15 @@ async function main() {
     200
   )) as { id: string; name: string; sellPrice: number; sku: string }[] | null;
 
-  const product = products?.find((p) => p.sku === "PLY-BWR-18-8X4") ?? products?.[0];
+  const product = products?.find((p) => p.sku === "TW-ADH-1L")
+    ?? products?.find((p) => p.sku?.startsWith("TW-"))
+    ?? products?.[0];
   if (!product) {
     bad("missing product");
     process.exit(1);
   }
+  // PER_EACH adhesive has sellPrice; measured SKUs may need quote — use adhesive for staff SREQ
+  const unitPrice = Number(product.sellPrice) > 0 ? Number(product.sellPrice) : 350;
 
   console.log("\nTC3 — Sales creates Sales Request (SREQ) for customer");
   const sreq = (await expectStatus(
@@ -181,7 +185,7 @@ async function main() {
           productId: product.id,
           productName: product.name,
           quantity: 10,
-          unitPrice: product.sellPrice,
+          unitPrice: unitPrice,
         },
       ],
     },
@@ -322,7 +326,7 @@ async function main() {
     sessions.pricing,
     "complete-pricing",
     {
-      items: [{ orderItemId: lineId2, purchasePrice: 1200, unitPrice: product.sellPrice }],
+      items: [{ orderItemId: lineId2, purchasePrice: 1200, unitPrice }],
       transportationCharge: 500,
     },
     ["FULFILLING", "READY_FOR_DISPATCH"],

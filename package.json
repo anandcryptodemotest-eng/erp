@@ -5,6 +5,7 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
+    "test:workspaces": "pnpm -r --if-present test",
     "dev:gateway": "turbo dev --filter=@erp/gateway",
     "dev:web": "turbo dev --filter=@erp/web",
     "dev:sales": "turbo dev --filter=@erp/sales",
@@ -19,22 +20,43 @@
     "smoke:platform-admin": "tsx scripts/smoke-platform-admin.ts",
     "e2e:users": "bash scripts/e2e-user-flows.sh",
     "e2e:oms": "pnpm --filter @erp/scripts e2e:oms",
+    "e2e:portal": "pnpm --filter @erp/scripts e2e:portal",
+    "e2e:greenfield": "pnpm --filter @erp/scripts e2e:greenfield",
     "seed:demo": "pnpm --filter @erp/scripts seed:demo",
+    "clear:catalog": "pnpm --filter @erp/scripts clear:catalog",
     "arch:fitness": "node scripts/architecture-fitness.cjs",
+    "routes:validate": "tsx scripts/validate-gateway-routes.ts",
+    "deployment:validate": "node scripts/validate-deployment-artifacts.cjs",
+    "proposal:sankalp": "node scripts/generate-sankalp-proposal.cjs",
+    "proposal:hr": "node scripts/generate-sankalp-proposal.cjs SIMHAPURI-FRESH-HR-PROPOSAL.md SIMHAPURI-FRESH-HR-PROPOSAL.pdf",
+    "proposal:trustwood": "node scripts/generate-sankalp-proposal.cjs TRUSTWOOD-ENTERPRISE-PROPOSAL.md TRUSTWOOD-ENTERPRISE-PROPOSAL.pdf",
     "smoke:foundation": "node scripts/smoke-platform-foundation.cjs",
     "smoke:otel-slice": "node scripts/smoke-otel-vertical-slice.cjs",
     "db:generate": "turbo db:generate",
     "db:push": "turbo db:push",
+    "erp": "bash scripts/erp",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:obs": "docker compose up -d otel-collector tempo loki prometheus grafana promtail",
     "docker:obs:down": "docker compose stop otel-collector tempo loki prometheus grafana promtail"
   },
   "devDependencies": {
+    "@next/eslint-plugin-next": "^16.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.66.0",
+    "@typescript-eslint/parser": "^8.39.0",
+    "eslint": "^9.33.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "tsx": "^4.23.1",
     "turbo": "^2.0.0"
   },
   "packageManager": "pnpm@9.15.0",
+  "pnpm": {
+    "overrides": {
+      "next": "15.5.21",
+      "postcss": "8.5.18",
+      "sharp": "0.35.0"
+    }
+  },
   "engines": {
     "node": ">=20"
   }

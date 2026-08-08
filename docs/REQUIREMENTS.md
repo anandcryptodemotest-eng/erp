@@ -1,7 +1,7 @@
 # ERP — Requirements & Dependencies
 
 > **Living document.** Update this file whenever a new host tool, runtime, service dependency, or npm package becomes required for local or production use.
-> **Last updated:** 2026-07-28 (edge gateway: public 80/443 only; apps + Postgres on loopback)
+> **Last updated:** 2026-08-08 (`erp` CLI + compose restart policy + 2-min watchdog; Fast2SMS client unchanged)
 
 ---
 
@@ -26,7 +26,7 @@
 
 | Database | Owner service | Typical data |
 |----------|---------------|--------------|
-| `erp_gateway` | gateway | Users, tenants, auth, notifications |
+| `erp_gateway` | gateway | Users, tenants, auth, notifications, **communication**, **assets** |
 | `erp_sales` | sales | Customers, orders, OMS workflow |
 | `erp_inventory` | inventory | Products, stock, categories |
 | `erp_accounting` | accounting | Journals, AR/AP invoices |
@@ -63,8 +63,11 @@
 | App `.env` files | Per-service `DATABASE_URL` | Created ✓ |
 | Firewall | **TCP 80 + 443 only** (no app ports) | 80/443 ✓ |
 | Nginx edge gateway | TLS terminate + reverse proxy | `/etc/nginx/conf.d/erp-gateway.conf` ✓ |
+| `erp` CLI | `/usr/local/bin/erp` → `scripts/erp` | up/down/restart/status/logs/doctor/heal |
+| `erp-watchdog.timer` | systemd, every 2 min → `erp heal` | Compose crash + unhealthy recovery |
 | Corepack (optional) | Enable to pin pnpm via `packageManager` | MISSING (optional) |
 | `psql` client | Optional; useful for debugging | MISSING (optional) |
+| Outbound HTTPS | `www.fast2sms.com` | Required for WhatsApp OTP (Fast2SMS) |
 
 ### Install pnpm (required before anything else)
 
@@ -77,10 +80,10 @@ corepack enable && corepack prepare pnpm@9.15.0 --activate
 ### Bootstrap checklist
 
 1. Install pnpm (above)
-2. `cp .env.example .env` and set `JWT_SECRET` / `SERVICE_SECRET`
+2. `cp .env.example .env` and set `JWT_SECRET` / `SERVICE_SECRET` / `INTEGRATION_ENCRYPTION_KEY` (`openssl rand -hex 32`)
 3. `cp apps/customer/.env.example apps/customer/.env` (customer UI)
 4. `pnpm install` at repo root
-5. `pnpm docker:up` (or at least start Postgres)
+5. `erp up` (or `pnpm docker:up`) — Compose core only; host customer/platform/nginx stay on systemd
 6. `pnpm db:generate` && `pnpm db:push` (or project migrate scripts)
 7. _(Seed scripts removed — create catalog via Admin UI)_
 8. Bind apps to **127.0.0.1** only; expose via nginx on **443** (see §2.1)
@@ -114,7 +117,7 @@ corepack enable && corepack prepare pnpm@9.15.0 --activate
 | UI | React 19 + Tailwind CSS 4 | Shared `@erp/ui` |
 | ORM | Prisma 6 | Per-service schema |
 | Validation | Zod | Shared patterns |
-| Auth | JWT (jose) + bcryptjs | Gateway owns users |
+| Auth | JWT (jose) + Argon2id + OAuth2 (Google ID token) + WhatsApp OTP (Fast2SMS) | Gateway owns users; AuthCredential model (`PASSWORD` / `GOOGLE` / `PHONE`) |
 | Containers | Docker Compose | Dev/prod-like |
 
 ### Apps & default ports
@@ -147,9 +150,12 @@ corepack enable && corepack prepare pnpm@9.15.0 --activate
 | `next`, `react`, `react-dom` | all apps | UI + API routes |
 | `@prisma/client`, `prisma` | gateway, sales, inventory, accounting, hr, procurement, delivery | DB access |
 | `zod` | apps | Validation |
-| `bcryptjs` | gateway | Password hashing |
+| `bcryptjs` | gateway (+`@erp/auth` for legacy-verify) | Legacy bcrypt verification during Argon2id migration |
+| `@node-rs/argon2` (via `@erp/auth`) | auth package | Argon2id password hashing |
+| `google-auth-library` (via `@erp/auth`) | auth package | Google Identity Services ID-token verification |
 | `jose` (via `@erp/auth`) | auth package | JWT |
 | `lucide-react` | gateway | Icons |
+| `recharts` (via `@erp/ui`) | ui package | Dashboard charts (admin + customer) |
 | `@zxing/browser`, `@zxing/library` | gateway | Barcode / QR |
 | `turbo` | root | Monorepo tasks |
 | `tailwindcss` | apps | Styling |
@@ -164,6 +170,16 @@ corepack enable && corepack prepare pnpm@9.15.0 --activate
 | 2026-07-28 | Auto SKU `CAT-BRAND-####` via `/api/products/suggest-sku` | — | inventory + admin UI | SKU from category + brand codes; manual override allowed |
 | 2026-07-28 | Local product image upload `/api/uploads/product-image` | — | gateway + nginx `/uploads/` | JPG/PNG/WebP ≤2MB; store under `/home/erp/data/uploads` |
 | 2026-07-28 | Auto-create Main Warehouse on stock receive | — | admin products | Fixes stock/receive 500 after catalog wipe |
+| 2026-03-08 | `@erp/asset` (workspace package) | 1.0.0 | `packages/asset` | First-class platform Asset capability — AssetRef types, MIME→AssetType mapping, shared by Communication, Documents, Products |
+| 2026-03-08 | `@erp/communication` (workspace package) | 1.0.0 | `packages/communication` | Communication platform capability — types, constants, namespaced events, SSE client, message utilities |
+| 2026-03-08 | `@erp/asset` + `@erp/communication` deps | workspace:* | `apps/gateway` | Gateway hosts Communication + Asset APIs and Prisma models |
+| 2026-03-08 | Gateway Prisma: Asset, Conversation, Message, MessageAttachment, MessageReaction, MessageReadReceipt, ConversationParticipant, Presence, ConversationSummary | — | `apps/gateway/prisma/schema.prisma` | Communication + Asset platform data models (see ADR 0017) |
+| 2026-03-08 | Gateway auth refactor: `AuthCredential` model + `CredentialType` enum (PASSWORD/GOOGLE/PASSKEY); User drops `password`/`role`; RefreshToken gains `revokedAt`/`lastUsedAt`/`device`/`ip`/`userAgent` | — | `apps/gateway/prisma/schema.prisma` | Provider-agnostic identity (Google now; MS/Apple/Passkey later) with account linking + Argon2id |
+| 2026-03-08 | `@node-rs/argon2`, `google-auth-library`, `bcryptjs` | ^2.0.2 / ^11.0.0 / ^3.0.3 | `packages/auth` | Argon2id hashing + Google Identity Services ID-token verification; `bcryptjs` retained for one-time legacy migration |
+| 2026-03-08 | `google-auth-library`, `@node-rs/argon2` | ^11 / ^2 | `apps/gateway` | IdentityService + Google provider used by `/api/auth?action=google` |
+| 2026-03-08 | Configurable dashboard engine: `@erp/ui/dashboard` (widget registry, role defaults, renderer, editor) + `DashboardPreference` Prisma model + `recharts` | ^3 | `packages/ui`, `apps/gateway`, `apps/customer` | Permission-aware dashboards (module + capability gates; role = default config only). Admin `/dashboard` + customer `/dashboard`. |
+| 2026-08-08 | Gateway Prisma: `TenantIntegration`, `TenantIntegrationSecret`, `OtpChallenge`, `CredentialType.PHONE`, `User.phoneNormalized` / `phoneVerifiedAt` | — | `apps/gateway/prisma/schema.prisma` | Per-tenant Fast2SMS WhatsApp OTP (encrypted API key + AUTHENTICATION templates). No new npm package (Node `crypto` + fetch). |
+| 2026-08-08 | Fast2SMS client surface + Integrations UI (Copy Code create, simple/session send, SMS otp_id fallback, DLR, logs, DLT catalog, webhooks) | — | `apps/gateway` | Utilise Fast2SMS WhatsApp + SMS OTP APIs; Meta Graph create/list may return “Invalid request” on some WABAs — UI still lets you create Copy Code and fall back to simple/SMS. |
 
 ### Host / system extras log
 
@@ -173,6 +189,10 @@ corepack enable && corepack prepare pnpm@9.15.0 --activate
 | 2026-07-28 | Docker Postgres 16 | Primary data store — loopback bind only |
 | 2026-07-28 | nginx `erp-gateway.conf` | Public TLS gateway; app ports not exposed |
 | 2026-07-28 | firewalld 80/443 only | Closed 3007/3010 after gateway cutover |
+| 2026-08-08 | Outbound HTTPS to `www.fast2sms.com` | Per-tenant WhatsApp OTP (no host daemon) |
+| 2026-08-08 | `erp` CLI (`scripts/erp`) + `/usr/local/bin/erp` | Host ops: up/down/status/logs/doctor/heal. No new npm package. |
+| 2026-08-08 | systemd `erp-watchdog.timer` (2 min) | Periodic `erp heal`; does not replace Compose. |
+| 2026-08-08 | Compose `restart: unless-stopped` | Container crash recovery for postgres + APIs + obs profile |
 
 ---
 
@@ -184,7 +204,12 @@ Copy from `.env.example`. Critical keys:
 |----------|---------|
 | `JWT_SECRET` | Auth tokens (must change in production) |
 | `SERVICE_SECRET` | Inter-service auth |
+| `INTEGRATION_ENCRYPTION_KEY` | 32-byte hex AES-256-GCM key for per-tenant Fast2SMS API keys (`openssl rand -hex 32`) |
+| `OTP_PEPPER` | Optional OTP hash pepper; defaults to `INTEGRATION_ENCRYPTION_KEY` |
+| `GOOGLE_CLIENT_ID` | Google Identity Services client id (server-side ID-token verify) |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Same value exposed to the customer portal browser for the sign-in button |
 | `TAX_RATE` | Order tax fraction (e.g. `0.10`) |
+| `OTEL_SDK_DISABLED` | Default **true** in Compose. Set `false` only with `docker compose --profile obs up -d` |
 | `*_DATABASE_URL` | Per-service Postgres URLs |
 | `GATEWAY_SERVICE_URL` | Customer UI → gateway (see `apps/customer/.env.example`) |
 | `NEXT_PUBLIC_TENANT_SLUG` / `NEXT_PUBLIC_TENANT_NAME` | Customer portal tenant branding |

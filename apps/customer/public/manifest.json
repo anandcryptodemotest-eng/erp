@@ -1,6 +1,6 @@
 {
-  "name": "Trust Wood",
-  "short_name": "Trust Wood",
+  "name": "Customer Portal",
+  "short_name": "Portal",
   "description": "Place trading orders and track status",
   "start_url": "/",
   "display": "standalone",

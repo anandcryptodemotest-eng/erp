@@ -57,7 +57,7 @@ export async function dispatchCustomerFormSubmit(
       return;
     }
 
-    if (formId === "customer-address") {
+    if (formId === "customer-address" || formId === "customer_address") {
       if (!ctx.customerId) {
         ctx.onError?.("Customer profile required");
         return;

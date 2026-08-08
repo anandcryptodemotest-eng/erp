@@ -201,10 +201,13 @@ export const OMS_TRADING_TEMPLATE: WorkflowTemplate = {
       dependsOn: [],
       required: true,
       ui: {
-        description: "Assign vehicle and driver, then dispatch.",
+        description: "Own fleet (vehicle + driver) or book Porter, then complete dispatch.",
         fields: [
+          { key: "fulfillmentMode", label: "Fulfillment", type: "text", scope: "order" },
           { key: "vehicleInfo", label: "Vehicle no.", type: "text", scope: "order" },
           { key: "assignedDriverId", label: "Driver name / ID", type: "text", scope: "order" },
+          { key: "trackingNumber", label: "Tracking / booking ID", type: "text", scope: "order" },
+          { key: "trackingUrl", label: "Tracking URL", type: "text", scope: "order" },
         ],
       },
     },

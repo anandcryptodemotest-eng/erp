@@ -14,8 +14,12 @@ RUN pnpm install --frozen-lockfile
 FROM deps AS builder
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV JWT_SECRET=local-docker-build-validation-jwt-secret
+ENV SERVICE_SECRET=local-docker-build-validation-service-secret
 RUN if [ -f "apps/procurement/prisma/schema.prisma" ]; then pnpm --filter "@erp/procurement" exec prisma generate; fi
-RUN pnpm --filter "@erp/procurement" build
+RUN pnpm --filter "@erp/logger" build
+RUN pnpm --filter "@erp/telemetry" build
+RUN DEPLOYMENT_ENVIRONMENT=development JWT_SECRET=local-docker-build-validation-jwt-secret SERVICE_SECRET=local-docker-build-validation-service-secret pnpm --filter "@erp/procurement" build
 
 FROM node:${NODE_VERSION}-alpine AS runner
 WORKDIR /app
@@ -28,6 +32,10 @@ RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 COPY --from=builder --chown=nextjs:nodejs /app/apps/procurement/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/procurement/.next/static ./apps/procurement/.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/apps/procurement/public ./apps/procurement/public
+COPY --from=builder --chown=nextjs:nodejs /app/packages/telemetry/package.json ./packages/telemetry/package.json
+COPY --from=builder --chown=nextjs:nodejs /app/packages/telemetry/dist ./packages/telemetry/dist
+COPY --from=builder --chown=nextjs:nodejs /app/packages/telemetry/node_modules ./packages/telemetry/node_modules
+RUN mkdir -p /app/node_modules/@erp && ln -s /app/packages/telemetry /app/node_modules/@erp/telemetry
 USER nextjs
 EXPOSE 3005
 CMD ["node", "apps/procurement/server.js"]

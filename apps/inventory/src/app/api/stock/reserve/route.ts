@@ -6,7 +6,7 @@ import {
   contextFromHeaders,
   runWithRequestContextAsync,
 } from "@erp/logger";
-import { withSpan, captureException } from "@erp/telemetry";
+import { withSpan, captureException } from "@erp/telemetry/helpers";
 import {
   assertVariantStockScope,
   availableQty,

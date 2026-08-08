@@ -57,6 +57,24 @@ async function loadRequest(tenantId: string, id: string) {
           total: true,
           salesRemarks: true,
           deliveryDate: true,
+          fulfillmentMode: true,
+          carrier: true,
+          trackingNumber: true,
+          trackingUrl: true,
+          porterBookingStatus: true,
+          documents: {
+            where: { type: "INVOICE" },
+            orderBy: { createdAt: "desc" },
+            take: 5,
+            select: {
+              id: true,
+              type: true,
+              fileName: true,
+              fileUrl: true,
+              mimeType: true,
+              createdAt: true,
+            },
+          },
           workflowTasks: {
             where: { status: { in: ["PENDING", "IN_PROGRESS", "COMPLETED"] } },
             select: {

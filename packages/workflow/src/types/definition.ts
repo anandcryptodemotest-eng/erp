@@ -14,10 +14,11 @@ export type WorkflowPermissionAction = "claim" | "complete" | "reassign";
 
 export type TaskPermissions = Partial<Record<WorkflowPermissionAction, string[]>>;
 
-/** Extensible metadata asset kinds (Phase 1 uses WORKFLOW + FORM). */
+/** Extensible metadata asset kinds (Phase 1 uses WORKFLOW + FORM + DOCUMENT). */
 export type AssetType =
   | "WORKFLOW"
   | "FORM"
+  | "DOCUMENT"
   | "RULE"
   | "MENU"
   | "PERMISSION"
@@ -25,7 +26,8 @@ export type AssetType =
   | "REPORT"
   | "PROMPT"
   | "INTEGRATION"
-  | "VARIABLE";
+  | "VARIABLE"
+  | "MEDIA";
 
 /**
  * Immutable reference to a published metadata asset.

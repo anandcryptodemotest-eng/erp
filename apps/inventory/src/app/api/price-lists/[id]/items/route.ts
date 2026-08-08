@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { requirePriceListRead, requirePriceListWrite } from "@erp/auth";
 
 const priceListItemSchema = z.object({
   productId: z.string(),
@@ -17,6 +18,8 @@ const bulkUpsertSchema = z.object({
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const tenantId = request.headers.get("x-tenant-id");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
+  const denied = requirePriceListRead(request);
+  if (denied) return denied;
 
   const { id } = await params;
   const priceList = await prisma.priceList.findFirst({ where: { id, tenantId } });
@@ -49,11 +52,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 // PUT /api/price-lists/:id/items — bulk upsert (replace items for listed productIds)
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const tenantId = request.headers.get("x-tenant-id");
-  const role = request.headers.get("x-user-role");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
-  if (role !== "ADMIN" && role !== "MANAGER") {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
-  }
+  const denied = requirePriceListWrite(request);
+  if (denied) return denied;
 
   const { id } = await params;
   try {
@@ -93,11 +94,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 // DELETE /api/price-lists/:id/items?itemId=xxx — remove a single item
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const tenantId = request.headers.get("x-tenant-id");
-  const role = request.headers.get("x-user-role");
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
-  if (role !== "ADMIN" && role !== "MANAGER") {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
-  }
+  const denied = requirePriceListWrite(request);
+  if (denied) return denied;
 
   const { id } = await params;
   const url = new URL(request.url);

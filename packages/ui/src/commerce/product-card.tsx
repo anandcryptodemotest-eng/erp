@@ -25,26 +25,38 @@ export function ProductCard({
     <a
       href={href}
       className={cn(
-        "group flex flex-col overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-white transition-[transform,box-shadow] duration-[var(--motion-standard)] ease-[var(--ease-out)]",
-        "hover:-translate-y-0.5 hover:shadow-[var(--shadow)] active:scale-[0.98]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forest)] focus-visible:ring-offset-2",
+        "group flex flex-col overflow-hidden rounded-lg border border-[#e8e8e8] bg-white",
+        "transition-transform duration-[var(--motion-fast)] active:scale-[0.98]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forest)] focus-visible:ring-offset-1",
         className
       )}
     >
-      <div className="aspect-square overflow-hidden bg-[var(--mist)]">
+      <div className="aspect-[4/5] overflow-hidden bg-[#f5f5f5]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={imageUrl}
           alt=""
-          className="h-full w-full object-cover transition-transform duration-[var(--motion-slow)] group-hover:scale-[1.03]"
+          className="h-full w-full object-cover"
           loading="lazy"
         />
       </div>
-      <div className="flex flex-1 flex-col gap-1 p-3">
-        <div className="line-clamp-2 text-sm font-semibold text-[var(--ink)]">{title}</div>
-        {subtitle ? <div className="text-xs text-[var(--ink-soft)]">{subtitle}</div> : null}
-        {priceLabel ? <PriceDisplay amount={priceLabel} className="mt-1" /> : null}
-        {meta ? <div className="mt-auto pt-1 text-xs text-[var(--ink-soft)]/70">{meta}</div> : null}
+      <div className="flex flex-1 flex-col gap-0.5 p-2.5">
+        {subtitle ? (
+          <div className="truncate text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
+            {subtitle}
+          </div>
+        ) : null}
+        <div className="line-clamp-2 text-[13px] font-semibold leading-snug text-[var(--ink)]">
+          {title}
+        </div>
+        <PriceDisplay
+          amount={priceLabel ?? "Configure"}
+          size="sm"
+          className="mt-1"
+        />
+        {meta ? (
+          <div className="mt-auto pt-0.5 text-[11px] text-[var(--ink-soft)]">{meta}</div>
+        ) : null}
       </div>
     </a>
   );

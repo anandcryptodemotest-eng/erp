@@ -29,11 +29,12 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Catalog",
     items: [
       { href: "/dashboard", label: "Dashboard", icon: "DB", keywords: ["home", "kpi", "summary"], module: "dashboard" },
+      { href: "/analytics", label: "Analytics", icon: "AN", keywords: ["reports", "analytics", "revenue", "stock", "delivery"], module: "analytics" },
       { href: "/products", label: "Products", icon: "PR", keywords: ["catalog", "inventory", "sku", "catalog manager"], module: "products" },
-      { href: "/categories", label: "Categories", icon: "CA", keywords: ["category", "taxonomy"], module: "products" },
-      { href: "/brands", label: "Brands", icon: "BR", keywords: ["brand", "manufacturer"], module: "products" },
-      { href: "/attributes", label: "Attributes", icon: "AT", keywords: ["custom fields", "identity", "attributes"], module: "products" },
-      { href: "/price-lists", label: "Price Lists", icon: "PL", keywords: ["pricing", "list price"], module: "products" },
+      { href: "/categories", label: "Categories", icon: "CA", keywords: ["category", "taxonomy"], module: "categories" },
+      { href: "/brands", label: "Brands", icon: "BR", keywords: ["brand", "manufacturer"], module: "brands" },
+      { href: "/attributes", label: "Attributes", icon: "AT", keywords: ["custom fields", "identity", "attributes"], module: "attributes" },
+      { href: "/price-lists", label: "Price Lists", icon: "PL", keywords: ["pricing", "list price"], module: "price_lists" },
       { href: "/customers", label: "Customers", icon: "CU", keywords: ["accounts", "buyers", "mobile"], module: "customers" },
     ],
   },
@@ -43,10 +44,10 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         href: "/sales-desk",
-        label: "Sales Desk",
-        icon: "OM",
-        keywords: ["oms", "sales desk", "sreq", "convert", "order lifecycle", "review", "pricing", "dispatch", "trading"],
-        module: "oms",
+        label: "Order Desk",
+        icon: "OD",
+        keywords: ["oms", "order desk", "sales desk", "sreq", "convert", "order lifecycle", "review", "pricing", "dispatch", "trading"],
+        module: "order_desk",
       },
       {
         href: "/orders",
@@ -130,10 +131,17 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/payroll", label: "Payroll", icon: "PY", keywords: ["salary", "compensation"], module: "payroll" },
     ],
   },
+  {
+    key: "communication",
+    title: "Communication",
+    items: [
+      { href: "/messages", label: "Messages", icon: "MS", keywords: ["chat", "inbox", "conversation", "whatsapp", "messaging"], module: "communication" },
+    ],
+  },
 ];
 
 const QUICK_ACTIONS: NavItem[] = [
-  { href: "/sales-desk", label: "Sales Desk", icon: "OM", keywords: ["oms", "review", "sales desk"], module: "oms" },
+  { href: "/sales-desk", label: "Order Desk", icon: "OD", keywords: ["oms", "review", "order desk", "sales desk"], module: "order_desk" },
   { href: "/orders", label: "Orders", icon: "NO", keywords: ["order"], module: "orders" },
   { href: "/products", label: "Products", icon: "PR", keywords: ["catalog"], module: "products" },
   { href: "/purchase-orders", label: "New PO", icon: "PO", keywords: ["procurement"], module: "purchase_orders" },
@@ -248,6 +256,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         finance: true,
         crm: false,
         hr: false,
+        communication: true,
       }}
     >
       {children}

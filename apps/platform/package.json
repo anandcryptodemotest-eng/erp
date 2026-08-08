@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@erp/admin-ui-host": "workspace:^",
+    "@erp/document-designer": "workspace:^",
+    "@erp/documents": "workspace:*",
     "@erp/extensions": "workspace:^",
     "@erp/platform-core": "workspace:*",
     "@erp/process-designer": "workspace:*",
@@ -19,7 +21,7 @@
     "@erp/workflow": "workspace:^",
     "@xyflow/react": "^12.6.0",
     "lucide-react": "^1.16.0",
-    "next": "^15.1.0",
+    "next": "^15.5.21",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

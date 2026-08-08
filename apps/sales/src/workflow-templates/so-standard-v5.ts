@@ -90,20 +90,28 @@ export const SO_STANDARD_FORMS: FormDefinition[] = [
     key: "dispatch_form",
     id: "dispatch",
     title: "Dispatch",
+    description: "Own fleet or book Porter. Opening Porter does not dispatch the order.",
     themeId: "oms-default",
     layout: [
-      { widget: "FormFields", props: {} },
+      { widget: "DispatchFulfillment", props: {} },
       { widget: "ActionButtons", props: {} },
     ],
     fields: [
-      { key: "vehicleInfo", label: "Vehicle no.", type: "text", scope: "order", required: true },
       {
-        key: "assignedDriverId",
-        label: "Driver name / ID",
-        type: "text",
+        key: "fulfillmentMode",
+        label: "Fulfillment",
+        type: "select",
         scope: "order",
-        required: true,
+        options: [
+          { value: "own_fleet", label: "Own fleet" },
+          { value: "porter", label: "Porter" },
+        ],
       },
+      { key: "vehicleInfo", label: "Vehicle no.", type: "text", scope: "order" },
+      { key: "assignedDriverId", label: "Driver name / ID", type: "text", scope: "order" },
+      { key: "porterBookingStatus", label: "Porter booking", type: "text", scope: "order" },
+      { key: "trackingNumber", label: "Tracking / booking ID", type: "text", scope: "order" },
+      { key: "trackingUrl", label: "Tracking URL", type: "url", scope: "order" },
     ],
   }),
   withFormId({
@@ -124,7 +132,15 @@ export const SO_STANDARD_FORMS: FormDefinition[] = [
     themeId: "oms-default",
     layout: [
       { widget: "ProductList", props: { editable: false, showPrice: true } },
-      { widget: "ActionButtons", props: {} },
+      {
+        widget: "InvoiceGenerate",
+        props: {
+          documentType: "INVOICE",
+          command: "accounting.generateInvoice",
+          documentRef: { type: "DOCUMENT", id: "tax-invoice", version: 1 },
+        },
+      },
+      { widget: "ActionButtons", props: { label: "Confirm & complete →" } },
     ],
   }),
   withFormId({

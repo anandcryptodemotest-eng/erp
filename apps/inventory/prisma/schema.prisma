@@ -329,6 +329,7 @@ model StockMovement {
   type        String   // IN, OUT, TRANSFER, ADJUSTMENT, RESERVE, RELEASE
   quantity    Float    // Float supports weight-based movements (e.g. 0.5 kg)
   reference   String?
+  idempotencyKey String?
   notes       String?
   createdAt   DateTime @default(now())
 
@@ -337,6 +338,7 @@ model StockMovement {
 
   @@index([tenantId])
   @@index([reference])
+  @@unique([tenantId, idempotencyKey])
 }
 
 model StockReservation {

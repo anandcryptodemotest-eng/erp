@@ -22,6 +22,12 @@ export type WorkspaceLayoutProps = {
   bottomBar?: ReactNode;
   /** Extra content above the queue/detail grid (KPIs, alerts) */
   ahead?: ReactNode;
+  /**
+   * Mobile master-detail. When set, phones show either the queue or the detail.
+   * Ignored from `lg` up (both columns stay visible).
+   */
+  detailOpen?: boolean;
+  onMobileBack?: () => void;
   className?: string;
 };
 
@@ -33,8 +39,11 @@ export function WorkspaceLayout({
   task,
   bottomBar,
   ahead,
+  detailOpen,
+  onMobileBack,
   className,
 }: WorkspaceLayoutProps) {
+  const mobileSplit = detailOpen != null;
   return (
     <div
       className={cn("flex min-h-0 w-full flex-1 flex-col", className)}
@@ -47,8 +56,19 @@ export function WorkspaceLayout({
         className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(280px,420px)_minmax(0,1fr)]"
         style={{ gap: "var(--space-6)" }}
       >
-        {queue}
-        <div className="flex min-h-0 min-w-0 flex-col" style={{ gap: "var(--space-4)" }}>
+        <div className={cn(mobileSplit && detailOpen && "hidden lg:block")}>{queue}</div>
+        <div
+          className={cn(
+            "flex min-h-0 min-w-0 flex-col",
+            mobileSplit && !detailOpen && "hidden lg:flex"
+          )}
+          style={{ gap: "var(--space-4)" }}
+        >
+          {mobileSplit && detailOpen && onMobileBack ? (
+            <button type="button" className="ws-mobile-back lg:hidden" onClick={onMobileBack}>
+              ← Back to list
+            </button>
+          ) : null}
           {detail}
           {task}
         </div>
@@ -166,7 +186,7 @@ export function WorkspaceBottomBar({ className, children, ...props }: WorkspaceB
       role="toolbar"
       aria-label="Workspace actions"
       className={cn(
-        "flex flex-wrap items-center border-t-2 border-[var(--line)] bg-[var(--surface-raised)] px-[var(--space-4)] py-[var(--space-3)]",
+        "sticky bottom-0 z-10 flex flex-wrap items-center border-t-2 border-[var(--line)] bg-[var(--surface-raised)] px-[var(--space-4)] py-[var(--space-3)] pb-[max(var(--space-3),env(safe-area-inset-bottom))]",
         className
       )}
       style={{ gap: "var(--space-2)", minHeight: "var(--touch-min)" }}

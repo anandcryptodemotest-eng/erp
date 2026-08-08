@@ -14,7 +14,7 @@ import {
   taskTypeForAction,
 } from "@/lib/complete-task-command";
 import { startSalesOrderWorkflowV5, getPublishedDefinition, syncTaskReadiness } from "@/lib/workflow-runtime-v5";
-import { withSpan } from "@erp/telemetry";
+import { withSpan } from "@erp/telemetry/helpers";
 import { createLogger } from "@erp/logger";
 import { z } from "zod";
 
@@ -36,7 +36,7 @@ const confirmSchema = z.object({
 const documentSchema = z.object({
   type: z.enum(["ACKNOWLEDGEMENT", "DELIVERY_PROOF", "INVOICE", "OTHER"]),
   fileName: z.string().min(1),
-  fileUrl: z.string().url(),
+  fileUrl: z.string().min(1),
   mimeType: z.string().optional(),
 });
 

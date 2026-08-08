@@ -1,0 +1,13 @@
+[Unit]
+Description=Run ERP heal every 2 minutes
+Documentation=file:///home/erp/ops/ERP-CLI.md
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=2min
+AccuracySec=15s
+Persistent=false
+Unit=erp-watchdog.service
+
+[Install]
+WantedBy=timers.target

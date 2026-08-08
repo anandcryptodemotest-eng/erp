@@ -1,12 +1,13 @@
 /**
- * Client demo seed — multi-category plywood industry catalog + OMS users + workflow.
+ * Trustwood demo seed — configure groups + simple adhesive + buyer + OMS users.
  *
- * Primary Platform v1.0 story: POST /api/products (axes) → SIMPLE SKUs (Century BWP plywood).
- * Also seeds legacy flat SKUs and an optional VARIANT family (retail demo).
+ *   pnpm clear:catalog && pnpm seed:demo
  *
- *   pnpm seed:demo
+ * Idempotent. Tenant default: trustwood-enterprise.
  *
- * Idempotent: safe to re-run. Tenant default: trustwood-enterprise.
+ * Groups: TRUSTWOOD-BWP, TRUSTWOOD-BLOCKBOARD, TRUSTWOOD-LAMINATE, TRUSTWOOD-PHONE
+ * Simple: TW-ADH-1L (no configure axes)
+ * Buyer: buyer@trustwood.test / Buyer@12345
  */
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3010/admin";
@@ -22,111 +23,28 @@ const DEMO_USERS = [
   { email: "accountant@oms.test", password: "Test@123", name: "Accountant", role: "ACCOUNTANT" },
 ] as const;
 
-const BRANDS = ["Greenply", "Century", "Kitply", "Merino"] as const;
-
-type ProductSpec = {
-  sku: string;
-  name: string;
-  category: "Plywood" | "Blockboard" | "Laminates";
-  brand: (typeof BRANDS)[number];
-  costPrice: number;
-  sellPrice: number;
-  customAttributes: Record<string, string | number>;
-  qty: number;
+const BUYER = {
+  email: "buyer@trustwood.test",
+  password: "Buyer@12345",
+  name: "Buyer Trustwood",
+  phone: "+919876543210",
 };
 
-/** Derive sq ft from size like "8x4" (feet). */
-function areaSqFt(size: unknown): number | null {
-  if (typeof size !== "string") return null;
-  const m = /^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)$/i.exec(size.trim());
-  if (!m) return null;
-  const a = Number(m[1]) * Number(m[2]);
-  return Number.isFinite(a) && a > 0 ? a : null;
-}
+const MEDIA = {
+  plywood: "/media/products/plywood-marine.jpg",
+  timber: "/media/products/timber.jpg",
+  laminate: "/media/products/laminate.jpg",
+  warehouse: "/media/products/warehouse.jpg",
+  hero: "/media/products/hero-yard.jpg",
+} as const;
 
-function pricingFields(spec: ProductSpec) {
-  const area = areaSqFt(spec.customAttributes.size);
-  if (!area) return { pricingBasis: "PER_EACH" as const };
-  return {
-    pricingBasis: "PER_AREA" as const,
-    pricingUom: "sq_ft",
-    baseRate: Math.round((spec.sellPrice / area) * 10000) / 10000,
-  };
+/** Must match apps/inventory/src/lib/commercial-media.ts buildVariationKey */
+function buildVariationKey(
+  attributeOrder: string[],
+  values: Record<string, string | number | undefined | null>
+): string {
+  return attributeOrder.map((a) => String(values[a] ?? "").trim()).join("|");
 }
-
-const PRODUCTS: ProductSpec[] = [
-  {
-    sku: "PLY-BWR-18-8X4",
-    name: "Marine Ply 18mm BWR 8x4",
-    category: "Plywood",
-    brand: "Greenply",
-    costPrice: 1200,
-    sellPrice: 1450,
-    customAttributes: { thickness_mm: 18, size: "8x4", grade: "BWR" },
-    qty: 120,
-  },
-  // Century BWP 18mm sizes come from POST /api/products with axes (primary Platform v1.0 story).
-  {
-    sku: "PLY-MR-12-8X4",
-    name: "Commercial Ply 12mm MR 8x4",
-    category: "Plywood",
-    brand: "Kitply",
-    costPrice: 780,
-    sellPrice: 950,
-    customAttributes: { thickness_mm: 12, size: "8x4", grade: "MR" },
-    qty: 150,
-  },
-  {
-    sku: "PLY-BWR-16-7X3",
-    name: "Structural Ply 16mm BWR 7x3",
-    category: "Plywood",
-    brand: "Greenply",
-    costPrice: 980,
-    sellPrice: 1180,
-    customAttributes: { thickness_mm: 16, size: "7x3", grade: "BWR" },
-    qty: 90,
-  },
-  {
-    sku: "BLK-COM-19-8X4",
-    name: "Blockboard 19mm Commercial 8x4",
-    category: "Blockboard",
-    brand: "Century",
-    costPrice: 1100,
-    sellPrice: 1320,
-    customAttributes: { thickness_mm: 19, size: "8x4", grade: "Commercial" },
-    qty: 60,
-  },
-  {
-    sku: "BLK-BWR-18-8X4",
-    name: "Blockboard 18mm BWR 8x4",
-    category: "Blockboard",
-    brand: "Greenply",
-    costPrice: 1250,
-    sellPrice: 1490,
-    customAttributes: { thickness_mm: 18, size: "8x4", grade: "BWR" },
-    qty: 55,
-  },
-  {
-    sku: "LAM-GLOSS-1MM-8X4",
-    name: "Laminate Glossy 1mm 8x4",
-    category: "Laminates",
-    brand: "Merino",
-    costPrice: 320,
-    sellPrice: 420,
-    customAttributes: { thickness_mm: 1, size: "8x4", finish: "Glossy" },
-    qty: 200,
-  },
-  {
-    sku: "LAM-MATTE-1MM-8X4",
-    name: "Laminate Matt 1mm 8x4",
-    category: "Laminates",
-    brand: "Merino",
-    costPrice: 300,
-    sellPrice: 390,
-    customAttributes: { thickness_mm: 1, size: "8x4", finish: "Matt" },
-    qty: 200,
-  },
-];
 
 type Json = { data?: unknown; error?: string; meta?: unknown };
 
@@ -157,13 +75,231 @@ async function api(
 function log(step: string, detail?: string) {
   console.log(`  ✓ ${step}${detail ? ` — ${detail}` : ""}`);
 }
-
 function warn(step: string, detail?: string) {
   console.log(`  ! ${step}${detail ? ` — ${detail}` : ""}`);
 }
 
+type Auth = { token: string; tenantId: string; role: string };
+
+async function ensureBrand(auth: Auth, name: string, brandByName: Map<string, string>) {
+  if (brandByName.has(name)) return brandByName.get(name)!;
+  const created = await api("POST", "/api/brands", { ...auth, body: { name } });
+  const b = created.json.data as { id: string; name: string } | undefined;
+  if (b?.id) {
+    brandByName.set(b.name, b.id);
+    log("Created brand", name);
+    return b.id;
+  }
+  warn(`Brand ${name}`, `${created.status} ${created.json.error ?? ""}`);
+  return undefined;
+}
+
+async function ensureCategory(auth: Auth, name: string, catByName: Map<string, string>) {
+  if (catByName.has(name)) return catByName.get(name)!;
+  const created = await api("POST", "/api/products/categories", {
+    ...auth,
+    body: { name },
+  });
+  const c = created.json.data as { id: string; name: string } | undefined;
+  if (c?.id) {
+    catByName.set(c.name, c.id);
+    log("Created category", name);
+    return c.id;
+  }
+  warn(`Category ${name}`, `${created.status} ${created.json.error ?? ""}`);
+  return undefined;
+}
+
+async function ensureAttr(
+  auth: Auth,
+  def: {
+    key: string;
+    label: string;
+    dataType: string;
+    options?: string[];
+    isIdentity?: boolean;
+    categoryIds?: string[];
+  }
+) {
+  const list = await api("GET", "/api/attribute-definitions", auth);
+  const attrs = (list.json.data as { id: string; key: string; isIdentity?: boolean }[]) ?? [];
+  const existing = attrs.find((a) => a.key === def.key);
+  if (existing) {
+    if (def.isIdentity && !existing.isIdentity) {
+      await api("PATCH", `/api/attribute-definitions/${existing.id}`, {
+        ...auth,
+        body: { isIdentity: true },
+      });
+      log("Set isIdentity", def.key);
+    } else {
+      log("Attr exists", def.key);
+    }
+    return existing.id;
+  }
+  const created = await api("POST", "/api/attribute-definitions", {
+    ...auth,
+    body: {
+      key: def.key,
+      label: def.label,
+      dataType: def.dataType,
+      options: def.options,
+      isIdentity: def.isIdentity ?? false,
+      isVariantAxis: true,
+      isFilterable: true,
+      categoryIds: def.categoryIds,
+    },
+  });
+  const id = (created.json.data as { id: string } | undefined)?.id;
+  if (id) log("Created attr", def.key);
+  else warn(`Attr ${def.key}`, `${created.status} ${created.json.error ?? ""}`);
+  return id;
+}
+
+type EngineResult = {
+  created?: { id: string; sku: string }[];
+  skipped?: unknown[];
+  summary?: { createdCount?: number; skippedCount?: number };
+};
+
+async function createGroup(
+  auth: Auth,
+  body: Record<string, unknown>
+): Promise<{ ids: { id: string; sku: string }[]; created: number; skipped: number }> {
+  const gen = await api("POST", "/api/products", { ...auth, body });
+  const payload = gen.json.data as EngineResult | undefined;
+  const created = payload?.summary?.createdCount ?? payload?.created?.length ?? 0;
+  const skipped = payload?.summary?.skippedCount ?? payload?.skipped?.length ?? 0;
+  const ids = payload?.created ?? [];
+  if (gen.status === 201 || gen.status === 200) {
+    log(`Group ${String(body.groupCode)}`, `${created} created, ${skipped} skipped`);
+    for (const p of ids) log("  SKU", p.sku);
+  } else {
+    warn(
+      `Group ${String(body.groupCode)}`,
+      `${gen.status} ${gen.json.error ?? ""} ${JSON.stringify((gen.json as { issues?: unknown }).issues ?? "")}`
+    );
+  }
+  return { ids, created, skipped };
+}
+
+async function receiveStock(
+  auth: Auth,
+  warehouseId: string,
+  items: { productId: string; quantity: number }[]
+) {
+  if (!items.length) return;
+  const recv = await api("POST", "/api/stock/receive", {
+    ...auth,
+    body: {
+      items: items.map((i) => ({ ...i, warehouseId })),
+      reference: `DEMO-SEED-${Date.now()}`,
+      notes: "Trustwood demo opening stock",
+    },
+  });
+  if (recv.status === 201 || recv.status === 200) log("Received stock", `${items.length} lines`);
+  else warn("stock/receive", `${recv.status} ${recv.json.error ?? ""}`);
+}
+
+async function reactivateDemoSkus(auth: Auth, warehouseId: string) {
+  const list = await api("GET", "/api/products?limit=100&includeInactive=true", auth);
+  const rows =
+    (list.json.data as { id: string; sku: string; isActive?: boolean; groupCode?: string | null }[]) ??
+    [];
+  const stock: { productId: string; quantity: number }[] = [];
+  let n = 0;
+  for (const p of rows) {
+    const demo =
+      p.sku.startsWith("TW-") ||
+      (p.groupCode != null && p.groupCode.startsWith("TRUSTWOOD-"));
+    if (!demo) continue;
+    if (p.isActive === false) {
+      const patched = await api("PATCH", `/api/products/${p.id}`, {
+        ...auth,
+        body: { isActive: true },
+      });
+      if (patched.status === 200) {
+        n++;
+        log("Reactivated", p.sku);
+      } else warn(`Reactivate ${p.sku}`, `${patched.status}`);
+    }
+    stock.push({ productId: p.id, quantity: 50 });
+  }
+  if (n) log("Reactivated demo SKUs", String(n));
+  if (stock.length) await receiveStock(auth, warehouseId, stock);
+  return n;
+}
+
+async function seedBuyer(auth: Auth) {
+  // register-customer via gateway auth
+  const reg = await api("POST", "/api/auth?action=register-customer", {
+    body: {
+      name: BUYER.name,
+      email: BUYER.email,
+      password: BUYER.password,
+      phone: BUYER.phone,
+      tenantSlug: TENANT,
+    },
+  });
+  if (reg.status === 200 || reg.status === 201) {
+    log("Buyer registered", BUYER.email);
+  } else if (
+    String(reg.json.error ?? "").toLowerCase().includes("exist") ||
+    reg.status === 409
+  ) {
+    const refreshed = await api("POST", `/api/tenants/${auth.tenantId}/users`, {
+      ...auth,
+      body: {
+        action: "create",
+        email: BUYER.email,
+        name: BUYER.name,
+        password: BUYER.password,
+        role: "CUSTOMER",
+      },
+    });
+    if (refreshed.status === 200 || refreshed.status === 201) log("Buyer password refreshed", BUYER.email);
+    else log("Buyer exists", BUYER.email);
+  } else {
+    // try login to confirm
+    const login = await api("POST", "/api/auth", {
+      body: {
+        action: "login",
+        email: BUYER.email,
+        password: BUYER.password,
+        tenantSlug: TENANT,
+      },
+    });
+    if (login.status === 200) log("Buyer login ok", BUYER.email);
+    else warn("Buyer seed", `${reg.status} ${reg.json.error ?? ""} / login ${login.status}`);
+  }
+
+  // Ensure Sales customer profile linked
+  const buyerLogin = await api("POST", "/api/auth", {
+    body: {
+      action: "login",
+      email: BUYER.email,
+      password: BUYER.password,
+      tenantSlug: TENANT,
+    },
+  });
+  if (buyerLogin.status === 200 && buyerLogin.json.data) {
+    const bd = buyerLogin.json.data as {
+      accessToken: string;
+      tenant: { id: string };
+      user: { role: string };
+    };
+    const me = await api("POST", "/api/customers/me", {
+      token: bd.accessToken,
+      tenantId: bd.tenant.id,
+      role: bd.user.role,
+      body: { name: BUYER.name, email: BUYER.email, phone: BUYER.phone },
+    });
+    if (me.status === 200 || me.status === 201) log("Buyer Sales profile", "linked");
+    else warn("Buyer Sales profile", `${me.status} ${me.json.error ?? ""}`);
+  }
+}
+
 async function main() {
-  console.log(`\n=== Client demo seed @ ${BASE} tenant=${TENANT} ===\n`);
+  console.log(`\n=== Trustwood demo seed @ ${BASE} tenant=${TENANT} ===\n`);
 
   const login = await api("POST", "/api/auth", {
     body: { action: "login", email: ADMIN.email, password: ADMIN.password, tenantSlug: TENANT },
@@ -176,23 +312,32 @@ async function main() {
     tenant: { id: string };
     user: { role: string };
   };
-  const token = data.accessToken;
-  const tenantId = data.tenant.id;
-  const role = data.user.role ?? "ADMIN";
-  const auth = { token, tenantId, role };
-  log("Admin logged in", `${tenantId} role=${role}`);
+  const auth: Auth = {
+    token: data.accessToken,
+    tenantId: data.tenant.id,
+    role: data.user.role ?? "ADMIN",
+  };
+  log("Admin logged in", `${auth.tenantId} role=${auth.role}`);
 
-  // Users
-  const existingUsers = await api("GET", `/api/tenants/${tenantId}/users?limit=100`, auth);
+  const adminRefresh = await api("POST", `/api/tenants/${auth.tenantId}/users`, {
+    ...auth,
+    body: {
+      action: "create",
+      email: ADMIN.email,
+      name: "Admin",
+      password: ADMIN.password,
+      role: "ADMIN",
+    },
+  });
+  if (adminRefresh.status === 200 || adminRefresh.status === 201) log("Admin password confirmed");
+  else warn("Admin password refresh", `${adminRefresh.status} ${adminRefresh.json.error ?? ""}`);
+
+  // Staff users
+  const existingUsers = await api("GET", `/api/tenants/${auth.tenantId}/users?limit=100`, auth);
   const members = (existingUsers.json.data as { user?: { email: string }; role: string }[]) ?? [];
   const emails = new Set(members.map((m) => m.user?.email?.toLowerCase()).filter(Boolean));
-
   for (const u of DEMO_USERS) {
-    if (emails.has(u.email.toLowerCase())) {
-      log(`User exists`, `${u.email} (${u.role})`);
-      continue;
-    }
-    const created = await api("POST", `/api/tenants/${tenantId}/users`, {
+    const created = await api("POST", `/api/tenants/${auth.tenantId}/users`, {
       ...auth,
       body: {
         action: "create",
@@ -203,147 +348,258 @@ async function main() {
       },
     });
     if (created.status === 201 || created.status === 200) {
-      log(`Created user`, `${u.email} → ${u.role}`);
-    } else {
-      warn(`Create user ${u.email}`, `${created.status} ${created.json.error ?? ""}`);
+      log(emails.has(u.email.toLowerCase()) ? "User password refreshed" : "Created user", `${u.email} → ${u.role}`);
+    } else warn(`Create user ${u.email}`, `${created.status} ${created.json.error ?? ""}`);
+  }
+
+  // Plywood industry template
+  const tpl = await api("POST", "/api/attribute-templates", {
+    ...auth,
+    body: { templateId: "industry.plywood", createCategories: true },
+  });
+  if (tpl.status === 200 || tpl.status === 201) log("Applied industry.plywood template");
+  else warn("attribute-templates", `${tpl.status} ${tpl.json.error ?? ""}`);
+
+  const catsRes = await api("GET", "/api/products/categories?limit=50", auth);
+  const categories = (catsRes.json.data as { id: string; name: string }[]) ?? [];
+  const catByName = new Map(categories.map((c) => [c.name, c.id]));
+
+  // Fallback category list endpoint
+  if (!catByName.size) {
+    const alt = await api("GET", "/api/categories?limit=50", auth);
+    for (const c of (alt.json.data as { id: string; name: string }[]) ?? []) {
+      catByName.set(c.name, c.id);
     }
   }
 
-  // Industry template → categories + attrs
-  const tpl = await api("POST", "/api/attribute-templates", {
-    ...auth,
-
-    body: { templateId: "industry.plywood", createCategories: true },
-  });
-  if (tpl.status === 200 || tpl.status === 201) {
-    log("Applied industry.plywood template");
-  } else {
-    warn("attribute-templates", `${tpl.status} ${tpl.json.error ?? ""}`);
+  for (const name of ["Plywood", "Blockboard", "Laminates", "Phones", "Adhesives"]) {
+    await ensureCategory(auth, name, catByName);
   }
 
-  const catsRes = await api("GET", "/api/categories?limit=50", auth);
-  const categories = (catsRes.json.data as { id: string; name: string }[]) ?? [];
-  const catByName = new Map(categories.map((c) => [c.name, c.id]));
-  for (const name of ["Plywood", "Blockboard", "Laminates"]) {
-    if (!catByName.has(name)) warn(`Missing category`, name);
-    else log(`Category`, `${name}=${catByName.get(name)}`);
-  }
-
-  // Brands
   const brandsRes = await api("GET", "/api/brands?limit=50", auth);
   const brands = (brandsRes.json.data as { id: string; name: string }[]) ?? [];
   const brandByName = new Map(brands.map((b) => [b.name, b.id]));
-  for (const name of BRANDS) {
-    if (brandByName.has(name)) {
-      log(`Brand exists`, name);
-      continue;
-    }
-    const created = await api("POST", "/api/brands", {
-      ...auth,
-      body: { name },
-    });
-    const b = created.json.data as { id: string; name: string } | undefined;
-    if (b?.id) {
-      brandByName.set(b.name, b.id);
-      log(`Created brand`, name);
-    } else {
-      warn(`Brand ${name}`, `${created.status} ${created.json.error ?? ""}`);
-    }
+  for (const name of ["Trustwood", "Century", "Merino"]) {
+    await ensureBrand(auth, name, brandByName);
   }
 
-  // Ensure identity attrs for fingerprint duplicate detection (brand + isIdentity attrs)
-  const IDENTITY_KEYS = ["grade", "thickness_mm", "size"] as const;
-  const attrsRes = await api("GET", "/api/attribute-definitions", auth);
-  const attrDefs =
-    (attrsRes.json.data as { id: string; key: string; isIdentity?: boolean }[]) ?? [];
-  for (const key of IDENTITY_KEYS) {
-    const def = attrDefs.find((a) => a.key === key);
-    if (!def) {
-      warn(`Missing attribute`, key);
-      continue;
-    }
-    if (def.isIdentity) {
-      log(`Identity attr`, key);
-      continue;
-    }
-    const patched = await api("PATCH", `/api/attribute-definitions/${def.id}`, {
-      ...auth,
-      body: { isIdentity: true },
+  const plywoodId = catByName.get("Plywood");
+  const blockId = catByName.get("Blockboard");
+  const lamId = catByName.get("Laminates");
+  const phoneId = catByName.get("Phones");
+  const adhesiveId = catByName.get("Adhesives") ?? catByName.get("Plywood");
+  const twBrand = brandByName.get("Trustwood");
+  const centuryBrand = brandByName.get("Century") ?? twBrand;
+  const merinoBrand = brandByName.get("Merino") ?? twBrand;
+
+  // Identity attrs for wood + laminate finish + phone
+  for (const key of ["grade", "thickness_mm", "size"] as const) {
+    await ensureAttr(auth, {
+      key,
+      label: key,
+      dataType: "SELECT",
+      isIdentity: true,
     });
-    if (patched.status === 200) log(`Set isIdentity`, key);
-    else warn(`isIdentity ${key}`, `${patched.status} ${patched.json.error ?? ""}`);
   }
+  await ensureAttr(auth, {
+    key: "finish",
+    label: "Finish",
+    dataType: "SELECT",
+    options: ["Glossy", "Matt"],
+    isIdentity: true,
+    categoryIds: lamId ? [lamId] : undefined,
+  });
+  await ensureAttr(auth, {
+    key: "color",
+    label: "Color",
+    dataType: "SELECT",
+    options: ["Black", "Blue"],
+    isIdentity: true,
+    categoryIds: phoneId ? [phoneId] : undefined,
+  });
+  await ensureAttr(auth, {
+    key: "storage_gb",
+    label: "Storage",
+    dataType: "SELECT",
+    options: ["128", "256"],
+    isIdentity: true,
+    categoryIds: phoneId ? [phoneId] : undefined,
+  });
 
-  // Primary Platform v1.0 story: Multiple Products generate → SIMPLE SKUs
-  const plywoodCatId = catByName.get("Plywood");
-  const centuryBrandId = brandByName.get("Century");
-  let generatedCreated = 0;
-  let generatedSkipped = 0;
-  const generatedProductIds: { id: string; sku: string }[] = [];
+  const stockItems: { productId: string; quantity: number }[] = [];
+  let groupsCreated = 0;
+  let productsCreated = 0;
 
-  if (plywoodCatId && centuryBrandId) {
-    const gen = await api("POST", "/api/products", {
-      ...auth,
-      body: {
-        categoryId: plywoodCatId,
-        brandId: centuryBrandId,
-        axes: {
-          grade: ["BWP"],
-          thickness_mm: ["18"],
-          size: ["8x4", "7x3"],
+  // --- TRUSTWOOD-BWP (PER_AREA) — images by size ---
+  if (plywoodId && (twBrand || centuryBrand)) {
+    const sizeOrder = ["size"];
+    const r = await createGroup(auth, {
+      categoryId: plywoodId,
+      brandId: twBrand ?? centuryBrand,
+      axes: { grade: ["BWP"], thickness_mm: ["18"], size: ["8x4", "7x3"] },
+      skuTemplate: "TW-BWP-{thickness_mm}-{size}",
+      nameTemplate: "Trustwood BWP {thickness_mm}mm {size}",
+      productName: "Trustwood BWP Plywood",
+      groupCode: "TRUSTWOOD-BWP",
+      groupName: "Trustwood BWP Plywood",
+      pricingBasis: "PER_AREA",
+      pricingUom: "sq_ft",
+      baseRate: 85,
+      media: {
+        images: [MEDIA.plywood],
+        variation: {
+          type: "CONFIGURATION",
+          attributes: sizeOrder,
+          values: {
+            [buildVariationKey(sizeOrder, { size: "8x4" })]: [MEDIA.plywood],
+            [buildVariationKey(sizeOrder, { size: "7x3" })]: [MEDIA.timber],
+          },
         },
-        skuTemplate: "PLY-{brand}-{grade}-{thickness_mm}-{size}",
-        nameTemplate: "{brand} {grade} {thickness_mm}mm {size}",
-        productName: "Century BWP Plywood",
-        groupCode: "CENTURY-BWP",
-        groupName: "Century BWP Plywood",
-        pricingBasis: "PER_AREA",
-        pricingUom: "sq_ft",
-        baseRate: 85,
       },
     });
-    // Prefer engine façade when available; generate remains compat
-    // (seed historically used /api/products/generate — still valid)
-    const payload = gen.json.data as
-      | {
-          created?: { id: string; sku: string }[];
-          skipped?: { sku: string; existingSku?: string }[];
-          summary?: { createdCount?: number; skippedCount?: number; willCreate?: number; duplicates?: number };
-        }
-      | undefined;
-    generatedCreated = payload?.summary?.createdCount ?? payload?.created?.length ?? 0;
-    generatedSkipped = payload?.summary?.skippedCount ?? payload?.skipped?.length ?? 0;
-    for (const p of payload?.created ?? []) generatedProductIds.push({ id: p.id, sku: p.sku });
-    if (gen.status === 201 || gen.status === 200) {
-      log(
-        "POST /api/products (PRIMARY)",
-        `${generatedCreated} created, ${generatedSkipped} skipped (Century BWP plywood)`
-      );
-      for (const p of payload?.created ?? []) log(`  SIMPLE SKU`, p.sku);
-    } else {
-      warn(
-        "POST /api/products",
-        `${gen.status} ${gen.json.error ?? ""} ${JSON.stringify((gen.json as { issues?: unknown }).issues ?? "")}`
-      );
-    }
-
-    // Ensure existing Century BWP plywood SKUs share the customer catalog group
-    const groupPatch = await api("GET", "/api/products?search=BWP&limit=50", auth);
-    const bwpProducts = (groupPatch.json.data as { id: string; sku: string; groupCode?: string | null }[]) ?? [];
-    for (const p of bwpProducts) {
-      if (p.groupCode === "CENTURY-BWP") continue;
-      if (!/BWP/i.test(p.sku) && !/ply/i.test(p.sku)) continue;
-      const patched = await api("PATCH", `/api/products/${p.id}`, {
-        ...auth,
-        body: { groupCode: "CENTURY-BWP", groupName: "Century BWP Plywood" },
-      });
-      if (patched.status === 200) log(`groupCode set`, p.sku);
-    }
-  } else {
-    warn("products create skipped", "missing Plywood category or Century brand");
+    groupsCreated++;
+    productsCreated += r.created;
+    for (const p of r.ids) stockItems.push({ productId: p.id, quantity: /7x3/i.test(p.sku) ? 40 : 80 });
   }
 
-  // Warehouse
+  // --- TRUSTWOOD-BLOCKBOARD ---
+  if (blockId && (twBrand || centuryBrand)) {
+    const sizeOrder = ["size"];
+    const r = await createGroup(auth, {
+      categoryId: blockId,
+      brandId: twBrand ?? centuryBrand,
+      axes: { grade: ["BWR", "Commercial"], thickness_mm: ["18", "19"], size: ["8x4", "6x3"] },
+      skuTemplate: "TW-BLK-{grade}-{thickness_mm}-{size}",
+      nameTemplate: "Trustwood Blockboard {grade} {thickness_mm}mm {size}",
+      productName: "Trustwood Blockboard",
+      groupCode: "TRUSTWOOD-BLOCKBOARD",
+      groupName: "Trustwood Blockboard",
+      pricingBasis: "PER_AREA",
+      pricingUom: "sq_ft",
+      baseRate: 50,
+      media: {
+        images: [MEDIA.timber],
+        variation: {
+          type: "CONFIGURATION",
+          attributes: sizeOrder,
+          values: {
+            [buildVariationKey(sizeOrder, { size: "8x4" })]: [MEDIA.timber],
+            [buildVariationKey(sizeOrder, { size: "6x3" })]: [MEDIA.warehouse],
+          },
+        },
+      },
+    });
+    groupsCreated++;
+    productsCreated += r.created;
+    for (const p of r.ids) stockItems.push({ productId: p.id, quantity: 60 });
+  }
+
+  // --- TRUSTWOOD-LAMINATE — images by finish ---
+  if (lamId && (twBrand || merinoBrand)) {
+    const finishOrder = ["finish"];
+    const r = await createGroup(auth, {
+      categoryId: lamId,
+      brandId: twBrand ?? merinoBrand,
+      axes: { finish: ["Glossy", "Matt"], thickness_mm: ["1"], size: ["8x4"] },
+      skuTemplate: "TW-LAM-{finish}-{thickness_mm}-{size}",
+      nameTemplate: "Trustwood Laminate {finish} {thickness_mm}mm {size}",
+      productName: "Trustwood Laminates",
+      groupCode: "TRUSTWOOD-LAMINATE",
+      groupName: "Trustwood Laminates",
+      pricingBasis: "PER_AREA",
+      pricingUom: "sq_ft",
+      baseRate: 12,
+      media: {
+        images: [MEDIA.laminate],
+        variation: {
+          type: "CONFIGURATION",
+          attributes: finishOrder,
+          values: {
+            [buildVariationKey(finishOrder, { finish: "Glossy" })]: [MEDIA.laminate],
+            [buildVariationKey(finishOrder, { finish: "Matt" })]: [MEDIA.hero],
+          },
+        },
+      },
+    });
+    groupsCreated++;
+    productsCreated += r.created;
+    for (const p of r.ids) stockItems.push({ productId: p.id, quantity: 200 });
+  }
+
+  // --- TRUSTWOOD-PHONE — PER_EACH, images by color ---
+  if (phoneId && twBrand) {
+    const colorOrder = ["color"];
+    const r = await createGroup(auth, {
+      categoryId: phoneId,
+      brandId: twBrand,
+      axes: { color: ["Black", "Blue"], storage_gb: ["128", "256"] },
+      skuTemplate: "TW-PHONE-{color}-{storage_gb}",
+      nameTemplate: "Trustwood Phone {color} {storage_gb}GB",
+      productName: "Trustwood Phone",
+      groupCode: "TRUSTWOOD-PHONE",
+      groupName: "Trustwood Phone",
+      pricingBasis: "PER_EACH",
+      sellPrice: 49999,
+      baseRate: 49999,
+      pricingPolicy: {
+        type: "CONFIGURATION",
+        attribute: "storage_gb",
+        values: { "128": 49999, "256": 59999 },
+      },
+      media: {
+        images: [MEDIA.warehouse],
+        variation: {
+          type: "CONFIGURATION",
+          attributes: colorOrder,
+          values: {
+            [buildVariationKey(colorOrder, { color: "Black" })]: [MEDIA.warehouse],
+            [buildVariationKey(colorOrder, { color: "Blue" })]: [MEDIA.hero],
+          },
+        },
+      },
+    });
+    groupsCreated++;
+    productsCreated += r.created;
+    for (const p of r.ids) stockItems.push({ productId: p.id, quantity: 25 });
+  }
+
+  // --- Simple Adhesive (no axes) ---
+  if (adhesiveId && twBrand) {
+    const list = await api("GET", "/api/products?search=TW-ADH-1L&limit=5", auth);
+    const existing = ((list.json.data as { id: string; sku: string }[]) ?? []).find(
+      (p) => p.sku === "TW-ADH-1L"
+    );
+    if (existing) {
+      log("Adhesive exists", "TW-ADH-1L");
+      stockItems.push({ productId: existing.id, quantity: 100 });
+    } else {
+      const created = await api("POST", "/api/products", {
+        ...auth,
+        body: {
+          sku: "TW-ADH-1L",
+          name: "Trustwood Adhesive 1L",
+          categoryId: adhesiveId,
+          brandId: twBrand,
+          unit: "pcs",
+          pricingBasis: "PER_EACH",
+          sellPrice: 350,
+          costPrice: 220,
+          imageUrls: [MEDIA.warehouse],
+          reorderLevel: 10,
+        },
+      });
+      const id = (created.json.data as { id: string } | undefined)?.id;
+      if (id) {
+        log("Created Adhesive", "TW-ADH-1L");
+        productsCreated++;
+        stockItems.push({ productId: id, quantity: 100 });
+      } else {
+        warn("Adhesive", `${created.status} ${created.json.error ?? ""}`);
+      }
+    }
+  }
+
+  // Warehouse + stock
   let warehouseId: string | undefined;
   const whRes = await api("GET", "/api/warehouses?limit=20", auth);
   const warehouses = (whRes.json.data as { id: string; name: string }[]) ?? [];
@@ -354,209 +610,48 @@ async function main() {
       body: { name: "Main Warehouse", location: "Demo Yard" },
     });
     warehouseId = (created.json.data as { id: string } | undefined)?.id;
-    if (warehouseId) log("Created warehouse", warehouseId);
-    else throw new Error(`Warehouse create failed: ${created.status} ${created.json.error}`);
-  } else {
-    log("Warehouse", `${warehouses[0].name}=${warehouseId}`);
+  }
+  if (!warehouseId) throw new Error("No warehouse");
+  log("Warehouse", warehouseId);
+
+  // Soft-deleted demo SKUs block re-create (409) — reactivate instead
+  const reactivated = await reactivateDemoSkus(auth, warehouseId);
+  if (reactivated > 0) productsCreated += reactivated;
+
+  await receiveStock(auth, warehouseId, stockItems);
+
+  // For skipped SKUs (re-seed), still stock by group search
+  const all = await api("GET", "/api/products?limit=200", auth);
+  const allProducts = (all.json.data as { id: string; sku: string; groupCode?: string }[]) ?? [];
+  const needStock = allProducts.filter(
+    (p) =>
+      p.groupCode?.startsWith("TRUSTWOOD-") ||
+      p.sku === "TW-ADH-1L"
+  );
+  if (needStock.length && stockItems.length === 0) {
+    await receiveStock(
+      auth,
+      warehouseId,
+      needStock.map((p) => ({ productId: p.id, quantity: 50 }))
+    );
   }
 
-  // Products + stock (legacy multi-brand flat catalog; Century BWP sizes come from generate above)
-  const prodList = await api("GET", "/api/products?limit=100", auth);
-  const existingProducts = (prodList.json.data as { id: string; sku: string }[]) ?? [];
-  const bySku = new Map(existingProducts.map((p) => [p.sku, p.id]));
+  await seedBuyer(auth);
 
-  const receiveItems: { productId: string; warehouseId: string; quantity: number }[] = [];
-
-  for (const p of generatedProductIds) {
-    bySku.set(p.sku, p.id);
-  }
-  // Stock generated Century BWP SIMPLE SKUs (created this run or already present)
-  const generatedSkus = new Set(generatedProductIds.map((p) => p.sku));
-  for (const p of existingProducts) {
-    if (/^PLY-C-BWP-18-(8X4|7X3)$/i.test(p.sku)) generatedSkus.add(p.sku);
-  }
-  for (const sku of generatedSkus) {
-    const productId = bySku.get(sku);
-    if (!productId) continue;
-    receiveItems.push({
-      productId,
-      warehouseId: warehouseId!,
-      quantity: /7X3/i.test(sku) ? 40 : 80,
-    });
-  }
-
-  for (const spec of PRODUCTS) {
-    const categoryId = catByName.get(spec.category);
-    const brandId = brandByName.get(spec.brand);
-    if (!categoryId || !brandId) {
-      warn(`Skip ${spec.sku}`, `missing category=${spec.category} or brand=${spec.brand}`);
-      continue;
-    }
-
-    let productId = bySku.get(spec.sku);
-    const pricing = pricingFields(spec);
-    if (!productId) {
-      const created = await api("POST", "/api/products", {
-        ...auth,
-        body: {
-          sku: spec.sku,
-          name: spec.name,
-          unit: "pcs",
-          categoryId,
-          brandId,
-          costPrice: spec.costPrice,
-          sellPrice: spec.sellPrice,
-          ...pricing,
-          reorderLevel: 10,
-          hsnCode: spec.category === "Laminates" ? "4823" : "4412",
-          customAttributes: spec.customAttributes,
-        },
-      });
-      productId = (created.json.data as { id: string } | undefined)?.id;
-      if (!productId) {
-        warn(`Product ${spec.sku}`, `${created.status} ${created.json.error ?? ""}`);
-        continue;
-      }
-      log(`Created product`, `${spec.sku} [${spec.category}] ${pricing.pricingBasis}`);
-    } else {
-      await api("PATCH", `/api/products/${productId}`, {
-        ...auth,
-        body: { sellPrice: spec.sellPrice, ...pricing },
-      });
-      log(`Product exists (pricing refreshed)`, spec.sku);
-    }
-
-    receiveItems.push({ productId, warehouseId: warehouseId!, quantity: spec.qty });
-  }
-
-  // Optional retail demo: VARIANT family (secondary to SIMPLE generate above)
-  const familySku = "PLY-BWP-18-FAMILY";
-  let familyId = bySku.get(familySku);
-  const plywoodCat = catByName.get("Plywood");
-  const centuryId = brandByName.get("Century");
-  if (plywoodCat && centuryId) {
-    if (!familyId) {
-      const created = await api("POST", "/api/products", {
-        ...auth,
-        body: {
-          sku: familySku,
-          name: "BWP Plywood 18 mm",
-          unit: "pcs",
-          categoryId: plywoodCat,
-          brandId: centuryId,
-          costPrice: null,
-          sellPrice: null,
-          pricingBasis: "PER_AREA",
-          pricingUom: "sq_ft",
-          baseRate: 50,
-          productStructure: "VARIANT",
-          variantAxes: ["size"],
-          reorderLevel: 10,
-          hsnCode: "4412",
-          customAttributes: { thickness_mm: 18, grade: "BWP" },
-        },
-      });
-      familyId = (created.json.data as { id: string } | undefined)?.id;
-      if (familyId) log("Created VARIANT family", familySku);
-      else warn("VARIANT family", `${created.status} ${created.json.error ?? ""}`);
-    } else {
-      await api("PATCH", `/api/products/${familyId}`, {
-        ...auth,
-        body: {
-          productStructure: "VARIANT",
-          variantAxes: ["size"],
-          pricingBasis: "PER_AREA",
-          pricingUom: "sq_ft",
-          baseRate: 50,
-          sellPrice: null,
-        },
-      });
-      log("VARIANT family exists", familySku);
-    }
-
-    if (familyId) {
-      const gen = await api("POST", `/api/products/${familyId}/variants`, {
-        ...auth,
-        body: {
-          generate: true,
-          axes: { size: ["8x4", "7x3"] },
-          costPrice: 1400,
-        },
-      });
-      const variants =
-        (gen.json.data as { id: string; sku: string; attributes?: { size?: string } }[]) ?? [];
-      if (variants.length) {
-        log("Generated variants", variants.map((v) => v.sku).join(", "));
-        const variantReceive = variants.map((v) => ({
-          productId: familyId!,
-          warehouseId: warehouseId!,
-          variantId: v.id,
-          quantity: v.attributes?.size === "7x3" ? 40 : 80,
-        }));
-        const recvV = await api("POST", "/api/stock/receive", {
-          ...auth,
-          body: {
-            items: variantReceive,
-            reference: `DEMO-VARIANT-${Date.now()}`,
-            notes: "Variant opening stock",
-          },
-        });
-        if (recvV.status === 201 || recvV.status === 200) {
-          log("Received variant stock", `${variantReceive.length} variants`);
-        } else {
-          warn("variant stock/receive", `${recvV.status} ${recvV.json.error ?? ""}`);
-        }
-      } else {
-        warn("variant generate", `${gen.status} ${gen.json.error ?? ""}`);
-      }
-    }
-  }
-
-  if (receiveItems.length) {
-    const recv = await api("POST", "/api/stock/receive", {
-      ...auth,
-      body: {
-        items: receiveItems,
-        reference: `DEMO-SEED-${Date.now()}`,
-        notes: "Client demo opening stock",
-      },
-    });
-    if (recv.status === 201 || recv.status === 200) {
-      log("Received stock", `${receiveItems.length} SKUs`);
-    } else {
-      warn("stock/receive", `${recv.status} ${recv.json.error ?? ""}`);
-    }
-  }
-
-  // Workflow + forms
-  const formsSeed = await api("POST", "/api/workflow-forms", {
+  // Workflow
+  await api("POST", "/api/workflow-forms", { ...auth, body: { action: "seed" } });
+  await api("POST", "/api/workflow-templates", { ...auth, body: { action: "seed" } });
+  await api("POST", "/api/order-workflows", {
     ...auth,
-
-    body: { action: "seed" },
-  });
-  log("Forms seed", `${formsSeed.status}`);
-
-  const wfSeed = await api("POST", "/api/workflow-templates", {
-    ...auth,
-
-    body: { action: "seed" },
-  });
-  log("Workflow templates seed", `${wfSeed.status}`);
-
-  const bind = await api("POST", "/api/order-workflows", {
-    ...auth,
-
     body: { templateId: "workflow.oms_trading", setDefault: true },
   });
-  log("OMS trading binding", `${bind.status}`);
+  log("Workflow + forms seeded");
 
-  console.log(`\n=== Demo seed complete ===`);
-  console.log(`Admin:  ${BASE}  (tenant ${TENANT})`);
-  console.log(
-    `PRIMARY: POST /api/products → ${generatedCreated} created, ${generatedSkipped} skipped (Century BWP plywood)`
-  );
-  console.log(`Also: ${PRODUCTS.length} legacy flat SKUs + optional VARIANT family`);
-  console.log(`See docs/DEMO-WALKTHROUGH.md for the client click-path.\n`);
+  console.log(`\n--- seed summary ---`);
+  console.log(`Groups touched:   ${groupsCreated}`);
+  console.log(`Products created: ${productsCreated} (plus skips if re-run)`);
+  console.log(`Buyer:            ${BUYER.email} / ${BUYER.password}`);
+  console.log(`Done.\n`);
 }
 
 main().catch((e) => {

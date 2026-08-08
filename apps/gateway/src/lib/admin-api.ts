@@ -57,7 +57,10 @@ export function clearAuth() {
   localStorage.removeItem("admin_user");
 }
 
-export async function api(path: string, options: RequestInit = {}) {
+export async function api<T = any>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
   const isForm = typeof FormData !== "undefined" && options.body instanceof FormData;
   const res = await fetch(`${BASE}${path}`, {
     ...options,
@@ -80,5 +83,38 @@ export async function api(path: string, options: RequestInit = {}) {
     err.status = res.status;
     throw err;
   }
-  return json;
+  return json as T;
+}
+
+/** Fetch a private file (PDF) with auth and open/download — plain href gets 401. */
+export async function openAuthenticatedDocument(path: string, fileName = "document.pdf") {
+  const res = await fetch(`${BASE}${path}`, {
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+      "x-tenant-id": getTenantId(),
+    },
+  });
+  if (!res.ok) {
+    let msg = `Download failed (${res.status})`;
+    try {
+      const j = (await res.json()) as { error?: string };
+      if (j.error) msg = j.error;
+    } catch {
+      /* binary error body */
+    }
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.target = "_blank";
+  a.rel = "noreferrer";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // Keep blob URL briefly so a new tab can load it; revoke after.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  return url;
 }

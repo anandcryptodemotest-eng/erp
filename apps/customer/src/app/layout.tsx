@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { CSSProperties } from "react";
 import { Fraunces, Outfit } from "next/font/google";
 import { PwaRegister } from "@/components/PwaRegister";
+import { TenantBrandingProvider } from "@/components/TenantBrandingProvider";
 import "./globals.css";
 
 const display = Fraunces({
@@ -16,11 +17,14 @@ const body = Outfit({
   display: "swap",
 });
 
+const titleFallback =
+  process.env.NEXT_PUBLIC_TENANT_NAME?.trim() || "Customer Portal";
+
 export const metadata: Metadata = {
-  title: "Trust Wood",
-  description: "Order plywood, timber and building materials — track every stage",
+  title: titleFallback,
+  description: "Order materials — track every stage",
   manifest: "/manifest.json",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "Trust Wood" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: titleFallback },
   icons: {
     icon: [
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
@@ -34,7 +38,6 @@ export const viewport: Viewport = {
   themeColor: "#1e3d32",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -49,10 +52,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${display.variable} ${body.variable}`}
       data-scroll-behavior="smooth"
       data-theme="trustwood"
-      data-density="comfortable"
+      data-density="dense"
     >
       <body className="min-h-screen antialiased" style={fontVars}>
-        {children}
+        <TenantBrandingProvider>{children}</TenantBrandingProvider>
         <PwaRegister />
       </body>
     </html>

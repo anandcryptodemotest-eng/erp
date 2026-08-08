@@ -18,6 +18,7 @@ export async function PATCH(request: Request, { params }: Params) {
   if (!auth) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
 
   const { id, uid } = await params;
+  if (auth.tenantId !== id) return NextResponse.json({ error: "Tenant access denied" }, { status: 403 });
 
   const caller = await prisma.tenantUser.findUnique({
     where: { tenantId_userId: { tenantId: id, userId: auth.userId } },
@@ -85,6 +86,7 @@ export async function DELETE(request: Request, { params }: Params) {
   if (!auth) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
 
   const { id, uid } = await params;
+  if (auth.tenantId !== id) return NextResponse.json({ error: "Tenant access denied" }, { status: 403 });
 
   const caller = await prisma.tenantUser.findUnique({
     where: { tenantId_userId: { tenantId: id, userId: auth.userId } },

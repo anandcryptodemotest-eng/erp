@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+
+const reportQuerySchema = z.object({
+  from: z.string().datetime({ offset: true }).optional(),
+  to: z.string().datetime({ offset: true }).optional(),
+  executiveId: z.string().min(1).max(100).optional(),
+});
+
+const MAX_REPORT_WINDOW_MS = 366 * 24 * 60 * 60 * 1000;
+const MAX_DELIVERED_ROWS = 10_000;
+const MAX_UNPAID_EXECUTIVES = 100;
 
 // GET /api/reports
 // Query params: from, to (ISO dates), executiveId (optional)
@@ -8,11 +19,20 @@ export async function GET(request: NextRequest) {
   if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
 
   const url = new URL(request.url);
-  const fromParam = url.searchParams.get("from");
-  const toParam = url.searchParams.get("to");
-  const executiveId = url.searchParams.get("executiveId") ?? undefined;
-  const from = fromParam ? new Date(fromParam) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const to = toParam ? new Date(toParam) : new Date();
+  const query = reportQuerySchema.safeParse({
+    from: url.searchParams.get("from") ?? undefined,
+    to: url.searchParams.get("to") ?? undefined,
+    executiveId: url.searchParams.get("executiveId") ?? undefined,
+  });
+  if (!query.success) return NextResponse.json({ error: query.error.errors[0].message }, { status: 400 });
+
+  const { executiveId } = query.data;
+  const from = query.data.from ? new Date(query.data.from) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const to = query.data.to ? new Date(query.data.to) : new Date();
+  if (from > to) return NextResponse.json({ error: "from must be before to" }, { status: 400 });
+  if (to.getTime() - from.getTime() > MAX_REPORT_WINDOW_MS) {
+    return NextResponse.json({ error: "Report range cannot exceed 366 days" }, { status: 400 });
+  }
 
   const assignmentWhere = {
     tenantId,
@@ -50,7 +70,11 @@ export async function GET(request: NextRequest) {
   const delivered = await prisma.deliveryAssignment.findMany({
     where: { ...assignmentWhere, status: "DELIVERED", pickedUpAt: { not: null }, deliveredAt: { not: null } },
     select: { pickedUpAt: true, deliveredAt: true },
+    take: MAX_DELIVERED_ROWS + 1,
   });
+  if (delivered.length > MAX_DELIVERED_ROWS) {
+    return NextResponse.json({ error: "Report contains too many deliveries; narrow the date range" }, { status: 400 });
+  }
 
   let avgDeliveryMinutes = 0;
   if (delivered.length > 0) {
@@ -86,7 +110,8 @@ export async function GET(request: NextRequest) {
       },
       byStatus,
       topExecutives,
-      unpaidEarnings,
+      unpaidEarnings: unpaidEarnings.slice(0, MAX_UNPAID_EXECUTIVES),
+      limits: { unpaidExecutives: MAX_UNPAID_EXECUTIVES },
     },
   });
 }

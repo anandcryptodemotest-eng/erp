@@ -12,14 +12,14 @@ import {
   DetailPanel,
   EmptyState,
   Input,
-  PageHeader,
   QueuePanel,
   StatusBadge,
   WorkspaceBottomBar,
+  WorkspaceHero,
   WorkspaceLayout,
   useToast,
 } from "@erp/ui";
-import { api, getAdminUser } from "@/lib/admin-api";
+import { api, getAdminUser, getTenantId, openAuthenticatedDocument } from "@/lib/admin-api";
 import {
   buildLinePricingMeta,
   fetchPricingQuote,
@@ -138,6 +138,13 @@ interface OrderDetails extends OrderSummary {
     ui?: StepUi;
   }[];
   modifications?: { action: string; remarks?: string; createdAt: string }[];
+  fulfillmentMode?: string | null;
+  carrier?: string | null;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+  porterBookingStatus?: string | null;
+  vehicleInfo?: string | null;
+  assignedDriverId?: string | null;
   runtimePath?: "v5";
   workflowRuntime?: {
     id: string;
@@ -292,7 +299,13 @@ function formatMoney(n: number | null | undefined): string {
 
 /* ─── Page ──────────────────────────────────────────────────────────────── */
 
-export function SalesDeskWorkspace() {
+export function SalesDeskWorkspace({
+  initialSreqId,
+  initialSalesOrderId,
+}: {
+  initialSreqId?: string | null;
+  initialSalesOrderId?: string | null;
+} = {}) {
   const toast = useToast();
   const adminUser = getAdminUser();
   const currentRole = adminUser?.role ?? "ADMIN";
@@ -336,6 +349,12 @@ export function SalesDeskWorkspace() {
   const [selected, setSelected] = useState<OrderDetails | null>(null);
   // Generic step-field inputs: key = "fieldKey" (order scope) or "fieldKey:itemId" (per-item)
   const [stepInputs, setStepInputs] = useState<Record<string, string>>({});
+  /** Host-hydrated documents for task screens (invoice PDF, etc.). */
+  const [taskDocuments, setTaskDocuments] = useState<
+    Record<string, { id?: string; number?: string; pdfUrl?: string; status?: string }>
+  >({});
+  const [porterEnabled, setPorterEnabled] = useState(true);
+  const [porterBookUrl, setPorterBookUrl] = useState("https://porter.in/");
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   /** Sync lock — React state alone cannot block double-clicks before re-render */
   const convertingRef = useRef(false);
@@ -467,8 +486,30 @@ export function SalesDeskWorkspace() {
   }
 
   useEffect(() => {
-    loadAll();
+    void (async () => {
+      await loadAll();
+      if (initialSreqId) {
+        setDeskTab("sreq");
+        await openSreq(initialSreqId);
+      } else if (initialSalesOrderId) {
+        setDeskTab("inflight");
+        await openOrder(initialSalesOrderId);
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const tenantId = getTenantId();
+    if (!tenantId) return;
+    void api(`/api/tenants/${tenantId}/settings`)
+      .then((r) => {
+        const settings = (r.data ?? {}) as Record<string, string>;
+        if (settings["logistics.porter.enabled"] === "false") setPorterEnabled(false);
+        const url = settings["logistics.porter.bookUrl"]?.trim();
+        if (url) setPorterBookUrl(url);
+      })
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -637,6 +678,43 @@ export function SalesDeskWorkspace() {
         inputs[`availableQty:${item.id}`] = String(item.availableQty ?? item.quantity);
         inputs[`purchasePrice:${item.id}`] = String(item.purchasePrice ?? "");
         inputs[`unitPrice:${item.id}`] = String(item.unitPrice ?? "");
+      }
+      inputs.fulfillmentMode = order.fulfillmentMode || "own_fleet";
+      inputs.porterBookingStatus = order.porterBookingStatus || "NOT_BOOKED";
+      inputs.carrier = order.carrier || "";
+      inputs.trackingNumber = order.trackingNumber || "";
+      inputs.trackingUrl = order.trackingUrl || "";
+      inputs.vehicleInfo = order.vehicleInfo || "";
+      inputs.assignedDriverId = order.assignedDriverId || "";
+      // Hydrate linked invoice into TaskContext.documents + fieldValues mirror
+      try {
+        const invRes = await api(
+          `/api/invoices?sourceRef=${encodeURIComponent(orderId)}&type=RECEIVABLE&limit=1`
+        );
+        const rows = (invRes.data ?? []) as Array<{
+          id?: string;
+          number?: string;
+          pdfUrl?: string | null;
+          status?: string;
+        }>;
+        const inv = Array.isArray(rows) ? rows[0] : undefined;
+        if (inv?.id) {
+          setTaskDocuments({
+            invoice: {
+              id: inv.id,
+              number: inv.number,
+              pdfUrl: inv.pdfUrl ?? undefined,
+              status: inv.status,
+            },
+          });
+          if (inv.pdfUrl) inputs.invoicePdfUrl = inv.pdfUrl;
+          inputs.invoiceId = inv.id;
+          if (inv.number) inputs.invoiceNumber = inv.number;
+        } else {
+          setTaskDocuments({});
+        }
+      } catch {
+        setTaskDocuments({});
       }
       setStepInputs(inputs);
       hydrateReviewForm(order);
@@ -1217,6 +1295,7 @@ export function SalesDeskWorkspace() {
   );
 
   const customerSummary = selectedSreq?.customerSummary;
+  const detailOpen = deskTab === "sreq" ? Boolean(selectedSreq) : Boolean(selected);
   const listLoadingLabel =
     deskTab === "sreq"
       ? `${sreqs.length} open`
@@ -1227,15 +1306,17 @@ export function SalesDeskWorkspace() {
           : `${workOrders.length} order${workOrders.length === 1 ? "" : "s"}`;
 
   return (
-    <div className="mx-auto max-w-7xl bg-[var(--canvas)] px-6 pb-6 pt-4">
-      <PageHeader
-        title="Sales Desk"
-        breadcrumb={[{ label: "Home", href: "/dashboard" }, { label: "Sales Desk" }]}
-        primaryAction={undefined}
-        secondaryActions={undefined}
+    <div className="ws-page">
+      <WorkspaceHero
+        eyebrow="Trading operations"
+        title="Order Desk"
+        description="Process sales requests, complete your tasks, and move orders through fulfillment."
+        actions={
+          <a href="/admin/dashboard" className="ws-btn">
+            ← Dashboard
+          </a>
+        }
       />
-
-      <p className="mb-4 mt-1 text-sm text-[var(--ink-soft)]">Trading Operations</p>
 
       <StageRail
         className="mb-6"
@@ -1312,6 +1393,11 @@ export function SalesDeskWorkspace() {
 
 
       <WorkspaceLayout
+        detailOpen={detailOpen}
+        onMobileBack={() => {
+          setSelected(null);
+          setSelectedSreq(null);
+        }}
         queue={
           <QueuePanel
             className="max-h-[72vh]"
@@ -1809,8 +1895,18 @@ export function SalesDeskWorkspace() {
                         );
                       })}
                     </ol>
-                    {(dispatchTask || deliverTask) && (
+                    {(dispatchTask || deliverTask || selected.trackingUrl || selected.fulfillmentMode) && (
                       <div className="flex flex-wrap gap-4 text-xs text-[var(--ink-soft)] pt-1 border-t border-[var(--line)]">
+                        {selected.fulfillmentMode === "porter" ? (
+                          <span>
+                            <span className="font-medium text-[var(--ink-soft)]">Carrier</span> Porter
+                            {selected.porterBookingStatus ? ` · ${selected.porterBookingStatus.replaceAll("_", " ")}` : ""}
+                          </span>
+                        ) : selected.vehicleInfo ? (
+                          <span>
+                            <span className="font-medium text-[var(--ink-soft)]">Vehicle</span> {selected.vehicleInfo}
+                          </span>
+                        ) : null}
                         {dispatchTask && (
                           <span>
                             <span className="font-medium text-[var(--ink-soft)]">Dispatched</span>{" "}
@@ -1823,6 +1919,21 @@ export function SalesDeskWorkspace() {
                             {deliverTask.completedAt ? new Date(deliverTask.completedAt).toLocaleString() : "—"}
                           </span>
                         )}
+                        {selected.trackingUrl ? (
+                          <a
+                            href={selected.trackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium text-[var(--brand)] underline"
+                          >
+                            Track shipment
+                          </a>
+                        ) : selected.trackingNumber ? (
+                          <span>
+                            <span className="font-medium text-[var(--ink-soft)]">Tracking</span>{" "}
+                            {selected.trackingNumber}
+                          </span>
+                        ) : null}
                       </div>
                     )}
                   </div>
@@ -1891,7 +2002,11 @@ export function SalesDeskWorkspace() {
                         .map(
                           (t) =>
                             `${t.title.replace(/^Complete\s+/i, "")} (${
-                              t.status === "COMPLETED" ? "done" : "pending"
+                              t.status === "COMPLETED"
+                                ? "done"
+                                : t.status === "SKIPPED"
+                                  ? "skipped"
+                                  : "pending"
                             })`
                         )
                         .join(" · ")}
@@ -2009,11 +2124,13 @@ export function SalesDeskWorkspace() {
                         action={act.action}
                         label={act.label}
                         ui={ui}
+                        variables={{ porterEnabled, porterBookUrl }}
                         order={selected as unknown as Record<string, unknown>}
                         customer={selected.customer}
                         items={items}
                         canComplete={!actionBusy}
                         fieldValues={fieldValues}
+                        documents={taskDocuments}
                         setFieldValue={(key, value, itemId) => {
                           if (key === "remarks") {
                             setReviewRemarks(value);
@@ -2083,6 +2200,66 @@ export function SalesDeskWorkspace() {
                           addComment: async (body) => {
                             setStepInput("commentsAppend", body);
                           },
+                          openDocument: async (url, fileName) => {
+                            await openAuthenticatedDocument(url, fileName ?? "invoice.pdf");
+                          },
+                          invokeDomainCommand: async (args) => {
+                            if (args.command !== "accounting.generateInvoice") {
+                              return { ok: false, error: `Unknown command: ${args.command}` };
+                            }
+                            const orderId = String(selected.id ?? "");
+                            if (!orderId) return { ok: false, error: "No sales order" };
+                            try {
+                              const r = await api("/api/invoices/generate", {
+                                method: "POST",
+                                body: JSON.stringify({
+                                  salesOrderId: orderId,
+                                  documentRef: args.documentRef ?? {
+                                    type: "DOCUMENT",
+                                    id: "tax-invoice",
+                                    version: 1,
+                                  },
+                                  issue: true,
+                                  force: Boolean(args.force),
+                                  payloadBuilder: args.payloadBuilder ?? "accounting.invoice",
+                                  payloadOverrides: args.payloadOverrides,
+                                  formValues: stepInputs,
+                                }),
+                              });
+                              const data = (r.data ?? r) as {
+                                invoice?: { id?: string; number?: string; pdfUrl?: string; status?: string };
+                                pdfUrl?: string;
+                              };
+                              const pdfUrl = data.pdfUrl ?? data.invoice?.pdfUrl;
+                              const invoiceId = data.invoice?.id;
+                              const invoiceNumber = data.invoice?.number;
+                              if (invoiceId) {
+                                setTaskDocuments({
+                                  invoice: {
+                                    id: invoiceId,
+                                    number: invoiceNumber,
+                                    pdfUrl: pdfUrl ?? undefined,
+                                    status: data.invoice?.status,
+                                  },
+                                });
+                              }
+                              if (pdfUrl) setStepInput("invoicePdfUrl", pdfUrl);
+                              if (invoiceId) setStepInput("invoiceId", invoiceId);
+                              if (invoiceNumber) setStepInput("invoiceNumber", invoiceNumber);
+                              return {
+                                ok: true,
+                                invoiceId,
+                                invoiceNumber,
+                                pdfUrl,
+                                data: data as Record<string, unknown>,
+                              };
+                            } catch (e) {
+                              return {
+                                ok: false,
+                                error: e instanceof Error ? e.message : "Generate failed",
+                              };
+                            }
+                          },
                         }}
                         onComplete={(payload) => void runAction(act.action, act.uiPanel, ui, payload)}
                         lineEditor={
@@ -2112,11 +2289,13 @@ export function SalesDeskWorkspace() {
                 {myVisibleActions.length === 0 && (
                   <div className="rounded-lg border border-[var(--line)] bg-[var(--mist)] p-4 text-sm text-[var(--ink-soft)] space-y-1">
                     <p>Your steps on this order are complete.</p>
-                    {otherPrepTasks.some((t) => t.status !== "COMPLETED") ? (
+                    {otherPrepTasks.some(
+                      (t) => t.status !== "COMPLETED" && t.status !== "SKIPPED"
+                    ) ? (
                       <p className="text-xs text-[var(--danger)]">
                         Order stays in prep until other teams finish:{" "}
                         {otherPrepTasks
-                          .filter((t) => t.status !== "COMPLETED")
+                          .filter((t) => t.status !== "COMPLETED" && t.status !== "SKIPPED")
                           .map((t) => t.title)
                           .join(", ")}
                         . Then dispatch can start.

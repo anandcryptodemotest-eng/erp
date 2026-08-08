@@ -1,0 +1,31 @@
+[Unit]
+Description=ERP %i application
+Documentation=https://github.com/erp
+After=network-online.target postgresql.service
+Wants=network-online.target
+StartLimitIntervalSec=60s
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=erp
+Group=erp
+WorkingDirectory=/home/erp
+EnvironmentFile=/etc/erp/%i.env
+ExecStart=/usr/local/bin/pnpm --filter $ERP_PACKAGE start
+ExecStartPost=/usr/bin/bash -c 'for attempt in $(seq 1 30); do /usr/bin/curl --fail --silent --show-error --max-time 2 "$ERP_HEALTH_URL" >/dev/null && exit 0; /usr/bin/sleep 1; done; exit 1'
+Restart=always
+RestartSec=5s
+TimeoutStartSec=45s
+TimeoutStopSec=30s
+KillSignal=SIGTERM
+SyslogIdentifier=erp-%i
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+ProtectSystem=strict
+ReadWritePaths=/home/erp/apps/%i/.next
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+
+[Install]
+WantedBy=erp-app.target

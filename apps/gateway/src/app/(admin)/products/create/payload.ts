@@ -101,6 +101,17 @@ export function buildCreatePayload(values: CreateProductForm) {
     media = { images: defaultImages };
   }
 
+  // GST: only send when author entered a rate or tax code. Empty → 0% at order time.
+  const taxCode = values.taxCode?.trim() || undefined;
+  const hsnCode = values.hsnCode?.trim() || undefined;
+  let taxRate: number | undefined;
+  const pctRaw = values.taxRatePercent?.trim() ?? "";
+  if (pctRaw !== "" && Number.isFinite(Number(pctRaw))) {
+    const n = Number(pctRaw);
+    // Allow "18" (percent) or "0.18" (fraction)
+    taxRate = n > 1 ? n / 100 : n;
+  }
+
   return {
     categoryId: values.categoryId,
     brandId: values.brandId || null,
@@ -121,5 +132,8 @@ export function buildCreatePayload(values: CreateProductForm) {
     baseRate: base,
     sellPrice: values.pricingBasis === "PER_EACH" ? base : null,
     pricingPolicy,
+    ...(taxRate !== undefined ? { taxRate } : {}),
+    ...(taxCode ? { taxCode } : {}),
+    ...(hsnCode ? { hsnCode } : {}),
   };
 }

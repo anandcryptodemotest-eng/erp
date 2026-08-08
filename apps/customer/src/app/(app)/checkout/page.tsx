@@ -3,9 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FormDefinition } from "@erp/workflow";
-import { Button, CartSummary, Container, PriceDisplay, SectionHeader, Skeleton } from "@erp/ui";
+import { BillSummary, Button, Container, PriceDisplay, SectionHeader, Skeleton } from "@erp/ui";
+import { AddressForm } from "@/components/AddressForm";
 import { api } from "@/lib/api-client";
-import { getCart, clearCart, saveCart, type CartItem } from "@/lib/cart-store";
+import { getCart, clearCart, saveCart, lineAmount, type CartItem } from "@/lib/cart-store";
+import { reserveInventoryForCheckout, validateCartForCheckout } from "@/lib/checkout-validate";
+import { ensureCustomerProfile } from "@/lib/ensure-customer-profile";
+import { billSummaryRows, estimateBillFromLines } from "@/lib/bill-summary";
 import { productImageUrl } from "@/lib/media";
 import {
   CustomerScreenController,
@@ -38,24 +42,26 @@ export default function CheckoutPage() {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
   const [screen, setScreen] = useState<FormDefinition | null>(null);
-  const [addressScreen, setAddressScreen] = useState<FormDefinition | null>(null);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [selectedAddr, setSelectedAddr] = useState("");
-  const [addressFields, setAddressFields] = useState<Record<string, string>>({
-    label: "Site",
-    line1: "",
-    city: "",
-    state: "",
-    pincode: "",
-    isDefault: "true",
-  });
   const [placing, setPlacing] = useState(false);
-  const [savingAddr, setSavingAddr] = useState(false);
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
   const [showNewAddr, setShowNewAddr] = useState(false);
 
-  const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
+  const bill = useMemo(
+    () =>
+      estimateBillFromLines(
+        items.map((i) => ({
+          price: lineAmount(i) / Math.max(1, i.qty),
+          qty: i.qty,
+          taxRate: typeof i.taxRate === "number" ? i.taxRate : 0,
+        }))
+      ),
+    [items]
+  );
+  const subtotal = bill.subtotal;
+  const payTotal = bill.total;
 
   useEffect(() => {
     let cancelled = false;
@@ -70,22 +76,47 @@ export default function CheckoutPage() {
       const fixed: CartItem[] = [];
       for (const line of cart) {
         let price = line.price;
-        if (!validPrice(price)) {
-          const res = await api<{ data: { sellPrice?: number; name?: string } }>(
-            "inventory",
-            `/api/products/${line.productId}`
-          );
-          const sell = res.data?.data?.sellPrice;
-          if (!validPrice(sell)) {
-            if (!cancelled) {
-              setError(`Could not load price for ${line.name || line.productId}. Remove it and re-add.`);
+        if (!validPrice(price) || price <= 0) {
+          // Measured products often have null sellPrice — requote
+          const quoteRes = await api<{
+            data?: { quote?: { unitPrice?: number }; unitPrice?: number };
+          }>("portal", "/api/portal/pricing/quote", {
+            method: "POST",
+            body: JSON.stringify({
+              productId: line.productId,
+              variantId: line.variantId,
+              quantity: line.qty,
+              attributes: line.selectedAttributes ?? {},
+            }),
+          });
+          const qp =
+            quoteRes.data?.data?.quote?.unitPrice ?? quoteRes.data?.data?.unitPrice;
+          if (validPrice(qp) && qp > 0) {
+            price = qp;
+          } else {
+            const res = await api<{ data: { sellPrice?: number; name?: string } }>(
+              "portal",
+              `/api/portal/products/${line.productId}`
+            );
+            const sell = res.data?.data?.sellPrice;
+            if (!validPrice(sell) || sell <= 0) {
+              if (!cancelled) {
+                setError(
+                  `Could not load price for ${line.name || line.productId}. Remove it and re-add from shop.`
+                );
+              }
+              continue;
             }
-            continue;
+            price = sell;
+            if (res.data?.data?.name) line.name = res.data.data.name;
           }
-          price = sell;
-          if (res.data?.data?.name) line.name = res.data.data.name;
         }
-        fixed.push({ ...line, price, variantId: line.variantId || undefined });
+        fixed.push({
+          ...line,
+          price,
+          lineTotal: price * line.qty,
+          variantId: line.variantId || undefined,
+        });
       }
 
       if (cancelled) return;
@@ -97,25 +128,21 @@ export default function CheckoutPage() {
       saveCart(fixed);
       setItems(fixed);
 
-      const [profileRes, formRes, addrFormRes] = await Promise.all([
-        api<{ data: CustomerProfile }>("sales", "/api/customers/me"),
+      const [profileEnsure, formRes] = await Promise.all([
+        ensureCustomerProfile(),
         api<{ data: { definition: FormDefinition } }>(
           "sales",
           "/api/workflow-forms/published?formId=customer-checkout&audience=CUSTOMER"
         ),
-        api<{ data: { definition: FormDefinition } }>(
-          "sales",
-          "/api/workflow-forms/published?formId=customer-address&audience=CUSTOMER"
-        ),
       ]);
 
       if (cancelled) return;
-      if (profileRes.error || !profileRes.data?.data) {
-        setError(profileRes.error ?? "Could not load customer profile");
+      if (!profileEnsure.customer) {
+        setError(profileEnsure.error ?? "Could not load customer profile");
         setReady(true);
         return;
       }
-      const cust = profileRes.data.data;
+      const cust = profileEnsure.customer as unknown as CustomerProfile;
       setProfile(cust);
       const addrs = cust.addresses ?? [];
       setAddresses(addrs);
@@ -130,7 +157,6 @@ export default function CheckoutPage() {
         return;
       }
       setScreen(formDef);
-      setAddressScreen(addrFormRes.data?.data?.definition ?? null);
       setFieldValues({
         paymentMethod: "COD",
         notes: "",
@@ -159,19 +185,41 @@ export default function CheckoutPage() {
       return;
     }
 
-    const paymentMethod = String(payload.paymentMethod ?? fieldValues.paymentMethod ?? "COD") as
-      | "COD"
-      | "UPI"
-      | "WALLET";
+    setError("");
+    setPlacing(true);
+
+    const validated = await validateCartForCheckout(items);
+    if (!validated.ok) {
+      setError(validated.errors.join(" · ") || "Cart validation failed");
+      setItems(validated.lines.length ? validated.lines : items);
+      setPlacing(false);
+      return;
+    }
+    if (validated.warnings.length) {
+      // Surface price updates but continue
+      setItems(validated.lines);
+    } else {
+      setItems(validated.lines);
+    }
+
+    await reserveInventoryForCheckout({
+      reference: `checkout-${profile.id}-${Date.now()}`,
+      lines: validated.lines,
+    });
+
+    const rawPay = String(payload.paymentMethod ?? fieldValues.paymentMethod ?? "COD");
+    const paymentMethod = (
+      ["COD", "COUNTER", "BANK_TRANSFER", "UPI", "CARD", "WALLET", "SPLIT"].includes(rawPay)
+        ? rawPay
+        : "COD"
+    ) as "COD" | "COUNTER" | "BANK_TRANSFER" | "UPI" | "CARD" | "WALLET" | "SPLIT";
     const notes = String(payload.notes ?? fieldValues.notes ?? "").trim();
 
-    const attrNotes = items
+    const attrNotes = validated.lines
       .filter((i) => i.selectedAttributes && Object.keys(i.selectedAttributes).length)
       .map((i) => `${i.name}: ${JSON.stringify(i.selectedAttributes)}`)
       .join("; ");
     const combinedNotes = [notes, attrNotes].filter(Boolean).join("\n");
-
-    setError("");
 
     const body = {
       customerId: profile.id,
@@ -180,7 +228,7 @@ export default function CheckoutPage() {
       deliveryFee: 0,
       paymentMethod,
       ...(combinedNotes ? { notes: combinedNotes } : {}),
-      items: items.map((i) => ({
+      items: validated.lines.map((i) => ({
         productId: i.productId,
         productName: i.name,
         ...(i.variantId ? { variantId: i.variantId } : {}),
@@ -213,12 +261,12 @@ export default function CheckoutPage() {
       createCustomerHost({
         permissions: {
           canEdit: true,
-          canComplete: !placing && !savingAddr && !showNewAddr && Boolean(selectedAddr),
+          canComplete: !placing && !showNewAddr && Boolean(selectedAddr),
           roles: ["CUSTOMER"],
         },
         navigation: { push: (path) => router.push(path), replace: (path) => router.replace(path) },
       }),
-    [placing, savingAddr, showNewAddr, selectedAddr, router]
+    [placing, showNewAddr, selectedAddr, router]
   );
 
   if (!ready) {
@@ -257,22 +305,26 @@ export default function CheckoutPage() {
                 <div className="line-clamp-2 font-medium text-[var(--ink)]">{i.name}</div>
                 <div className="text-xs text-[var(--ink-soft)]">
                   Qty {i.qty} · <PriceDisplay amount={i.price} size="sm" className="inline" />
+                  {i.rateAmount != null && i.rateUom && i.measureQuantity != null
+                    ? ` · ${i.measureQuantity} ${i.measureUom} × ₹${i.rateAmount}/${i.rateUom}`
+                    : ""}
                 </div>
               </div>
-              <PriceDisplay amount={i.price * i.qty} size="sm" />
+              <PriceDisplay amount={lineAmount(i)} size="sm" />
             </div>
           ))}
         </div>
       </section>
 
-      <CartSummary
-        itemCount={items.length}
-        totalLabel={`₹${subtotal.toLocaleString("en-IN")}`}
+      <BillSummary
         className="mb-2"
+        title="Bill summary"
+        rows={billSummaryRows(bill)}
+        totalLabel="Order total"
+        totalValue={payTotal}
+        footer="GST is included only when set on the product; otherwise 0%. Sales may adjust pricing later."
       />
-      <p className="mb-5 text-xs text-[var(--ink-soft)]">
-        GST applies from each product’s tax rate when the order is created. Sales may adjust pricing later.
-      </p>
+      <div className="mb-5" />
 
       <section className="mb-5">
         <div className="mb-2 flex items-center justify-between">
@@ -281,17 +333,7 @@ export default function CheckoutPage() {
             <Button
               variant="link"
               size="sm"
-              onClick={() => {
-                setAddressFields({
-                  label: "Site",
-                  line1: "",
-                  city: "",
-                  state: "",
-                  pincode: "",
-                  isDefault: addresses.length === 0 ? "true" : "false",
-                });
-                setShowNewAddr(true);
-              }}
+              onClick={() => setShowNewAddr(true)}
             >
               + Add new
             </Button>
@@ -305,10 +347,10 @@ export default function CheckoutPage() {
                 key={a.id}
                 type="button"
                 onClick={() => setSelectedAddr(a.id)}
-                className={`min-h-[var(--touch-min)] w-full rounded-[var(--radius)] border p-3 text-left transition-colors ${
+                className={`min-h-[var(--touch-min)] w-full rounded-lg border p-3 text-left transition-colors ${
                   selectedAddr === a.id
-                    ? "border-[var(--ink)] bg-[var(--paper)]"
-                    : "border-[var(--line)] bg-white"
+                    ? "border-[var(--forest)] bg-[#f5f8f6]"
+                    : "border-[#e8e8e8] bg-white"
                 }`}
               >
                 <span className="text-sm font-semibold text-[var(--ink)]">{a.label}</span>
@@ -326,8 +368,8 @@ export default function CheckoutPage() {
           </div>
         ) : null}
 
-        {(showNewAddr || addresses.length === 0) && addressScreen && profile ? (
-          <div className="mb-2 space-y-2 rounded-[var(--radius)] border border-[var(--line)] bg-white p-4">
+        {(showNewAddr || addresses.length === 0) && profile ? (
+          <div className="mb-2 space-y-2 rounded-lg border border-[#e8e8e8] bg-white p-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-[var(--ink)]">
                 {addresses.length === 0 ? "Add delivery address" : "New address"}
@@ -338,30 +380,21 @@ export default function CheckoutPage() {
                 </Button>
               ) : null}
             </div>
-            <CustomerScreenController
-              host={host}
-              screen={addressScreen}
-              customer={{ id: profile.id, name: profile.name }}
-              fieldValues={addressFields}
-              setFieldValue={(key, value) =>
-                setAddressFields((prev) => ({ ...prev, [key]: value }))
-              }
-              busy={savingAddr}
-              submitContext={{
-                customerId: profile.id,
-                addressMode: "create",
-                onBusy: setSavingAddr,
-                onSuccess: async (result) => {
-                  const created = (result as { data?: Address } | undefined)?.data;
-                  if (created?.id) {
-                    setAddresses((prev) => [created, ...prev]);
-                    setSelectedAddr(created.id);
-                  }
-                  setShowNewAddr(false);
-                  setError("");
-                },
-                onError: (m) => setError(m),
+            <AddressForm
+              customerId={profile.id}
+              initial={{ isDefault: addresses.length === 0 }}
+              onSaved={async (created) => {
+                setAddresses((prev) => {
+                  const cleared = created.isDefault
+                    ? prev.map((a) => ({ ...a, isDefault: false }))
+                    : prev;
+                  return [created, ...cleared.filter((a) => a.id !== created.id)];
+                });
+                setSelectedAddr(created.id);
+                setShowNewAddr(false);
+                setError("");
               }}
+              onCancel={addresses.length > 0 ? () => setShowNewAddr(false) : undefined}
             />
           </div>
         ) : null}
@@ -380,7 +413,7 @@ export default function CheckoutPage() {
           order={{
             id: "checkout",
             status: "DRAFT",
-            totalAmount: subtotal,
+              totalAmount: payTotal,
           }}
           customer={profile ? { id: profile.id, name: profile.name } : null}
           fieldValues={fieldValues}

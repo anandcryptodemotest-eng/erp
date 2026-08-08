@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createLogger } from "@erp/logger";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
@@ -6,6 +7,8 @@ const createWarehouseSchema = z.object({
   name: z.string().min(1),
   location: z.string().optional(),
 });
+
+const log = createLogger({ service: "inventory" });
 
 // GET /api/warehouses
 export async function GET(request: Request) {
@@ -44,6 +47,7 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
     }
+    log.error("warehouse_create_failed", { tenantId, err: error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

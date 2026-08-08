@@ -19,7 +19,7 @@ import type { Prisma } from "@/generated/prisma";
 import { bootstrapSalesWorkflowPlatform } from "@/workflow-adapter";
 import { defaultAdapterRegistry } from "@erp/workflow";
 import { resolveAndValidateWorkflowForms } from "@/lib/form-catalog";
-import { withSpan, recordEvent } from "@erp/telemetry";
+import { withSpan, recordEvent } from "@erp/telemetry/helpers";
 import { writeWorkflowAudit } from "@/lib/workflow-audit";
 import {
   activityPermissionsFromSnapshot,

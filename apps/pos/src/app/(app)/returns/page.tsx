@@ -27,7 +27,7 @@ export default function ReturnsPage() {
 
   useEffect(() => {
     api<{ data: Warehouse[] }>("inventory", "/api/warehouses?limit=50").then((res) => {
-      if (!res.error) {
+      if (!res.error && res.data) {
         setWarehouses(res.data.data);
         if (res.data.data.length > 0) setWarehouseId(res.data.data[0].id);
       }
@@ -44,13 +44,13 @@ export default function ReturnsPage() {
     setSearching(true); setSearchError(""); setBill(null); setReturnQtys({});
     const res = await api<{ data: Bill[] }>("accounting", `/api/bills?billNumber=${encodeURIComponent(billNumber.trim())}&limit=1`);
     setSearching(false);
-    if (res.error || res.data.data.length === 0) {
+    if (res.error || !res.data || res.data.data.length === 0) {
       setSearchError("Bill not found"); return;
     }
     const found = res.data.data[0];
     // Fetch full detail with items
     const detail = await api<{ data: Bill }>("accounting", `/api/bills/${found.id}`);
-    if (detail.error) { setSearchError(detail.error); return; }
+    if (detail.error || !detail.data) { setSearchError(detail.error ?? "Bill details unavailable"); return; }
     setBill(detail.data.data);
     const initial: Record<string, number> = {};
     detail.data.data.items.forEach((i) => { initial[i.id] = 0; });
@@ -78,7 +78,7 @@ export default function ReturnsPage() {
       { method: "POST", body: JSON.stringify({ warehouseId, items, reason, refundMethod }) }
     );
     setProcessing(false);
-    if (res.error) { setError(res.error); return; }
+    if (res.error || !res.data) { setError(res.error ?? "Return processing failed"); return; }
     setSuccess(`Return processed — Refund ₹${Number(res.data.data.totalRefund).toLocaleString("en-IN")}`);
     setBill(null); setBillNumber(""); setReturnQtys({});
   }

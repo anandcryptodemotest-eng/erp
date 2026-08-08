@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readyPayload, telemetryCheck, type CheckStatus } from "@erp/telemetry";
+import { readyPayload, telemetryCheck, type CheckStatus } from "@erp/telemetry/health";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";

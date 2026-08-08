@@ -1,5 +1,7 @@
 # E2E Test Results — ERP Microservices
 
+**Latest Trustwood portal slice (2026-08-03):** see [`E2E-REPORT-latest.md`](./E2E-REPORT-latest.md) — `pnpm e2e:portal` **20/20 PASS**, `pnpm e2e:oms` **20/20 PASS**.
+
 **Test date:** 2025  
 **Result:** 27 / 27 PASS  
 **Test script:** `scripts/e2e-test.ps1`  
@@ -283,6 +285,8 @@ GET /api/resource?page=1&limit=20
 ---
 
 ## Known Gaps / Pending Flows
+
+> Historical coverage matrix. Passing Portal/OMS flows and current remediation status are maintained in `docs/E2E-REPORT-latest.md` and `docs/REMEDIATION-CHECKLIST.md`; entries below are not release exit criteria by themselves.
 
 | UC | Flow | Status |
 |----|------|--------|

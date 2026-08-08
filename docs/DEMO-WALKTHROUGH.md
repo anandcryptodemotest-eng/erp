@@ -11,7 +11,10 @@ Port **3010 is firewalled**. Use **HTTPS on 443** (nginx reverse proxy). Browser
 Prep (once):
 
 ```bash
+pnpm clear:catalog   # soft-delete active products (idempotent)
 pnpm seed:demo
+pnpm e2e:portal      # customer → SREQ → convert → tracking
+pnpm e2e:oms         # full staff workflow marathon
 ```
 
 ## Logins
@@ -24,16 +27,19 @@ pnpm seed:demo
 | Dispatch / Warehouse | dispatch@oms.test | Test@123 | DISPATCH_EXECUTIVE |
 | Delivery | delivery@oms.test | Test@123 | DELIVERY_EXECUTIVE |
 | Accounts | accountant@oms.test | Test@123 | ACCOUNTANT |
+| **Portal buyer** | **buyer@trustwood.test** | **Buyer@12345** | CUSTOMER |
 
 ## Catalog (seeded)
 
-| Category | Example SKUs |
-|----------|----------------|
-| Plywood | `PLY-BWR-18-8X4`, `PLY-BWP-18-8X4`, `PLY-MR-12-8X4`, `PLY-BWR-16-7X3` |
-| Blockboard | `BLK-COM-19-8X4`, `BLK-BWR-18-8X4` |
-| Laminates | `LAM-GLOSS-1MM-8X4`, `LAM-MATTE-1MM-8X4` |
+| Group / SKU | Type | Pricing | Notes |
+|-------------|------|---------|-------|
+| `TRUSTWOOD-BWP` | Configure | PER_AREA | images by size |
+| `TRUSTWOOD-BLOCKBOARD` | Configure | PER_AREA | images by size |
+| `TRUSTWOOD-LAMINATE` | Configure | PER_AREA | images by finish |
+| `TRUSTWOOD-PHONE` | Configure | PER_EACH | images by color |
+| `TW-ADH-1L` | Simple | PER_EACH | no configure axes |
 
-Attributes: thickness / size / grade (or finish for laminates) + brand.
+Attributes: thickness / size / grade (or finish / color / storage) + brand. GST unset → 0% on SREQ.
 
 ## Sample order (recommended lines)
 

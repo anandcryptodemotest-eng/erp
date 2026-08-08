@@ -199,8 +199,8 @@ export default function ReturnsPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 md:p-6">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-[var(--ink)]">Sales Returns</h1>
           <p className="text-sm text-[var(--ink-soft)]">{total} total returns</p>

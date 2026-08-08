@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { canCompleteDispatch } from "@erp/types";
 
 export const reviewSchema = z.object({
   remarks: z.string().optional(),
@@ -50,13 +51,24 @@ export const pricingSchema = z.object({
   remarks: z.string().optional(),
 });
 
-export const dispatchSchema = z.object({
-  assignedDriverId: z.string().optional(),
-  vehicleInfo: z.string().optional(),
-  trackingNumber: z.string().optional(),
-  dispatchRemarks: z.string().optional(),
-  dispatchedAt: z.string().datetime().optional(),
-});
+export const dispatchSchema = z
+  .object({
+    fulfillmentMode: z.enum(["own_fleet", "porter"]).optional(),
+    carrier: z.string().optional(),
+    porterBookingStatus: z.enum(["NOT_BOOKED", "BOOKING_PENDING", "BOOKED", "CANCELLED"]).optional(),
+    assignedDriverId: z.string().optional(),
+    vehicleInfo: z.string().optional(),
+    trackingNumber: z.string().optional(),
+    trackingUrl: z.string().optional(),
+    dispatchRemarks: z.string().optional(),
+    dispatchedAt: z.string().datetime().optional(),
+  })
+  .superRefine((data, ctx) => {
+    const gate = canCompleteDispatch(data);
+    if (!gate.ok) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: gate.error });
+    }
+  });
 
 export const PRICE_EDIT_ROLES = new Set([
   "ADMIN",

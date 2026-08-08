@@ -1,0 +1,56 @@
+name: ERP Validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  SERVICE_SECRET: ci-validation-service-secret
+  JWT_SECRET: ci-validation-jwt-secret
+
+jobs:
+  build-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level high
+
+      - name: Build all workspaces
+        run: pnpm exec turbo build --env-mode=loose
+
+      - name: Validate Gateway route manifest
+        run: pnpm routes:validate
+
+      - name: Validate deployment artifacts
+        run: pnpm deployment:validate
+
+      - name: Validate architecture fitness
+        run: pnpm arch:fitness
+
+      - name: Lint all workspaces
+        run: pnpm lint
+
+      - name: Run all workspace unit and contract tests
+        run: pnpm test:workspaces
+

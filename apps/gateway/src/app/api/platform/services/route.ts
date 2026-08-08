@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requirePlatformAuth } from "@/lib/platform-auth";
 import { aggregateServiceHealth } from "@/lib/platform-services";
-import { serviceBuild, serviceVersion } from "@erp/telemetry";
+import { serviceBuild, serviceVersion } from "@erp/telemetry/health";
 
 export async function GET(request: Request) {
   const gate = await requirePlatformAuth(request, "readAll");

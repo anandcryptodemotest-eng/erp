@@ -31,10 +31,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const tenantId = request.headers.get("x-tenant-id")!;
-  const role = request.headers.get("x-user-role");
-  if (role !== "ADMIN" && role !== "MANAGER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const { requireCatalogManager } = await import("@erp/auth");
+  const denied = requireCatalogManager(request);
+  if (denied) return denied;
 
   const body = await request.json().catch(() => null);
   const parsed = createSchema.safeParse(body);

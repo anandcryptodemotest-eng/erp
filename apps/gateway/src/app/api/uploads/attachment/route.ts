@@ -14,6 +14,9 @@ const ALLOWED = new Set([
   "image/webp",
   "application/pdf",
   "text/plain",
+  "audio/webm",
+  "audio/ogg",
+  "audio/mpeg",
 ]);
 
 function extFor(mime: string, originalName: string): string {
@@ -21,6 +24,9 @@ function extFor(mime: string, originalName: string): string {
   if (mime === "image/webp") return "webp";
   if (mime === "application/pdf") return "pdf";
   if (mime === "text/plain") return "txt";
+  if (mime === "audio/webm") return "webm";
+  if (mime === "audio/ogg") return "ogg";
+  if (mime === "audio/mpeg") return "mp3";
   if (mime === "image/jpeg") return "jpg";
   const fromName = originalName.split(".").pop();
   return fromName && fromName.length <= 5 ? fromName : "bin";
@@ -54,7 +60,7 @@ export async function POST(request: Request) {
   }
   if (!ALLOWED.has(file.type)) {
     return NextResponse.json(
-      { error: "Allowed types: JPG, PNG, WebP, PDF, plain text" },
+      { error: "Allowed types: JPG, PNG, WebP, PDF, plain text, or audio" },
       { status: 400 }
     );
   }

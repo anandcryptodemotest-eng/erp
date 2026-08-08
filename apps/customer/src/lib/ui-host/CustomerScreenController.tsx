@@ -5,7 +5,7 @@
  * Assembles UIContext; dispatches submit by formId. Widgets never call REST.
  */
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   createUIRuntime,
   renderScreenLayout,
@@ -57,6 +57,10 @@ export function CustomerScreenController(props: {
   }, [props.screen]);
 
   const [localError, setLocalError] = useState<string | null>(null);
+  const fieldValuesRef = useRef(props.fieldValues);
+  useEffect(() => {
+    fieldValuesRef.current = props.fieldValues;
+  }, [props.fieldValues]);
 
   if (!screen) {
     return (
@@ -71,20 +75,29 @@ export function CustomerScreenController(props: {
   const order = props.order ?? {};
 
   async function requestComplete(ctx: UIContext) {
-    const runtime = createUIRuntime({ context: ctx });
+    // Always use latest field values (avoid stale closure on Save click)
+    const liveCtx: UIContext = {
+      ...ctx,
+      fieldValues: { ...fieldValuesRef.current },
+    };
+    const runtime = createUIRuntime({ context: liveCtx });
     const v = validateScreen(runtime);
     if (!v.ok) {
       setLocalError(v.errors?.join("; ") ?? "Validation failed");
       return;
     }
     setLocalError(null);
-    const payload = collectScreenPayload(runtime);
+    const payload = {
+      ...fieldValuesRef.current,
+      ...collectScreenPayload(runtime),
+    };
     const sc = props.submitContext;
     sc?.onBusy?.(true);
 
     if (formId === "customer-checkout" && sc?.onCheckoutSubmit) {
       try {
         await sc.onCheckoutSubmit(payload);
+        sc?.onBusy?.(false);
       } catch (e: unknown) {
         setLocalError(e instanceof Error ? e.message : "Submit failed");
         sc?.onBusy?.(false);
@@ -92,9 +105,12 @@ export function CustomerScreenController(props: {
       return;
     }
 
-    // Prefer generic Host.services.submit only as escape hatch; default is formId dispatch
     if (props.host.services.submit && !sc) {
-      void props.host.services.submit(payload);
+      try {
+        await props.host.services.submit(payload);
+      } catch (e: unknown) {
+        setLocalError(e instanceof Error ? e.message : "Submit failed");
+      }
       return;
     }
 

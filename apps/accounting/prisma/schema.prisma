@@ -32,6 +32,7 @@ model JournalEntry {
   tenantId    String
   date        DateTime
   reference   String?
+  sourceRef   String?
   description String?
   isPosted    Boolean  @default(false)
   createdAt   DateTime @default(now())
@@ -40,6 +41,7 @@ model JournalEntry {
   lines JournalEntryLine[]
 
   @@index([tenantId])
+  @@unique([tenantId, sourceRef])
 }
 
 model JournalEntryLine {
@@ -70,15 +72,41 @@ model Invoice {
   paidAmount    Float    @default(0)
   status        String   @default("DRAFT") // DRAFT, ISSUED, PAID, PARTIALLY_PAID, OVERDUE, CANCELLED
   notes         String?
+  pdfUrl        String?
+  pdfChecksum   String?
+  documentRef   String?  // AssetKey DOCUMENT:id:version
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   payments    Payment[]
   creditNotes CreditNote[]
+  lines       InvoiceLine[]
 
   @@unique([tenantId, number])
+  @@unique([tenantId, sourceRef])
   @@index([tenantId])
   @@index([entityId])
+  @@index([tenantId, sourceRef])
+}
+
+model InvoiceLine {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  lineNo      Int
+  productId   String?
+  sku         String?
+  description String
+  quantity    Float
+  unitPrice   Float
+  taxRate     Float   @default(0)
+  taxAmount   Float   @default(0)
+  lineTotal   Float
+  hsn         String?
+  attributes  Json?
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
 }
 
 model Payment {
@@ -114,6 +142,7 @@ model CreditNote {
   invoice Invoice? @relation(fields: [invoiceId], references: [id])
 
   @@unique([tenantId, number])
+  @@unique([tenantId, sourceRef])
   @@index([tenantId])
 }
 

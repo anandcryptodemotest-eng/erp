@@ -23,10 +23,10 @@ export default function ShiftPage() {
     const userId = getUserId();
     if (!userId) { setLoading(false); return; }
     const res = await api<{ data: Shift[] }>("accounting", `/api/shifts?status=OPEN&cashierId=${userId}&limit=1`);
-    if (!res.error && res.data.data.length > 0) {
+    if (!res.error && res.data && res.data.data.length > 0) {
       // Load full shift detail with entry breakdown
       const detail = await api<{ data: Shift }>("accounting", `/api/shifts/${res.data.data[0].id}`);
-      setShift(detail.error ? res.data.data[0] : detail.data.data);
+      setShift(detail.error || !detail.data ? res.data.data[0] : detail.data.data);
     } else {
       setShift(null);
     }
@@ -45,7 +45,7 @@ export default function ShiftPage() {
     });
     setOpening(false);
     if (res.error) { setError(res.error); return; }
-    setShift(res.data.data);
+    if (res.data) setShift(res.data.data);
     setMsg("Shift opened successfully");
   }
 

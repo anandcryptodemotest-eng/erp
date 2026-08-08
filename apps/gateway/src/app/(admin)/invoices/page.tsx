@@ -1,13 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
-import { api } from "@/lib/admin-api";
+import { api, openAuthenticatedDocument } from "@/lib/admin-api";
 import LeadToCashGuide from "@/components/LeadToCashGuide";
 import LeadToCashUnderstanding from "@/components/LeadToCashUnderstanding";
 
-interface Invoice { id: string; number: string; type: string; status: string; total: number; paidAmount: number; dueDate: string; customer?: { name: string } | null; vendor?: { name: string } | null; createdAt: string; }
+interface Invoice { id: string; number: string; type: string; status: string; total: number; paidAmount: number; dueDate: string; pdfUrl?: string | null; entityName?: string | null; customer?: { name: string } | null; vendor?: { name: string } | null; createdAt: string; }
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: "bg-[var(--mist)] text-[var(--ink-soft)]",
+  ISSUED: "bg-blue-100 text-[var(--brand)]",
   SENT: "bg-blue-100 text-[var(--brand)]",
   PARTIALLY_PAID: "bg-yellow-100 text-yellow-700",
   PAID: "bg-green-100 text-green-700",
@@ -39,6 +40,15 @@ export default function InvoicesPage() {
     } catch (err: unknown) { setMsg(`Error: ${err instanceof Error ? err.message : String(err)}`); }
   }
 
+  async function openPdf(inv: Invoice) {
+    try {
+      await openAuthenticatedDocument(inv.pdfUrl || `/api/invoices/${inv.id}/pdf`, `${inv.number}.pdf`);
+      setMsg("");
+    } catch (err: unknown) {
+      setMsg(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
   async function pay() {
     if (!payModal) return;
     try {
@@ -52,16 +62,16 @@ export default function InvoicesPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <LeadToCashGuide current="invoices" />
       <LeadToCashUnderstanding current="invoices" />
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-[var(--ink)]">Invoices</h1>
       </div>
       {msg && <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">{msg}</div>}
       {loading ? <p className="text-[var(--ink-soft)]">Loading…</p> : (
-        <div className="bg-white rounded-xl border overflow-hidden">
+        <div className="overflow-x-auto rounded-xl border bg-white">
           <table className="w-full text-sm">
             <thead className="bg-[var(--mist)] border-b">
               <tr>{["Invoice #","Type","Party","Total","Paid","Status","Due",""].map(h => (
@@ -70,13 +80,13 @@ export default function InvoicesPage() {
             </thead>
             <tbody className="divide-y">
               {invoices.map(inv => {
-                const party = inv.customer?.name ?? inv.vendor?.name ?? "—";
+                const party = inv.entityName ?? inv.customer?.name ?? inv.vendor?.name ?? "—";
                 const remaining = inv.total - (inv.paidAmount ?? 0);
                 return (
                   <tr key={inv.id} className="hover:bg-[var(--mist)]">
                     <td className="px-4 py-3 font-mono text-xs font-semibold">{inv.number}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${inv.type === "AR" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>{inv.type}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${inv.type === "RECEIVABLE" || inv.type === "AR" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>{inv.type}</span>
                     </td>
                     <td className="px-4 py-3">{party}</td>
                     <td className="px-4 py-3 font-semibold">₹{inv.total?.toFixed(2)}</td>
@@ -87,6 +97,9 @@ export default function InvoicesPage() {
                     <td className="px-4 py-3 text-xs text-[var(--ink-soft)]">{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : "—"}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
+                        {inv.pdfUrl ? (
+                          <button type="button" onClick={() => void openPdf(inv)} className="text-xs border px-2 py-1 rounded hover:bg-[var(--mist)]">PDF</button>
+                        ) : null}
                         {inv.status === "DRAFT" && (
                           <button onClick={() => issue(inv.id)} className="text-xs bg-[var(--brand)] text-white px-2 py-1 rounded hover:bg-[var(--brand-mid)]">Issue</button>
                         )}

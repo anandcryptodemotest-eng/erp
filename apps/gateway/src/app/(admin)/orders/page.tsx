@@ -301,11 +301,11 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <LeadToCashGuide current="orders" />
       <LeadToCashUnderstanding current="orders" />
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-[var(--ink)]">Sales Orders</h1>
         <button
           onClick={() => { setShowForm(true); setMsg(""); setLines([]); setSearch(""); setBarcodeInput(""); setScanQty("1"); setCustomerSearch(""); setShowCustomerDrop(false); setTimeout(() => barcodeRef.current?.focus(), 150); }}
@@ -320,7 +320,7 @@ export default function OrdersPage() {
       )}
 
       {loading ? <p className="text-[var(--ink-soft)]">Loading…</p> : (
-        <div className="bg-white rounded-xl border overflow-hidden">
+        <div className="overflow-x-auto rounded-xl border bg-white">
           <table className="w-full text-sm">
             <thead className="bg-[var(--mist)] border-b">
               <tr>

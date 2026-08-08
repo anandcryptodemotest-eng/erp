@@ -1,23 +1,35 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { z } from "zod";
 import type { ProvisionTenantResponse } from "@erp/platform-core";
 import { prisma } from "@/lib/prisma";
 import { requirePlatformAuth, clientMeta } from "@/lib/platform-auth";
 import { writePlatformAudit } from "@/lib/platform-audit";
+import { hashPassword } from "@/lib/identity/password";
 
 const createSchema = z.object({
   name: z.string().min(2),
-  slug: z.string().min(2).regex(/^[a-z0-9-]+$/),
+  slug: z
+    .string()
+    .min(2)
+    .transform((s) => s.trim().toLowerCase())
+    .refine((s) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s), {
+      message: "Slug must be lowercase letters, numbers, and hyphens (e.g. acme-corp)",
+    }),
   plan: z.string().default("starter"),
   adminEmail: z.string().email(),
   adminName: z.string().optional(),
   adminPassword: z.string().min(8),
+  customerDomain: z.string().max(253).optional(),
+  adminDomain: z.string().max(253).optional(),
 });
 
 function tenantLoginUrl(slug: string) {
   const base = (process.env.TENANT_ADMIN_PUBLIC_URL || "http://localhost:3010/admin").replace(/\/$/, "");
   return `${base}/login?tenant=${encodeURIComponent(slug)}`;
+}
+
+function validHostname(value: string) {
+  return /^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(value);
 }
 
 // GET /api/platform/tenants
@@ -62,7 +74,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Slug already taken" }, { status: 409 });
     }
 
-    const passwordHash = await bcrypt.hash(body.adminPassword, 12);
+    const domainInputs = [
+      { hostname: body.customerDomain?.trim().toLowerCase().replace(/\.$/, ""), portalType: "CUSTOMER" },
+      { hostname: body.adminDomain?.trim().toLowerCase().replace(/\.$/, ""), portalType: "ADMIN" },
+    ].filter((domain) => domain.hostname);
+    if (domainInputs.some((domain) => !validHostname(domain.hostname!))) {
+      return NextResponse.json({ error: "Domains must be valid hostnames without protocol or path" }, { status: 400 });
+    }
+
+    const passwordHash = await hashPassword(body.adminPassword);
     const meta = clientMeta(request);
 
     const result = await prisma.$transaction(async (tx) => {
@@ -74,6 +94,17 @@ export async function POST(request: Request) {
           isActive: true,
         },
       });
+
+      if (domainInputs.length > 0) {
+        await tx.tenantDomain.createMany({
+          data: domainInputs.map((domain) => ({
+            tenantId: tenant.id,
+            hostname: domain.hostname!,
+            portalType: domain.portalType,
+            isPrimary: true,
+          })),
+        });
+      }
 
       await tx.tenantSetting.createMany({
         data: [
@@ -89,11 +120,23 @@ export async function POST(request: Request) {
           data: {
             email: body.adminEmail.toLowerCase(),
             name: body.adminName ?? body.adminEmail.split("@")[0],
-            password: passwordHash,
-            role: "USER",
             isActive: true,
           },
         });
+        await tx.authCredential.create({
+          data: { userId: user.id, type: "PASSWORD", passwordHash },
+        });
+      } else {
+        const existing = await tx.authCredential.findFirst({
+          where: { userId: user.id, type: "PASSWORD" },
+        });
+        if (existing) {
+          await tx.authCredential.update({ where: { id: existing.id }, data: { passwordHash } });
+        } else {
+          await tx.authCredential.create({
+            data: { userId: user.id, type: "PASSWORD", passwordHash },
+          });
+        }
       }
 
       await tx.tenantUser.create({
@@ -142,7 +185,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ data: payload }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
+      const first = error.issues[0];
+      const path = first?.path?.join(".") || "input";
+      return NextResponse.json(
+        { error: `${path}: ${first?.message ?? "Invalid request"}` },
+        { status: 400 }
+      );
     }
     const msg = error instanceof Error ? error.message : "Internal server error";
     if (/Unique constraint|P2002/i.test(msg)) {

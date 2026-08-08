@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -11,13 +12,13 @@ import {
 } from "@erp/ui";
 import { api } from "@/lib/api-client";
 import { categoryImageUrl, heroImageUrl, productImageUrl } from "@/lib/media";
-import { resolveTenantDisplayName } from "@/lib/tenant";
+import { useTenantDisplayName } from "@/components/TenantBrandingProvider";
 
 interface Banner {
   id: string;
   title: string;
   imageUrl: string;
-  linkUrl?: string;
+  linkUrl?: string | null;
 }
 interface Product {
   id: string;
@@ -26,7 +27,7 @@ interface Product {
   imageUrl?: string;
   imageUrls?: string[];
   unit?: string;
-  isFeatured: boolean;
+  isFeatured?: boolean;
 }
 interface Category {
   id: string;
@@ -34,33 +35,38 @@ interface Category {
   imageUrl?: string;
 }
 
+const RECENT_KEY = "customer_recent_viewed";
+
+function readRecent(): Product[] {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]") as Product[];
+  } catch {
+    return [];
+  }
+}
+
 export default function HomePage() {
-  const orgName = resolveTenantDisplayName();
+  const orgName = useTenantDisplayName();
   const [banners, setBanners] = useState<Banner[]>([]);
   const [featured, setFeatured] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [recent, setRecent] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [bannerIdx, setBannerIdx] = useState(0);
 
   useEffect(() => {
-    async function load() {
-      const [bannersRes, productsRes, catRes] = await Promise.all([
-        api<{ data: Banner[] }>("gateway", "/api/banners?isActive=true&limit=5"),
-        api<{ data: Product[] }>("inventory", "/api/products?isFeatured=true&limit=12"),
-        api<{ data: Category[] }>("inventory", "/api/products/categories?limit=10"),
-      ]);
-      if (!bannersRes.error) setBanners(bannersRes.data.data ?? []);
-      // Featured may be empty — fall back to any active products
-      let products = !productsRes.error ? productsRes.data.data ?? [] : [];
-      if (products.length === 0) {
-        const all = await api<{ data: Product[] }>("inventory", "/api/products?isActive=true&limit=12");
-        if (!all.error) products = all.data.data ?? [];
+    setRecent(readRecent());
+    void api<{
+      data: { banners: Banner[]; featured: Product[]; categories: Category[] };
+    }>("portal", "/api/portal/home").then((res) => {
+      if (!res.error && res.data?.data) {
+        setBanners(res.data.data.banners ?? []);
+        setFeatured(res.data.data.featured ?? []);
+        setCategories(res.data.data.categories ?? []);
       }
-      setFeatured(products);
-      if (!catRes.error) setCategories(catRes.data.data ?? []);
       setLoading(false);
-    }
-    void load();
+    });
   }, []);
 
   useEffect(() => {
@@ -70,169 +76,142 @@ export default function HomePage() {
   }, [banners.length]);
 
   return (
-    <div className="pb-6">
-      <header className="relative overflow-hidden bg-[var(--ink)] text-white">
-        {/* Background image + dark scrub so text/buttons always contrast */}
+    <div className="pb-4">
+      {/* Compact promo strip */}
+      <section className="relative overflow-hidden bg-[var(--forest)] text-white">
         <div
-          className="absolute inset-0 bg-cover bg-center"
+          className="absolute inset-0 bg-cover bg-center opacity-30"
           style={{ backgroundImage: `url(${heroImageUrl()})` }}
           aria-hidden
         />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(105deg, rgba(12,18,14,0.94) 0%, rgba(12,18,14,0.82) 42%, rgba(12,18,14,0.55) 100%)",
-          }}
-          aria-hidden
-        />
-
-        <div className="relative z-10 px-5 pb-8 pt-6 md:px-10 md:pb-12 md:pt-8">
-          <div className="anim-rise max-w-xl">
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--amber-soft)]">
-              Trade portal
-            </p>
-            <h1 className="font-display mt-2 text-3xl font-semibold leading-tight text-white md:text-5xl">
+        <div className="relative flex items-center justify-between gap-3 px-4 py-4 md:px-6 md:py-5">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--amber-soft)]">
               {orgName}
+            </p>
+            <h1 className="mt-0.5 text-lg font-bold leading-tight md:text-xl">
+              Plywood & timber, ready to order
             </h1>
-            <p className="mt-3 text-sm leading-relaxed text-white/85 md:text-base">
-              Plywood, timber & site materials — order in minutes, track through dispatch.
+            <p className="mt-0.5 text-xs text-white/75">
+              Configure · Request · Track
             </p>
           </div>
-
-          <div className="anim-rise anim-rise-delay-1 mt-8 flex flex-wrap gap-3">
-            <Link href="/products">
-              <Button variant="secondary" size="lg">
-                Shop now
-              </Button>
-            </Link>
-            <Link href="/orders">
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-2 border-white bg-transparent text-white hover:bg-white hover:text-[var(--ink)]"
-              >
-                My orders
-              </Button>
-            </Link>
-          </div>
+          <Link href="/shop" className="shrink-0">
+            <Button variant="secondary" size="sm" className="!rounded-md !bg-white !text-[var(--forest)]">
+              Shop now
+            </Button>
+          </Link>
         </div>
-      </header>
+      </section>
 
-      {loading && (
-        <Container layout="wide" className="space-y-4 py-10">
-          <Skeleton className="h-40 w-full rounded-[var(--radius)] md:h-52" />
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="aspect-[3/4] w-full rounded-[var(--radius)]" />
-            ))}
-          </div>
-        </Container>
-      )}
-
-      {!loading && (
-        <Container layout="wide" className="relative z-10 -mt-5 space-y-8 md:-mt-8">
-          {banners.length > 0 && (
-            <section className="anim-rise anim-rise-delay-1 overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] shadow-[var(--shadow)]">
-              <div className="relative h-40 md:h-52">
-                {banners.map((b, i) => (
-                  <div
-                    key={b.id}
-                    className={`absolute inset-0 transition-opacity duration-700 ${
-                      i === bannerIdx ? "opacity-100" : "opacity-0"
-                    }`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={b.imageUrl || heroImageUrl()}
-                      alt={b.title}
-                      className="h-full w-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[var(--ink)]/70 via-transparent to-transparent" />
-                    <div className="absolute bottom-4 left-4 right-4">
-                      <h2 className="font-display text-xl font-semibold text-white md:text-2xl">{b.title}</h2>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {categories.length > 0 && (
-            <section className="anim-rise anim-rise-delay-2">
-              <p className="cx-eyebrow mb-1">Categories</p>
-              <SectionHeader
-                title="Shop by type"
-                action={
-                  <Link href="/products" className="text-sm font-semibold text-[var(--forest-mid)]">
-                    See all
-                  </Link>
-                }
-              />
-              <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide md:grid md:grid-cols-4 md:overflow-visible">
-                {categories.map((cat) => (
-                  <Link
-                    key={cat.id}
-                    href={`/products?categoryId=${cat.id}`}
-                    className="group min-w-[8.5rem] overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] md:min-w-0"
-                  >
-                    <div className="relative h-24 overflow-hidden md:h-28">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={categoryImageUrl(cat.name, cat.imageUrl)}
-                        alt={cat.name}
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[var(--ink)]/55 to-transparent" />
-                      <span className="absolute bottom-2 left-3 font-display text-sm font-semibold text-white">
-                        {cat.name}
-                      </span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
-
-          <section className="anim-rise anim-rise-delay-3">
-            <p className="cx-eyebrow mb-1">Catalog</p>
-            <SectionHeader
-              title={featured.some((p) => p.isFeatured) ? "Featured stock" : "Popular materials"}
-              action={
-                <Link href="/products" className="text-sm font-semibold text-[var(--forest-mid)]">
-                  View all
-                </Link>
-              }
-            />
-
-            {featured.length === 0 ? (
-              <EmptyState
-                className="cx-empty"
-                title="No products yet"
-                subtitle="Ask your supplier to publish the catalog."
-                action={
-                  <Link href="/products">
-                    <Button variant="outline">Browse shop</Button>
-                  </Link>
-                }
-              />
+      <Container layout="wide" className="space-y-5 py-4 md:py-6">
+        {banners.length > 0 ? (
+          <section className="overflow-hidden rounded-lg">
+            {banners[bannerIdx]?.linkUrl ? (
+              <Link href={banners[bannerIdx].linkUrl!}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={banners[bannerIdx].imageUrl}
+                  alt={banners[bannerIdx].title}
+                  className="h-32 w-full object-cover md:h-44"
+                />
+              </Link>
             ) : (
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-                {featured.map((p, i) => (
-                  <ProductCard
-                    key={p.id}
-                    href={`/products/${p.id}`}
-                    title={p.name}
-                    subtitle={p.unit}
-                    imageUrl={productImageUrl(p, i)}
-                    priceLabel={`₹${Number(p.sellPrice).toLocaleString("en-IN")}`}
-                  />
-                ))}
-              </div>
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={banners[bannerIdx].imageUrl}
+                alt={banners[bannerIdx].title}
+                className="h-32 w-full object-cover md:h-44"
+              />
             )}
           </section>
-        </Container>
-      )}
+        ) : null}
+
+        <section>
+          <SectionHeader
+            title="Categories"
+            action={
+              <Link href="/shop" className="text-sm font-semibold text-[var(--forest)]">
+                See all
+              </Link>
+            }
+          />
+          {loading ? (
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 w-16 shrink-0 rounded-full" />
+              ))}
+            </div>
+          ) : categories.length === 0 ? (
+            <EmptyState title="No categories yet" subtitle="Products will appear here once catalogued." />
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {categories.map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/shop/c/${encodeURIComponent(c.id)}`}
+                  className="cat-rail-item"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={categoryImageUrl(c.name, c.imageUrl)} alt="" />
+                  <span>{c.name}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section>
+          <SectionHeader
+            title="Featured"
+            action={
+              <Link href="/shop" className="text-sm font-semibold text-[var(--forest)]">
+                Shop all
+              </Link>
+            }
+          />
+          {loading ? (
+            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="aspect-[4/5] rounded-lg" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
+              {featured.map((p) => (
+                <ProductCard
+                  key={p.id}
+                  href={`/shop/p/${p.id}`}
+                  title={p.name}
+                  imageUrl={productImageUrl(p)}
+                  priceLabel={`₹${Number(p.sellPrice ?? 0).toLocaleString("en-IN")}`}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {recent.length > 0 ? (
+          <section>
+            <SectionHeader title="Recently viewed" />
+            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
+              {recent.slice(0, 4).map((p) => (
+                <ProductCard
+                  key={p.id}
+                  href={`/shop/p/${p.id}`}
+                  title={p.name}
+                  imageUrl={productImageUrl(p)}
+                  priceLabel={
+                    p.sellPrice != null
+                      ? `₹${Number(p.sellPrice).toLocaleString("en-IN")}`
+                      : "Configure"
+                  }
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
+      </Container>
     </div>
   );
 }

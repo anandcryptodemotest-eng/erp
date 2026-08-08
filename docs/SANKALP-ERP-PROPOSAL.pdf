@@ -1,0 +1,7916 @@
+%PDF-1.4
+%SankalpProposal
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+4 0 obj
+<< /Length 578 >>
+stream
+0.035 0.12 0.19 rg
+0 0 595 842 re
+f
+0 0.45 0.43 rg
+0 0 595 10 re
+f
+1 1 1 rg
+BT
+/F2 31 Tf
+58 470 Td
+(SIMHAPURI FRESH) Tj
+ET
+0.75 0.95 0.93 rg
+BT
+/F1 18 Tf
+60 430 Td
+(GROCERY PLATFORM) Tj
+ET
+0.75 0.95 0.93 RG
+2 w
+60 405 m
+220 405 l
+S
+1 1 1 rg
+BT
+/F2 13 Tf
+60 365 Td
+(Commerce, Store Operations) Tj
+ET
+1 1 1 rg
+BT
+/F2 13 Tf
+60 344 Td
+(and Delivery Management Proposal) Tj
+ET
+0.78 0.84 0.85 rg
+BT
+/F1 10 Tf
+60 90 Td
+(Prepared by Sankalp | [Client / Organization Name] | [DD Month YYYY]) Tj
+ET
+0.65 0.75 0.76 rg
+BT
+/F1 9 Tf
+60 65 Td
+(Reusable reference proposal | Version 1.0) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Length 2577 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 01) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(About Sankalp) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(Sankalp is the technology provider for Simhapuri Fresh, delivering a scalable, secure) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(and user-centric grocery operations platform.) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 670 Td
+(Our capabilities cover mobile application development for Android and iOS, web) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 656 Td
+(platforms, cloud-ready backend systems, product strategy, UI/UX design, deployment and) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 642 Td
+(post-launch support. We follow Agile and industry-standard engineering practices with) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 628 Td
+(transparent delivery, practical communication and measurable acceptance criteria.) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 599 Td
+(Our focus is to deliver a business-ready product that is reliable, maintainable and) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 585 Td
+(aligned with the operating model of Simhapuri Fresh. Sankalp will configure and extend) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 571 Td
+(its ERP Platform foundation to deliver a connected grocery operating system.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 542 Td
+(Delivery principles) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 511 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 511 Td
+(Business outcomes before feature volume) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 492 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 492 Td
+(Secure tenant and role boundaries by default) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 473 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 473 Td
+(Reusable platform capability before one-off customisation) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 454 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 454 Td
+(Inventory and financial integrity through transactional workflows) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 435 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 435 Td
+(Mobile-first customer and delivery experiences) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 416 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 416 Td
+(Transparent scope, milestones, UAT evidence and handover) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(2) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Length 3769 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 02) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(Project Overview) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(Simhapuri Fresh requires a connected grocery platform that supports online shopping,) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(store billing, inventory control, procurement, delivery execution, customer management,) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 685 Td
+(promotions, reporting and business administration.) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 656 Td
+(The proposed solution will provide one operating model across the customer app, admin) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 642 Td
+(panel, POS terminal and delivery application. Orders, stock, billing, delivery, customer) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 628 Td
+(records and operational reporting will be connected through authenticated APIs and) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 614 Td
+(domain-owned services.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 585 Td
+(Proposed solution components) Tj
+ET
+0.94 0.97 0.96 rg
+50 549 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 555 Td
+(Component | Primary users | Purpose) Tj
+ET
+0.94 0.97 0.96 rg
+50 529 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 535 Td
+(Customer application | Customers | Browse products, place orders, manage addresses,) Tj
+ET
+1 1 1 rg
+50 509 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 515 Td
+(Admin panel | Owner, manager, inventory, accountant | Configure and operate the) Tj
+ET
+0.94 0.97 0.96 rg
+50 489 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 495 Td
+(POS application | Cashiers and store staff | Walk-in billing, barcode lookup,) Tj
+ET
+1 1 1 rg
+50 469 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 475 Td
+(Delivery application | Delivery executives | View assignments, update delivery) Tj
+ET
+0.94 0.97 0.96 rg
+50 449 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 455 Td
+(Backend services | Internal operations and integrations | Secure APIs, transactions,) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 426 Td
+(Proposed technology foundation) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 395 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 395 Td
+(Frontend: Next.js and React with TypeScript) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 376 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 376 Td
+(Backend: independently deployable Next.js service APIs) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 357 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 357 Td
+(Database: PostgreSQL with Prisma and database-per-service ownership) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 338 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 338 Td
+(Authentication: JWT/HS256, refresh tokens, bcrypt and role-based access control) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 319 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 319 Td
+(Validation: Zod request validation and typed shared contracts) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 300 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 300 Td
+(Architecture: Turborepo monorepo with reusable Sankalp packages) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 281 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 281 Td
+(Deployment: client-approved cloud or infrastructure, Nginx HTTPS edge and) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 267 Td
+(supervised services) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 248 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 248 Td
+(API style: authenticated REST APIs with tenant-scoped response envelopes) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(3) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Length 3482 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 03) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(User Roles and Applications) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.94 0.97 0.96 rg
+50 708 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 714 Td
+(Role | Application | Access and responsibilities) Tj
+ET
+0.94 0.97 0.96 rg
+50 688 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 694 Td
+(Customer | Customer app | Browse, cart, checkout, orders, addresses, returns and) Tj
+ET
+1 1 1 rg
+50 668 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 674 Td
+(Admin / Owner | Admin panel | Full business administration, settings, users, reports) Tj
+ET
+0.94 0.97 0.96 rg
+50 648 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 654 Td
+(Store Manager | Admin panel | Orders, stock, staff operations, delivery oversight) Tj
+ET
+1 1 1 rg
+50 628 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 634 Td
+(Inventory Manager | Admin panel | Products, categories, brands, warehouses, stock) Tj
+ET
+0.94 0.97 0.96 rg
+50 608 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 614 Td
+(Accountant | Admin panel | Bills, invoices, payments, taxes, journals and financial) Tj
+ET
+1 1 1 rg
+50 588 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 594 Td
+(Cashier | POS application | Cash shift, walk-in bills, payments, holds, returns and) Tj
+ET
+0.94 0.97 0.96 rg
+50 568 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 574 Td
+(Delivery Executive | Delivery application | Assigned orders, pickup, delivery) Tj
+ET
+1 1 1 rg
+50 548 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 554 Td
+(Investor / Viewer | Admin panel | Read-only dashboard, reports and agreed business) Tj
+ET
+0.94 0.97 0.96 rg
+50 528 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 534 Td
+(Platform Administrator | Gateway / platform admin | Tenant, licensing, roles,) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 505 Td
+(Access model) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 474 Td
+(Access is controlled by authenticated identity, tenant membership, module license and) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 460 Td
+(role permissions. Simhapuri Fresh may define the final role matrix during discovery. The) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 446 Td
+(proposal assumes at least Admin, Manager, Inventory, Accountant, Cashier, Delivery) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 432 Td
+(Executive and Investor or Viewer roles.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 403 Td
+(Operating channels) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 372 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 372 Td
+(Customer ordering through responsive web or PWA experience) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 353 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 353 Td
+(Store billing through tablet or desktop POS) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 334 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 334 Td
+(Back-office management through a desktop-first admin panel) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 315 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 315 Td
+(Delivery execution through a mobile-first application) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 296 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 296 Td
+(Internal communication through tenant-scoped staff and customer conversations) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(4) Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Length 4778 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 04) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(1. Admin Dashboard and Business Analytics) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(The admin dashboard will provide a consolidated operating view. The current foundation) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(includes report routes and operational data across sales, inventory, accounting and) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 685 Td
+(delivery; dashboard composition, visual analytics and final KPI definitions will be) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 671 Td
+(completed during implementation refinement.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 642 Td
+(Sales analytics) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 611 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 611 Td
+(Daily, weekly, monthly and yearly sales summaries) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 592 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 592 Td
+(Custom date-range filtering) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 573 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 573 Td
+(Order count and sales value by status) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 554 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 554 Td
+(Online and POS sales comparison) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 535 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 535 Td
+(Sales by product, category and brand) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 516 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 516 Td
+(Top-selling product and category views) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 489 Td
+(Revenue and finance analytics) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 458 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 458 Td
+(Revenue overview) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 439 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 439 Td
+(Payment-method breakdown) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 420 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 420 Td
+(Billing totals and refunds) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 401 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 401 Td
+(Tax and invoice summaries) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 382 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 382 Td
+(Cash shift totals and variance) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 363 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 363 Td
+(Expense, income and profit views where configured) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 336 Td
+(Operational statistics) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 305 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 305 Td
+(Total, active and new customers) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 286 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 286 Td
+(Product and category counts) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 267 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 267 Td
+(Open orders and pending actions) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 248 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 248 Td
+(Low-stock and reorder alerts) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 229 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 229 Td
+(Warehouse stock and valuation) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 210 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 210 Td
+(Delivery assignment and completion status) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 191 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 191 Td
+(Coupon usage and campaign performance) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 164 Td
+(Dashboard filters and exports) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 133 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 133 Td
+(Tenant, branch or warehouse scope where configured) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 114 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 114 Td
+(Date range) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 95 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 95 Td
+(Order status and payment method) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 76 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 76 Td
+(Category, brand and product) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 57 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 57 Td
+(Delivery zone and executive) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 38 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 38 Td
+(Exportable report datasets in agreed formats) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 11 Td
+(Refinement note: exact KPI formulas, branch hierarchy, accounting treatment of revenue,) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 -3 Td
+(and export formats must be approved by Simhapuri Fresh before dashboard acceptance.) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(5) Tj
+ET
+endstream
+endobj
+9 0 obj
+<< /Length 4254 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 05) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(2. Order Management Module) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(The order module manages the complete lifecycle from online or manually created order) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(through confirmation, fulfilment, invoicing, delivery, cancellation and return.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 670 Td
+(Order management features) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 639 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 639 Td
+(View all orders with pagination) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 620 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 620 Td
+(Search by order number, customer, mobile number and date) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 601 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 601 Td
+(Filter by order status, payment method and payment status) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 582 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 582 Td
+(View order items, prices, discount, tax, delivery fee and address) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 563 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 563 Td
+(Order timeline and activity history) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 544 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 544 Td
+(Confirm order and reserve stock) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 525 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 525 Td
+(Cancel order and release stock) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 506 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 506 Td
+(Ship order, deduct stock and create invoice linkage) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 487 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 487 Td
+(Assign order for delivery) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 468 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 468 Td
+(Create manual orders for phone, store or assisted sales) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 449 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 449 Td
+(Bulk status operations subject to role permission) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 430 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 430 Td
+(Return initiation, approval, rejection and completion foundations) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 403 Td
+(Order state model) Tj
+ET
+0.94 0.97 0.96 rg
+54 313 470 69 re
+f
+0.035 0.12 0.19 rg
+BT
+/F3 9 Tf
+68 372 Td
+(DRAFT -> CONFIRMED -> PARTIALLY_SHIPPED -> SHIPPED -> INVOICED) Tj
+0 -15 Td
+68 357 Td
+(|          |              |) Tj
+0 -15 Td
+68 342 Td
+(CANCELLED <- +              +--> RETURN_REQUESTED -> COMPLETED) Tj
+0 -15 Td
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 277 Td
+(The final state names and allowed transitions will be confirmed with the Simhapuri Fresh) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 263 Td
+(operating team. Stock reservation, release and deduction are treated as controlled) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 249 Td
+(service operations rather than client-side updates.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 220 Td
+(Payment and fulfilment) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 189 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 189 Td
+(Cash on delivery and online payment method fields) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 170 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 170 Td
+(Payment status tracking) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 151 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 151 Td
+(Invoice generation linkage after shipment) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 132 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 132 Td
+(Delivery assignment handoff) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 113 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 113 Td
+(Cancellation and refund or credit-note handling subject to accounting) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 99 Td
+(configuration) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 80 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 80 Td
+(Order tracking logs and delay notification integration point) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(6) Tj
+ET
+endstream
+endobj
+10 0 obj
+<< /Length 4870 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 06) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(3. Category, Brand and Catalogue Management) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(The catalogue structure will organize the grocery assortment for both customer discovery) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(and internal operations.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 670 Td
+(Category management) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 639 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 639 Td
+(Main category and subcategory management) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 620 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 620 Td
+(Parent-child category tree) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 601 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 601 Td
+(Sorting and display priority) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 582 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 582 Td
+(Active/inactive visibility) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 563 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 563 Td
+(Featured category flag) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 544 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 544 Td
+(Category banner or icon asset reference) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 525 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 525 Td
+(Category-wise product listing and reporting) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 498 Td
+(Suggested grocery categories) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 467 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 467 Td
+(Fruits and vegetables) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 448 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 448 Td
+(Grocery and staples) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 429 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 429 Td
+(Dairy and chilled products) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 410 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 410 Td
+(Beverages) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 391 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 391 Td
+(Snacks and packaged foods) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 372 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 372 Td
+(Bakery and ready-to-eat) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 353 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 353 Td
+(Household essentials) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 334 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 334 Td
+(Personal care) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 315 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 315 Td
+(Baby care) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 296 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 296 Td
+(Meat, seafood or other regulated categories if applicable) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 269 Td
+(Brand management) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 238 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 238 Td
+(Brand creation and editing) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 219 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 219 Td
+(Logo asset reference) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 200 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 200 Td
+(Active/inactive status) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 181 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 181 Td
+(Product association) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 162 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 162 Td
+(Brand filtering and reporting) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 135 Td
+(Product catalogue) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 104 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 104 Td
+(Product name, SKU, barcode and description) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 85 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 85 Td
+(Category, subcategory and brand association) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 66 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 66 Td
+(Product image references) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 47 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 47 Td
+(Unit, weight and quantity information) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 28 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 28 Td
+(Featured and sort-order controls) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 9 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 9 Td
+(Availability and visibility controls) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 -10 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 -10 Td
+(Reorder level and stock policy) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 -29 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 -29 Td
+(Product search and filtering) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 -48 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 -48 Td
+(Variant and price-list extension points) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(7) Tj
+ET
+endstream
+endobj
+11 0 obj
+<< /Length 4067 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 07) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(4. Product and Inventory Management) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(Inventory is managed by warehouse and product, with reservations and movements recorded) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(for traceability. Product and stock APIs are implemented in the inventory service; the) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 685 Td
+(final admin screens and operating policies remain part of the implementation scope.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 656 Td
+(Inventory operations) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 625 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 625 Td
+(View stock by warehouse and product) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 606 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 606 Td
+(Search by SKU, barcode, category or brand) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 587 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 587 Td
+(Manual stock adjustment with reason) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 568 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 568 Td
+(Stock movement history) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 549 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 549 Td
+(Low-stock and reorder-level reporting) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 530 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 530 Td
+(Stock reservation for confirmed online orders) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 511 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 511 Td
+(Release reservation on cancellation) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 492 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 492 Td
+(Deduct stock on shipment or completed POS bill) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 473 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 473 Td
+(Receive stock against purchase order) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 454 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 454 Td
+(Restore stock for approved returns) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 435 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 435 Td
+(Inventory valuation foundation using cost values) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 416 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 416 Td
+(Warehouse and location management) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 389 Td
+(Stock controls) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 358 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 358 Td
+(Available quantity) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 339 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 339 Td
+(Reserved quantity) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 320 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 320 Td
+(Sellable quantity) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 301 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 301 Td
+(Reorder level) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 282 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 282 Td
+(Inbound and outbound movement) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 263 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 263 Td
+(Reference order, bill or purchase record) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 244 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 244 Td
+(Warehouse-level filtering) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 225 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 225 Td
+(Role-controlled adjustment operations) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 198 Td
+(Future refinement items) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 167 Td
+(Batch and expiry handling, variant stock, multi-price lists, barcode hardware behavior,) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 153 Td
+(wastage, damaged stock, inter-warehouse transfers and weighted produce billing require) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 139 Td
+(confirmation of Simhapuri Fresh's operating practices.) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(8) Tj
+ET
+endstream
+endobj
+12 0 obj
+<< /Length 5001 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 08) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(5. Store Billing and POS Management) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(The POS application will support walk-in customers, store purchases, cash operations and) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(stock synchronization.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 670 Td
+(Billing features) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 639 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 639 Td
+(Fast billing interface) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 620 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 620 Td
+(Product search by name, SKU or barcode) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 601 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 601 Td
+(Barcode scanner integration point) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 582 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 582 Td
+(Quick add to cart) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 563 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 563 Td
+(Quantity-based billing) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 544 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 544 Td
+(Weight-based billing where configured) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 525 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 525 Td
+(Item-level discount and tax fields) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 506 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 506 Td
+(GST-ready tax calculation foundation) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 487 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 487 Td
+(Cash shift association) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 468 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 468 Td
+(Cash, UPI, card and wallet payment methods as configured) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 449 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 449 Td
+(Invoice and receipt generation) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 430 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 430 Td
+(Thermal printer integration point) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 403 Td
+(Billing operations) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 372 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 372 Td
+(Hold bill and resume bill) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 353 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 353 Td
+(Bill cancellation with authorized role) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 334 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 334 Td
+(Full and partial return processing) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 315 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 315 Td
+(Refund record and stock restoration) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 296 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 296 Td
+(Manual billing entries) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 277 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 277 Td
+(Customer association for identified sales) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 258 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 258 Td
+(Bill search by shift, status or customer) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 231 Td
+(Cash counter management) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 200 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 200 Td
+(Open shift with opening balance) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 181 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 181 Td
+(Shift-wise bills and collections) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 162 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 162 Td
+(Cash-in and cash-out entries) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 143 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 143 Td
+(Close shift with counted cash) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 124 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 124 Td
+(Expected versus actual cash variance) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 105 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 105 Td
+(Shift summary report) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 86 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 86 Td
+(Manager approval for exceptional variance where required) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 59 Td
+(Stock integration) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 28 Td
+(Completed bills deduct stock through the inventory service. Returns restore stock) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 14 Td
+(through controlled return operations. The POS client does not directly mutate inventory) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 0 Td
+(records.) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 -29 Td
+(Refinement note: payment gateway, printer model, scanner model, receipt format, GST) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 -43 Td
+(invoice requirements and multiple-counter behavior must be confirmed before POS hardware) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 -57 Td
+(acceptance.) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(9) Tj
+ET
+endstream
+endobj
+13 0 obj
+<< /Length 3852 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 09) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(6. Promotions, Banners and Coupons) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(The platform includes gateway-owned marketing foundations for banners and coupons.) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(Simhapuri Fresh can use these capabilities to manage merchandising campaigns and) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 685 Td
+(customer offers.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 656 Td
+(Banner management) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 625 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 625 Td
+(Homepage banners) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 606 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 606 Td
+(Promotional banners) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 587 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 587 Td
+(Category banners) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 568 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 568 Td
+(Active date range) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 549 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 549 Td
+(Display order) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 530 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 530 Td
+(Image asset reference) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 511 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 511 Td
+(Link target or campaign reference) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 492 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 492 Td
+(Enable and disable controls) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 465 Td
+(Coupon management) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 434 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 434 Td
+(Percentage or flat discount) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 415 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 415 Td
+(Minimum order value) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 396 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 396 Td
+(Validity period) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 377 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 377 Td
+(Usage limits and customer usage tracking) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 358 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 358 Td
+(Product or category applicability where configured) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 339 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 339 Td
+(Coupon validation before order completion) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 320 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 320 Td
+(Discount display and order linkage) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 293 Td
+(Campaign planning) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 262 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 262 Td
+(Seasonal grocery campaigns) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 243 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 243 Td
+(Featured products) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 224 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 224 Td
+(Category promotions) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 205 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 205 Td
+(New customer offers) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 186 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 186 Td
+(Repeat-purchase or cart-value offers) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 167 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 167 Td
+(Promotional notification integration point) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 140 Td
+(Campaign rules, stacking behavior, tax treatment of discounts and approval) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 126 Td
+(responsibilities will be finalized during the business rules workshop.) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(10) Tj
+ET
+endstream
+endobj
+14 0 obj
+<< /Length 4232 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 10) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(7. Delivery Management) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(Delivery operations will connect confirmed orders with serviceable zones, delivery) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(executives, status tracking and earnings information.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 670 Td
+(Delivery operations) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 639 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 639 Td
+(Delivery zone creation and management) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 620 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 620 Td
+(Pincode serviceability check) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 601 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 601 Td
+(Order assignment to executive) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 582 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 582 Td
+(Assignment list and detail) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 563 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 563 Td
+(Pickup and delivery status transitions) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 544 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 544 Td
+(Delivery notes and operational references) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 525 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 525 Td
+(Delayed-order visibility) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 506 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 506 Td
+(Completed delivery history) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 479 Td
+(Delivery configuration) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 448 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 448 Td
+(Distance or zone-based delivery charges) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 429 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 429 Td
+(Dynamic delivery fee rules where approved) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 410 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 410 Td
+(Minimum order or free-delivery threshold) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 391 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 391 Td
+(Delivery time-slot policy) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 372 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 372 Td
+(Serviceability by pincode or zone) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 353 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 353 Td
+(Cash collection responsibility) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 326 Td
+(Compensation settings) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 295 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 295 Td
+(Fixed salary configuration) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 276 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 276 Td
+(Per-order commission) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 257 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 257 Td
+(Bonus and incentive configuration) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 238 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 238 Td
+(Earnings summary by executive) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 219 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 219 Td
+(Period-based earnings reports) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 192 Td
+(Delivery performance) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 161 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 161 Td
+(Assigned, accepted, picked-up and delivered counts) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 142 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 142 Td
+(Completion time) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 123 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 123 Td
+(Failed or cancelled delivery reasons) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 104 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 104 Td
+(Cash and online payment split) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 85 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 85 Td
+(Executive-level performance report) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 66 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 66 Td
+(On-time rate metric after KPI definition is approved) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(11) Tj
+ET
+endstream
+endobj
+15 0 obj
+<< /Length 3094 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 11) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(8. Delivery Executive Application) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(The delivery application will be mobile-first and limited to the delivery executive's) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(authorized work context.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 670 Td
+(Executive workflow) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+54 639 Td
+(1. Sign in and view availability) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+54 620 Td
+(2. Review assigned orders) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+54 601 Td
+(3. Accept or acknowledge an assignment where configured) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+54 582 Td
+(4. View customer address and delivery information) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+54 563 Td
+(5. Mark pickup or out-for-delivery status) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+54 544 Td
+(6. Contact customer through approved channel) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+54 525 Td
+(7. Mark delivered, failed or returned with reason) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+54 506 Td
+(8. Record cash collection where applicable) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+54 487 Td
+(9. Review daily and period earnings) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 460 Td
+(Executive views) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 429 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 429 Td
+(Active assignments) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 410 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 410 Td
+(Assignment detail) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 391 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 391 Td
+(Customer and delivery address) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 372 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 372 Td
+(Status update controls) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 353 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 353 Td
+(Delivery history) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 334 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 334 Td
+(Earnings summary) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 315 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 315 Td
+(Availability and vehicle information) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 296 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 296 Td
+(Location tracking permission and status where enabled) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 269 Td
+(The current delivery service includes zones, assignments, status transitions, earnings) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 255 Td
+(and compensation foundations. Executive profile workflows, location permissions and the) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 241 Td
+(final mobile UI are implementation items to be refined and accepted with the delivery) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 227 Td
+(team.) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(12) Tj
+ET
+endstream
+endobj
+16 0 obj
+<< /Length 4375 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 12) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(9. Customer Management and Customer Experience) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(Customer experience will be available through the customer application, while authorized) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(staff will manage customer records and service activity through the admin panel.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 670 Td
+(Customer administration) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 639 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 639 Td
+(Customer listing and search) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 620 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 620 Td
+(Customer profile) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 601 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 601 Td
+(Mobile number and email) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 582 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 582 Td
+(Account activity) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 563 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 563 Td
+(Address management) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 544 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 544 Td
+(Order history) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 525 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 525 Td
+(Account active or blocked status) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 506 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 506 Td
+(Block and unblock reason) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 487 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 487 Td
+(Wallet foundation where enabled) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 468 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 468 Td
+(Coupon usage history where enabled) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 441 Td
+(Customer application) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 410 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 410 Td
+(Sign up and secure login) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 391 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 391 Td
+(Product catalogue browsing) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 372 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 372 Td
+(Search and category discovery) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 353 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 353 Td
+(Product detail and availability) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 334 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 334 Td
+(Cart and checkout) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 315 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 315 Td
+(Address selection and management) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 296 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 296 Td
+(Online order placement) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 277 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 277 Td
+(Order history and order detail) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 258 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 258 Td
+(Delivery status visibility) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 239 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 239 Td
+(Return or support entry point) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 220 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 220 Td
+(Profile and account settings) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 193 Td
+(Customer communication) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 162 Td
+(Customers can start a conversation with Simhapuri Fresh staff from the portal.) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 148 Td
+(Conversations are tenant-scoped, routed to an authorized staff member, and support text,) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 134 Td
+(attachments and voice messages. Participant membership controls access to the) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 120 Td
+(conversation.) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 91 Td
+(The customer portal and voice-message workflow have been implemented and validated in) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 77 Td
+(the current release. Push notifications, customer-admin list screens and some advanced) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 63 Td
+(notification behavior remain refinement items.) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(13) Tj
+ET
+endstream
+endobj
+17 0 obj
+<< /Length 5019 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 13) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(10. Reporting and Analytics) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(Reports will be delivered according to agreed operational definitions and permissions.) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(The backend contains report foundations across sales, stock, POS shifts and delivery.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 670 Td
+(Sales and order reports) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 639 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 639 Td
+(Daily, weekly, monthly and yearly sales) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 620 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 620 Td
+(Online versus POS sales) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 601 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 601 Td
+(Order summary by status) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 582 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 582 Td
+(Payment method report) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 563 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 563 Td
+(Cancellation report) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 544 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 544 Td
+(Return report) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 525 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 525 Td
+(Product-wise sales) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 506 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 506 Td
+(Category-wise sales) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 487 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 487 Td
+(Top products and customers) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 460 Td
+(Inventory reports) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 429 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 429 Td
+(Current stock by warehouse) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 410 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 410 Td
+(Low-stock report) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 391 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 391 Td
+(Stock movement report) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 372 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 372 Td
+(Stock reservation and release history) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 353 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 353 Td
+(Inventory valuation foundation) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 334 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 334 Td
+(Product and category performance) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 315 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 315 Td
+(Purchase receiving summary) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 288 Td
+(Delivery reports) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 257 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 257 Td
+(Delivery assignment report) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 238 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 238 Td
+(Executive completion report) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 219 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 219 Td
+(Earnings report) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 200 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 200 Td
+(Cash collection report) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 181 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 181 Td
+(Failed and returned delivery report) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 162 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 162 Td
+(Delivery performance metrics after KPI approval) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 135 Td
+(POS and finance reports) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 104 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 104 Td
+(Daily billing report) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 85 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 85 Td
+(Shift summary) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 66 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 66 Td
+(Cash collection and variance) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 47 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 47 Td
+(Refund and return report) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 28 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 28 Td
+(Invoice and tax summary) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 9 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 9 Td
+(Receivable and payable foundations) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 -10 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 -10 Td
+(Expense and revenue reports where configured) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 -37 Td
+(Export and access) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 -68 Td
+(Report access is role-controlled. Export formats, Excel generation, scheduled reports) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 -82 Td
+(and investor-facing dashboards are to be confirmed as part of refinement rather than) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 -96 Td
+(assumed as delivered in the current baseline.) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(14) Tj
+ET
+endstream
+endobj
+18 0 obj
+<< /Length 3471 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 14) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(11. Notifications and Communication) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(Notifications will keep customers and staff informed about business events without) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(exposing data across tenants.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 670 Td
+(Planned notification events) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 639 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 639 Td
+(Order placed) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 620 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 620 Td
+(Order confirmed) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 601 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 601 Td
+(Payment received or failed) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 582 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 582 Td
+(Order shipped or assigned) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 563 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 563 Td
+(Delivery completed or failed) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 544 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 544 Td
+(Return approved or completed) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 525 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 525 Td
+(Low-stock alert) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 506 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 506 Td
+(Purchase receiving event) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 487 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 487 Td
+(Promotion and offer announcement) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 468 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 468 Td
+(New customer support message) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 449 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 449 Td
+(System and administrative notification) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 422 Td
+(Communication channels) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 391 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 391 Td
+(In-app notification foundation) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 372 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 372 Td
+(Customer and staff conversations) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 353 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 353 Td
+(Text messages) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 334 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 334 Td
+(Voice messages) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 315 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 315 Td
+(File or image attachments) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 296 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 296 Td
+(Email, SMS, WhatsApp or push integrations subject to provider selection) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 269 Td
+(The current communication capability supports tenant-scoped conversations, participant) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 255 Td
+(access, text, voice and attachments. FCM token registration and notification delivery) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 241 Td
+(routes exist as extension points; production push providers, templates, consent, retry) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 227 Td
+(policy and notification preferences must be finalized.) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(15) Tj
+ET
+endstream
+endobj
+19 0 obj
+<< /Length 4705 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 15) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(12. Administration and Security) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(Simhapuri Fresh will operate through controlled administration with explicit separation) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(of business roles.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 670 Td
+(Administration features) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 639 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 639 Td
+(Tenant and business profile) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 620 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 620 Td
+(User invitations and membership) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 601 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 601 Td
+(Role assignment) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 582 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 582 Td
+(Module licensing and activation) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 563 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 563 Td
+(Settings and configuration) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 544 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 544 Td
+(Warehouse and delivery configuration) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 525 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 525 Td
+(Tax and numbering configuration) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 506 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 506 Td
+(Banner, coupon and promotion administration) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 487 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 487 Td
+(Workflow and form configuration where enabled) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 468 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 468 Td
+(Audit and operational evidence) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 441 Td
+(Security controls) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 410 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 410 Td
+(JWT authentication and refresh-token rotation) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 391 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 391 Td
+(bcrypt password hashing) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 372 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 372 Td
+(Fail-closed service-to-service authentication) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 353 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 353 Td
+(Tenant ID resolved from authenticated headers) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 334 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 334 Td
+(Participant checks for communication data) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 315 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 315 Td
+(Zod validation for request bodies) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 296 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 296 Td
+(Soft deletes for business records) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 277 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 277 Td
+(Transactional multi-model mutations) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 258 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 258 Td
+(API entry through the gateway and HTTPS edge) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 239 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 239 Td
+(Secrets supplied through environment configuration) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 212 Td
+(Role examples) Tj
+ET
+0.94 0.97 0.96 rg
+50 176 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 182 Td
+(Role | Primary permissions) Tj
+ET
+0.94 0.97 0.96 rg
+50 156 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 162 Td
+(Admin | Full business and configuration access) Tj
+ET
+1 1 1 rg
+50 136 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 142 Td
+(Manager | Orders, inventory, delivery and reports) Tj
+ET
+0.94 0.97 0.96 rg
+50 116 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 122 Td
+(Inventory | Catalogue, warehouses, stock and receiving) Tj
+ET
+1 1 1 rg
+50 96 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 102 Td
+(Accountant | Bills, invoices, taxes, payments and reports) Tj
+ET
+0.94 0.97 0.96 rg
+50 76 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 82 Td
+(Cashier | POS shifts, bills and authorized returns) Tj
+ET
+1 1 1 rg
+50 56 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 62 Td
+(Investor / Viewer | Read-only dashboards and approved reports) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 33 Td
+(The final permission matrix and audit-log screens require client approval and) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 19 Td
+(implementation completion where marked in the progress matrix.) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(16) Tj
+ET
+endstream
+endobj
+20 0 obj
+<< /Length 4390 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 16) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(13. GST, HSN and Financial Controls) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(The accounting foundation supports chart of accounts, journals, invoices, bills,) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(payments, taxes, credit notes, debit notes, assets and foreign-exchange foundations.) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 685 Td
+(Simhapuri Fresh's statutory configuration will be completed with its accountant or tax) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 671 Td
+(consultant.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 642 Td
+(Proposed GST and HSN scope) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 611 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 611 Td
+(HSN or product tax-code field) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 592 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 592 Td
+(Tax rate and tax slab configuration) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 573 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 573 Td
+(Product-to-tax mapping) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 554 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 554 Td
+(Tax calculation on bills and orders) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 535 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 535 Td
+(Tax breakdown in invoices) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 516 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 516 Td
+(Credit-note and debit-note tax treatment) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 497 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 497 Td
+(GST-oriented sales and invoice reports) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 478 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 478 Td
+(Tax-inclusive or tax-exclusive pricing rule) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 451 Td
+(Financial operations) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 420 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 420 Td
+(Chart of accounts) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 401 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 401 Td
+(Journal entries) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 382 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 382 Td
+(Accounts receivable and payable foundations) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 363 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 363 Td
+(Sales invoices) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 344 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 344 Td
+(Purchase invoices) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 325 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 325 Td
+(Payments and payment status) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 306 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 306 Td
+(POS bills and cash shifts) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 287 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 287 Td
+(Returns, credit notes and debit notes) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 268 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 268 Td
+(Asset and FX foundations where enabled) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 241 Td
+(Clarifications required) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 210 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 210 Td
+(GST registration details and applicable states) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 191 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 191 Td
+(Inclusive or exclusive product pricing) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 172 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 172 Td
+(HSN/SAC master ownership) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 153 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 153 Td
+(Rounding policy) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 134 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 134 Td
+(Credit period and customer credit limits) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 115 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 115 Td
+(Accounting period and closing process) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 96 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 96 Td
+(Payment gateway settlement reconciliation) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 77 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 77 Td
+(Treatment of delivery fee, discounts and returns) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(17) Tj
+ET
+endstream
+endobj
+21 0 obj
+<< /Length 3728 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 17) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(14. Manual Expense, Revenue and Profit Views) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(Simhapuri Fresh may require operating visibility beyond order revenue. This area will be) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(implemented only to the level approved in the final finance scope.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 670 Td
+(Proposed controls) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 639 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 639 Td
+(Manual expense entry) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 620 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 620 Td
+(Daily and monthly expense tracking) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 601 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 601 Td
+(Staff salary expense) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 582 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 582 Td
+(Transportation and delivery expense) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 563 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 563 Td
+(Rent, utilities and miscellaneous expense) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 544 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 544 Td
+(Manual income entry where required) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 525 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 525 Td
+(Date-wise revenue view) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 506 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 506 Td
+(Expense-wise report) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 487 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 487 Td
+(Profit and loss overview) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 468 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 468 Td
+(Net revenue after expenses) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 441 Td
+(Revenue sharing and investor views) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 410 Td
+(If Simhapuri Fresh operates with an investor or revenue-sharing arrangement, the) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 396 Td
+(platform can provide configured percentage calculations and read-only reporting after) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 382 Td
+(the commercial rule is approved.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 353 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 353 Td
+(Admin or owner percentage) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 334 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 334 Td
+(Investor percentage) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 315 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 315 Td
+(Automatic split calculation) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 296 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 296 Td
+(Monthly distribution report) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 277 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 277 Td
+(Investor earnings overview) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 258 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 258 Td
+(Admin earnings overview) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 239 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 239 Td
+(Net revenue after approved expenses) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 212 Td
+(These calculations require written agreement on included revenue, expense categories,) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 198 Td
+(tax treatment, refunds, timing and settlement responsibility. They are not assumed to be) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 184 Td
+(production-ready until approved and tested.) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(18) Tj
+ET
+endstream
+endobj
+22 0 obj
+<< /Length 6003 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 18) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(15. Technical Deliverables) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 713 Td
+(Customer application) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 682 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 682 Td
+(Responsive grocery shopping experience) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 663 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 663 Td
+(Authentication and customer profile) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 644 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 644 Td
+(Catalogue and product discovery) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 625 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 625 Td
+(Cart and checkout) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 606 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 606 Td
+(Addresses and order history) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 587 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 587 Td
+(Order detail and delivery visibility) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 568 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 568 Td
+(Support conversation entry point) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 549 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 549 Td
+(Text, attachment and voice-message interaction) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 522 Td
+(Admin panel) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 491 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 491 Td
+(Responsive dashboard shell) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 472 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 472 Td
+(Role-aware navigation) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 453 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 453 Td
+(Catalogue and category management) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 434 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 434 Td
+(Product and inventory operations) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 415 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 415 Td
+(Order management) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 396 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 396 Td
+(POS and shift administration) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 377 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 377 Td
+(Promotions and coupons) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 358 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 358 Td
+(Delivery zones and assignments) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 339 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 339 Td
+(Reports and operational views) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 320 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 320 Td
+(Configuration and platform controls) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 293 Td
+(POS application) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 262 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 262 Td
+(Barcode and product lookup) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 243 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 243 Td
+(Cart and billing) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 224 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 224 Td
+(Discounts and tax) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 205 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 205 Td
+(Payment methods) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 186 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 186 Td
+(Hold and resume) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 167 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 167 Td
+(Cash shifts) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 148 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 148 Td
+(Receipts and bill detail) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 129 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 129 Td
+(Returns and refunds) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 102 Td
+(Delivery application) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 71 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 71 Td
+(Executive sign-in and work context) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 52 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 52 Td
+(Assigned orders) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 33 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 33 Td
+(Delivery status state machine) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 14 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 14 Td
+(Customer and address details) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 -5 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 -5 Td
+(Earnings and history) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 -24 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 -24 Td
+(Location tracking extension point) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 -51 Td
+(Backend and platform) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 -82 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 -82 Td
+(Gateway and domain APIs) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 -101 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 -101 Td
+(PostgreSQL schema and Prisma migrations) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 -120 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 -120 Td
+(Tenant and role security) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 -139 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 -139 Td
+(Stock reservation, release, deduction and receiving) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 -158 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 -158 Td
+(Invoice and accounting service integration) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 -177 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 -177 Td
+(Delivery assignment and earnings services) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 -196 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 -196 Td
+(Communication and attachment upload) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 -215 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 -215 Td
+(Shared TypeScript contracts and UI packages) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 -234 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 -234 Td
+(Logging, metrics, tracing and operational runbook) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(19) Tj
+ET
+endstream
+endobj
+23 0 obj
+<< /Length 4210 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 19) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(16. Implementation Status and Scope Boundary) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 713 Td
+(Available foundations) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 682 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 682 Td
+(Online order creation, confirmation, cancellation, shipment and stock integration) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 663 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 663 Td
+(Category and brand APIs) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 644 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 644 Td
+(Product, barcode and warehouse stock APIs) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 625 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 625 Td
+(Stock adjustment and movement foundations) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 606 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 606 Td
+(POS shifts, bills, holds, resumes, returns and stock deduction) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 587 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 587 Td
+(Banners, coupons, validation and usage tracking foundations) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 568 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 568 Td
+(Delivery zones, assignments, status transitions and earnings) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 549 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 549 Td
+(Sales, inventory, POS and delivery report foundations) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 530 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 530 Td
+(Customer portal, order experience and customer-to-staff communication) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 511 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 511 Td
+(Voice upload, voice messages and playback in customer messaging) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 492 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 492 Td
+(Authentication, tenant scoping, service keys and shared platform packages) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 465 Td
+(In progress or requiring refinement) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 434 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 434 Td
+(Dashboard visualisation and final KPI definitions) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 415 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 415 Td
+(Admin frontend completion across business modules) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 396 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 396 Td
+(Customer administration screens and customer reports) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 377 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 377 Td
+(Delivery executive profile workflows and full mobile experience) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 358 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 358 Td
+(Push and in-app notification delivery) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 339 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 339 Td
+(Final role and permission administration screens) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 320 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 320 Td
+(Advanced product variants, price lists, expiry, batch and weighted billing) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 301 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 301 Td
+(Excel export, scheduled reports and investor dashboard) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 282 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 282 Td
+(Final GST/HSN rules and statutory report formats) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 263 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 263 Td
+(Production integrations for payment, messaging, tax, logistics and hardware) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 236 Td
+(This boundary is intentional. It allows the proposal to describe the complete target) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 222 Td
+(product while distinguishing current platform evidence from implementation work still to) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 208 Td
+(be completed.) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(20) Tj
+ET
+endstream
+endobj
+24 0 obj
+<< /Length 3798 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 20) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(17. Implementation Approach and Acceptance) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 713 Td
+(Phase 1 - Discovery and business rules) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 682 Td
+(Confirm branches, warehouses, catalogue, product units, taxes, pricing, payment methods,) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 668 Td
+(delivery zones, roles, approval rules, reports, integrations and customer support) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 654 Td
+(processes.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 625 Td
+(Phase 2 - Foundation and configuration) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 594 Td
+(Prepare environments, tenant configuration, access roles, master-data templates, domain) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 580 Td
+(settings, numbering, tax setup and operational policies.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 551 Td
+(Phase 3 - Core grocery operations) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 520 Td
+(Complete catalogue, inventory, order, POS, procurement, accounting, delivery and) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 506 Td
+(customer workflows. Configure the highest-value Simhapuri Fresh journeys first.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 477 Td
+(Phase 4 - Experience and integrations) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 446 Td
+(Finalize customer, admin, POS and delivery interfaces. Connect approved payment,) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 432 Td
+(notification, logistics, tax, printer, scanner and reporting integrations.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 403 Td
+(Phase 5 - UAT, training and go-live) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 372 Td
+(Run role-based UAT, migration rehearsal, stock and finance reconciliation, training,) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 358 Td
+(cutover rehearsal, production readiness review, go-live and hypercare.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 329 Td
+(Acceptance criteria) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 298 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 298 Td
+(Tenant and role access tests pass) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 279 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 279 Td
+(Master data is loaded and reconciled) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 260 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 260 Td
+(Online order journey passes from checkout to delivery) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 241 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 241 Td
+(POS bill journey passes with stock deduction and shift closure) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 222 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 222 Td
+(Purchase receiving updates inventory correctly) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 203 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 203 Td
+(Return journey restores or adjusts stock as approved) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 184 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 184 Td
+(Delivery status and earnings are visible to authorized users) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 165 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 165 Td
+(Reports reconcile to source transactions) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 146 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 146 Td
+(Customer support messages remain tenant and participant scoped) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 127 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 127 Td
+(Production backup, monitoring and support runbook are approved) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(21) Tj
+ET
+endstream
+endobj
+25 0 obj
+<< /Length 3716 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 21) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(18. Delivery Timeline and Commercial Framework) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(The reference project described a 40-working-day delivery. For Simhapuri Fresh, the) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(final duration depends on the confirmed scope, integrations, data quality, hardware,) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 685 Td
+(number of operating locations and UAT availability.) Tj
+ET
+0.94 0.97 0.96 rg
+50 651 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 657 Td
+(Phase | Scope | Indicative duration) Tj
+ET
+0.94 0.97 0.96 rg
+50 631 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 637 Td
+(Discovery | Process mapping, rules and solution blueprint | [ ] working days) Tj
+ET
+1 1 1 rg
+50 611 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 617 Td
+(Foundation | Environment, tenant, roles, master data and security | [ ] working days) Tj
+ET
+0.94 0.97 0.96 rg
+50 591 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 597 Td
+(Core operations | Catalogue, stock, orders, POS, delivery and finance | [ ] working) Tj
+ET
+1 1 1 rg
+50 571 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 577 Td
+(Customer and admin experience | Screens, workflows, reports and communication | [ ]) Tj
+ET
+0.94 0.97 0.96 rg
+50 551 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 557 Td
+(Integrations and UAT | Providers, hardware, migration rehearsal and testing | [ ]) Tj
+ET
+1 1 1 rg
+50 531 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 537 Td
+(Go-live and hypercare | Cutover, support and handover | [ ] working days) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 508 Td
+(Commercial items) Tj
+ET
+1 1 1 rg
+50 472 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 478 Td
+(Item | Proposal value) Tj
+ET
+1 1 1 rg
+50 452 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 458 Td
+(Product configuration and implementation | [Amount / currency]) Tj
+ET
+0.94 0.97 0.96 rg
+50 432 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 438 Td
+(Customer, admin, POS and delivery applications | [Included / amount]) Tj
+ET
+1 1 1 rg
+50 412 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 418 Td
+(Data migration and onboarding | [Included / amount]) Tj
+ET
+0.94 0.97 0.96 rg
+50 392 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 398 Td
+(Payment, tax, logistics and messaging integrations | [Scope / amount]) Tj
+ET
+1 1 1 rg
+50 372 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 378 Td
+(Hosting and managed operations | [Amount / period]) Tj
+ET
+0.94 0.97 0.96 rg
+50 352 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 358 Td
+(Support and SLA | [Tier / amount]) Tj
+ET
+1 1 1 rg
+50 332 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 338 Td
+(Hardware and third-party provider fees | [Excluded / amount]) Tj
+ET
+0.94 0.97 0.96 rg
+50 312 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 318 Td
+(Taxes | [Applicable taxes]) Tj
+ET
+1 1 1 rg
+50 292 495 19 re
+f
+0.08 0.1 0.11 rg
+BT
+/F1 8.2 Tf
+54 298 Td
+(Payment milestones | [Milestone schedule]) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 269 Td
+(Reference only: commercial values and the final 40-working-day schedule must be) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 255 Td
+(confirmed after discovery. GST, third-party services, hardware, data cleansing beyond) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 241 Td
+(agreed rules and out-of-scope change requests are excluded unless stated otherwise.) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(22) Tj
+ET
+endstream
+endobj
+26 0 obj
+<< /Length 3750 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 22) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(Assumptions, Risks and Next Steps) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 713 Td
+(Assumptions) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 682 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 682 Td
+(Simhapuri Fresh will nominate business owners for grocery, finance, inventory and) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 668 Td
+(delivery decisions.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 649 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 649 Td
+(Source products, categories, brands, prices, tax codes, opening stock and) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 635 Td
+(customers will be supplied in agreed templates.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 616 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 616 Td
+(Payment, notification, logistics, tax and hardware providers will be selected by) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 602 Td
+(the client or jointly approved.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 583 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 583 Td
+(Client users will participate in UAT and role-based training.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 564 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 564 Td
+(Hosting, domains, certificates and production access will be available before) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 550 Td
+(cutover.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 531 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 531 Td
+(Final functionality is governed by the signed scope and acceptance criteria.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 504 Td
+(Key risks to resolve early) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 473 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 473 Td
+(Product units and weighted-goods billing rules) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 454 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 454 Td
+(Stock opening balance and warehouse reconciliation) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 435 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 435 Td
+(GST/HSN master quality and tax treatment) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 416 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 416 Td
+(Payment settlement and refund reconciliation) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 397 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 397 Td
+(Delivery zone, fee and cash-collection policy) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 378 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 378 Td
+(POS device and thermal-printer compatibility) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 359 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 359 Td
+(Notification consent and provider availability) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 10 Tf
+54 340 Td
+(*) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+69 340 Td
+(Investor or revenue-sharing calculation rules) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 313 Td
+(Next steps) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+54 282 Td
+(1. Confirm the Simhapuri Fresh business profile, locations and operating roles.) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+54 263 Td
+(2. Approve the module scope and mark each item as launch, phase two or future.) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+54 244 Td
+(3. Conduct catalogue, inventory, finance, delivery and integration workshops.) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+54 225 Td
+(4. Provide master data and nominate UAT owners.) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.3 Tf
+54 206 Td
+(5. Finalize timeline, commercials, support tier and signatories.) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(23) Tj
+ET
+endstream
+endobj
+27 0 obj
+<< /Length 2383 >>
+stream
+0.035 0.12 0.19 rg
+0 792 595 50 re
+f
+1 1 1 rg
+BT
+/F2 11 Tf
+54 811 Td
+(SANKALP ERP PLATFORM) Tj
+ET
+0.78 0.88 0.88 rg
+BT
+/F1 8 Tf
+487 811 Td
+(PROPOSAL / 23) Tj
+ET
+0.035 0.12 0.19 rg
+BT
+/F2 23 Tf
+54 759 Td
+(Project Approval and Closing) Tj
+ET
+0 0.45 0.43 RG
+2 w
+54 747 m
+541 747 l
+S
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 713 Td
+(Sankalp ERP Platform is proposed as the operating foundation for Simhapuri Fresh's) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 699 Td
+(grocery business. The solution is designed to connect customer demand, store billing,) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 685 Td
+(stock control, delivery execution, finance and management visibility in one governed) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 671 Td
+(platform.) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 642 Td
+(The proposal is intentionally structured for refinement. The target product is described) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 628 Td
+(in sufficient detail for commercial and operational discussion, while the implementation) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 614 Td
+(status section identifies the capabilities that still require completion, configuration) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 600 Td
+(or client confirmation.) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 571 Td
+(Approval) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 540 Td
+(For Simhapuri Fresh) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 511 Td
+(Authorized signatory: ____________________________________) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 482 Td
+(Designation: ____________________________________________) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 453 Td
+(Signature: ______________________________________________) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 424 Td
+(Date: __________________________________________________) Tj
+ET
+0 0.45 0.43 rg
+BT
+/F2 14 Tf
+54 395 Td
+(Provider) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 364 Td
+(Sankalp) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 335 Td
+(Website: [Website URL]) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 306 Td
+(Email: [Contact email]) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 277 Td
+(Phone: [Contact phone]) Tj
+ET
+0.08 0.1 0.11 rg
+BT
+/F1 9.4 Tf
+54 248 Td
+(Platform: Sankalp ERP Platform) Tj
+ET
+0.82 0.86 0.86 RG
+0.6 w
+54 42 m
+541 42 l
+S
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+54 25 Td
+(Sankalp | Confidential proposal | [Contact details]) Tj
+ET
+0.35 0.42 0.44 rg
+BT
+/F1 7.5 Tf
+520 25 Td
+(24) Tj
+ET
+endstream
+endobj
+28 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 4 0 R >>
+endobj
+29 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 5 0 R >>
+endobj
+30 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 6 0 R >>
+endobj
+31 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 7 0 R >>
+endobj
+32 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 8 0 R >>
+endobj
+33 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 9 0 R >>
+endobj
+34 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 10 0 R >>
+endobj
+35 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 11 0 R >>
+endobj
+36 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 12 0 R >>
+endobj
+37 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 13 0 R >>
+endobj
+38 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 14 0 R >>
+endobj
+39 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 15 0 R >>
+endobj
+40 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 16 0 R >>
+endobj
+41 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 17 0 R >>
+endobj
+42 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 18 0 R >>
+endobj
+43 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 19 0 R >>
+endobj
+44 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 20 0 R >>
+endobj
+45 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 21 0 R >>
+endobj
+46 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 22 0 R >>
+endobj
+47 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 23 0 R >>
+endobj
+48 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 24 0 R >>
+endobj
+49 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 25 0 R >>
+endobj
+50 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 26 0 R >>
+endobj
+51 0 obj
+<< /Type /Page /Parent 52 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 27 0 R >>
+endobj
+52 0 obj
+<< /Type /Pages /Count 24 /Kids [28 0 R 29 0 R 30 0 R 31 0 R 32 0 R 33 0 R 34 0 R 35 0 R 36 0 R 37 0 R 38 0 R 39 0 R 40 0 R 41 0 R 42 0 R 43 0 R 44 0 R 45 0 R 46 0 R 47 0 R 48 0 R 49 0 R 50 0 R 51 0 R] >>
+endobj
+53 0 obj
+<< /Type /Catalog /Pages 52 0 R >>
+endobj
+xref
+0 54
+0000000000 65535 f 
+0000000026 00000 n 
+0000000096 00000 n 
+0000000171 00000 n 
+0000000239 00000 n 
+0000000867 00000 n 
+0000003495 00000 n 
+0000007315 00000 n 
+0000010848 00000 n 
+0000015677 00000 n 
+0000019982 00000 n 
+0000024904 00000 n 
+0000029023 00000 n 
+0000034076 00000 n 
+0000037980 00000 n 
+0000042264 00000 n 
+0000045410 00000 n 
+0000049837 00000 n 
+0000054908 00000 n 
+0000058431 00000 n 
+0000063188 00000 n 
+0000067630 00000 n 
+0000071410 00000 n 
+0000077465 00000 n 
+0000081727 00000 n 
+0000085577 00000 n 
+0000089345 00000 n 
+0000093147 00000 n 
+0000095582 00000 n 
+0000095730 00000 n 
+0000095878 00000 n 
+0000096026 00000 n 
+0000096174 00000 n 
+0000096322 00000 n 
+0000096470 00000 n 
+0000096619 00000 n 
+0000096768 00000 n 
+0000096917 00000 n 
+0000097066 00000 n 
+0000097215 00000 n 
+0000097364 00000 n 
+0000097513 00000 n 
+0000097662 00000 n 
+0000097811 00000 n 
+0000097960 00000 n 
+0000098109 00000 n 
+0000098258 00000 n 
+0000098407 00000 n 
+0000098556 00000 n 
+0000098705 00000 n 
+0000098854 00000 n 
+0000099003 00000 n 
+0000099152 00000 n 
+0000099373 00000 n 
+trailer
+<< /Size 54 /Root 53 0 R >>
+startxref
+99424
+%%EOF

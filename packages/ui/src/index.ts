@@ -28,10 +28,12 @@ export {
   SearchBar,
   CartSummary,
 } from "./commerce/commerce-bits";
+export { BillSummary, PriceQuoteHeader, type BillRow } from "./commerce/bill-summary";
 
 export { BottomNav, Container, type BottomNavItem } from "./layout/bottom-nav";
 export { RouteCard, DeliveryStatus, SignaturePad } from "./field";
 export { ChartSlot, CHARTS_READY, type ChartPlaceholder } from "./charts";
+export * from "./dashboard";
 export { motion, MOTION_DURATIONS } from "./motion";
 export {
   Activity,
@@ -137,10 +139,12 @@ export {
   DetailPanel,
   TaskPanel,
   WorkspaceBottomBar,
+  WorkspaceHero,
   type WorkspaceLayoutProps,
   type WorkspaceToolbarProps,
   type WorkspaceFilterBarProps,
   type WorkspaceBottomBarProps,
+  type WorkspaceHeroProps,
 } from "./workspace";
 
 export {

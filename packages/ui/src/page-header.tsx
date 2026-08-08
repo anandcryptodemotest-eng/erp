@@ -36,12 +36,12 @@ export interface PageHeaderProps {
 
 export function PageHeader({ title, breadcrumb, primaryAction, secondaryActions, className }: PageHeaderProps) {
   return (
-    <div className={cn("mb-6 flex items-center justify-between gap-4", className)}>
-      <div>
-        <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">{title}</h1>
+    <div className={cn("mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4", className)}>
+      <div className="min-w-0">
+        <h1 className="font-display text-xl font-semibold text-[var(--ink)] sm:text-2xl">{title}</h1>
         {breadcrumb && breadcrumb.length > 0 && <Breadcrumb items={breadcrumb} />}
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         {secondaryActions}
         {primaryAction}
       </div>

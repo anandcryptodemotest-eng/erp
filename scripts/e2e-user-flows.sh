@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-BASE_URL="${BASE_URL:-http://localhost:3010}"
+BASE_URL="${BASE_URL:-http://localhost:3010/admin}"
 ADMIN_EMAIL="${ADMIN_EMAIL:-admin@simhapurifresh.com}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-Admin@123}"
 TENANT_SLUG="${TENANT_SLUG:-trustwood-enterprise}"
@@ -71,53 +71,23 @@ expect_code() {
   return 1
 }
 
-register_and_login() {
+provision_and_login() {
   local name="$1"
   local email="$2"
-  local pass="$3"
+  local role="$3"
+  local pass="$4"
 
-  request POST "/api/auth?action=register" "" "" "{\"name\":\"$name\",\"email\":\"$email\",\"password\":\"$pass\"}"
-  if [[ "$RESP_CODE" =~ ^(201|409)$ ]]; then
-    log_pass "Register $email (HTTP $RESP_CODE)"
+  request POST "/api/tenants/$TENANT_ID/users" "$ADMIN_TOKEN" "$TENANT_ID" "{\"action\":\"create\",\"name\":\"$name\",\"email\":\"$email\",\"password\":\"$pass\",\"role\":\"$role\"}"
+  if [[ "$RESP_CODE" =~ ^(200|201)$ ]]; then
+    log_pass "Provision $email as $role (HTTP $RESP_CODE)"
   else
-    log_fail "Register $email (HTTP $RESP_CODE)"
-    printf "%s\n" "$RESP_BODY" | cut -c1-240 >&2
-  fi
-
-  request POST "/api/auth?action=login" "" "" "{\"email\":\"$email\",\"password\":\"$pass\"}"
-  expect_code "Login $email" "200" || return 1
-
-  LAST_TOKEN="$(json_get "?.data?.accessToken")"
-}
-
-invite_and_join_tenant() {
-  local email="$1"
-  local role="$2"
-  local user_token="$3"
-
-  request POST "/api/tenants/$TENANT_ID/users" "$ADMIN_TOKEN" "$TENANT_ID" "{\"email\":\"$email\",\"role\":\"$role\"}"
-
-  if [[ "$RESP_CODE" == "201" ]]; then
-    log_pass "Invite $email as $role"
-    local invite_token
-    invite_token="$(json_get "?.data?.inviteToken")"
-    if [[ -z "$invite_token" ]]; then
-      log_fail "Invite token missing for $email"
-      return 1
-    fi
-
-    request POST "/api/invitations/$invite_token" "$user_token" "$TENANT_ID" "{}"
-    expect_code "Accept invitation for $email" "200|409" || return 1
-  elif [[ "$RESP_CODE" == "409" ]]; then
-    log_pass "$email already member"
-  else
-    log_fail "Invite $email failed (HTTP $RESP_CODE)"
+    log_fail "Provision $email as $role (HTTP $RESP_CODE)"
     printf "%s\n" "$RESP_BODY" | cut -c1-240 >&2
     return 1
   fi
 
-  request POST "/api/auth?action=switch-tenant" "$user_token" "" "{\"tenantId\":\"$TENANT_ID\"}"
-  expect_code "Switch tenant for $email" "200" || return 1
+  request POST "/api/auth?action=login" "" "" "{\"email\":\"$email\",\"password\":\"$pass\",\"tenantSlug\":\"$TENANT_SLUG\"}"
+  expect_code "Login $email" "200" || return 1
 
   LAST_TOKEN="$(json_get "?.data?.accessToken")"
 }
@@ -136,17 +106,15 @@ if [[ -z "$ADMIN_TOKEN" || -z "$TENANT_ID" ]]; then
   exit 1
 fi
 
-# 2) Create manager + user accounts
-register_and_login "E2E Manager" "$MANAGER_EMAIL" "$E2E_PASSWORD" || exit 1
+# 2) Provision manager + user accounts through the platform's admin onboarding path
+provision_and_login "E2E Manager" "$MANAGER_EMAIL" "MANAGER" "$E2E_PASSWORD" || exit 1
 MANAGER_BASE_TOKEN="$LAST_TOKEN"
-register_and_login "E2E User" "$USER_EMAIL" "$E2E_PASSWORD" || exit 1
+provision_and_login "E2E User" "$USER_EMAIL" "USER" "$E2E_PASSWORD" || exit 1
 USER_BASE_TOKEN="$LAST_TOKEN"
 
-# 3) Invite and join seeded tenant
-invite_and_join_tenant "$MANAGER_EMAIL" "MANAGER" "$MANAGER_BASE_TOKEN" || exit 1
-MANAGER_TOKEN="$LAST_TOKEN"
-invite_and_join_tenant "$USER_EMAIL" "USER" "$USER_BASE_TOKEN" || exit 1
-USER_TOKEN="$LAST_TOKEN"
+# 3) Tokens are already tenant-scoped because admin provisioning created membership
+MANAGER_TOKEN="$MANAGER_BASE_TOKEN"
+USER_TOKEN="$USER_BASE_TOKEN"
 
 # 4) Admin-only invite gate check (manager must fail)
 request POST "/api/tenants/$TENANT_ID/users" "$MANAGER_TOKEN" "$TENANT_ID" "{\"email\":\"$TEMP_INVITE_EMAIL\",\"role\":\"USER\"}"
