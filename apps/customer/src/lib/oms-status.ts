@@ -4,8 +4,8 @@
  */
 
 export const SREQ_STATUS_LABEL: Record<string, string> = {
-  OPEN: "With Sales",
-  CONVERTED: "Order created",
+  OPEN: "Sales request",
+  CONVERTED: "Confirmed",
   REJECTED: "Rejected",
   CANCELLED: "Cancelled",
 };
@@ -29,8 +29,8 @@ export const OMS_STATUS_LABEL: Record<string, string> = {
 
 /** Portal tracker for a Sales Request (before convert) */
 export const SREQ_TRACKER_STEPS = [
-  { status: "OPEN", label: "Submitted", match: ["OPEN"] },
-  { status: "CONVERTED", label: "Order created", match: ["CONVERTED"] },
+  { status: "OPEN", label: "Request", match: ["OPEN"] },
+  { status: "CONVERTED", label: "Confirmed", match: ["CONVERTED"] },
 ];
 
 /** Portal tracker after SO exists — coarse stages only */
@@ -47,13 +47,18 @@ export const OMS_TRACKER_STEPS = [
   },
   {
     status: "DISPATCHED",
-    label: "Shipped",
+    label: "Dispatched",
     match: ["DISPATCHED"],
   },
   {
     status: "DELIVERED",
     label: "Delivered",
-    match: ["DELIVERED", "INVOICED", "PAID"],
+    match: ["DELIVERED"],
+  },
+  {
+    status: "INVOICED",
+    label: "Invoiced",
+    match: ["INVOICED", "PAID"],
   },
   {
     status: "CLOSED",

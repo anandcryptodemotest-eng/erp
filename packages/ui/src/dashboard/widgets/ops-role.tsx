@@ -119,9 +119,11 @@ function money(v?: number) {
 function useOpsSummary(fetchData: WidgetProps["fetchData"]) {
   const [data, setData] = useState<OpsSummary | null>(null);
   const [error, setError] = useState("");
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     let alive = true;
+    setError("");
     void fetchData<{ data: OpsSummary }>("/api/dashboard/ops-summary").then((res) => {
       if (!alive) return;
       if (!res) return setError("Dashboard summary unavailable");
@@ -130,9 +132,9 @@ function useOpsSummary(fetchData: WidgetProps["fetchData"]) {
     return () => {
       alive = false;
     };
-  }, [fetchData]);
+  }, [fetchData, tick]);
 
-  return { data, error };
+  return { data, error, retry: () => setTick((n) => n + 1) };
 }
 
 type KpiSpec = {
@@ -197,8 +199,8 @@ function kpisForVariant(variant: Variant, k?: OpsKpi): KpiSpec[] {
 }
 
 export function OpsKpiRowWidget({ fetchData, config }: WidgetProps) {
-  const { data, error } = useOpsSummary(fetchData);
-  if (error) return <WidgetError message={error} />;
+  const { data, error, retry } = useOpsSummary(fetchData);
+  if (error) return <WidgetError message={error} onRetry={retry} />;
   const variant = (typeof config?.variant === "string" ? config.variant : "admin") as Variant;
   const cards = kpisForVariant(variant, data?.kpis);
   return (
@@ -223,8 +225,8 @@ export function OpsKpiRowWidget({ fetchData, config }: WidgetProps) {
 }
 
 export function RecentActivityWidget({ fetchData }: WidgetProps) {
-  const { data, error } = useOpsSummary(fetchData);
-  if (error) return <WidgetError message={error} />;
+  const { data, error, retry } = useOpsSummary(fetchData);
+  if (error) return <WidgetError message={error} onRetry={retry} />;
   const rows = data?.activity ?? [];
   return (
     <WidgetShell title="Recent activity" subtitle="What needs attention" style={{ height: "100%" }}>
@@ -254,8 +256,8 @@ export function RecentActivityWidget({ fetchData }: WidgetProps) {
 }
 
 export function SreqOrderTableWidget({ fetchData }: WidgetProps) {
-  const { data, error } = useOpsSummary(fetchData);
-  if (error) return <WidgetError message={error} />;
+  const { data, error, retry } = useOpsSummary(fetchData);
+  if (error) return <WidgetError message={error} onRetry={retry} />;
   const sreqs = data?.sreqs ?? [];
   const orders = data?.orders ?? [];
   return (
@@ -312,8 +314,8 @@ export function SreqOrderTableWidget({ fetchData }: WidgetProps) {
 }
 
 export function MyTasksListWidget({ fetchData }: WidgetProps) {
-  const { data, error } = useOpsSummary(fetchData);
-  if (error) return <WidgetError message={error} />;
+  const { data, error, retry } = useOpsSummary(fetchData);
+  if (error) return <WidgetError message={error} onRetry={retry} />;
   const rows = data?.tasks ?? [];
   return (
     <WidgetShell title="My tasks" subtitle="Open on Order Desk to complete" style={{ height: "100%" }}>
@@ -349,8 +351,8 @@ export function MyTasksListWidget({ fetchData }: WidgetProps) {
 }
 
 export function RecentCustomersWidget({ fetchData }: WidgetProps) {
-  const { data, error } = useOpsSummary(fetchData);
-  if (error) return <WidgetError message={error} />;
+  const { data, error, retry } = useOpsSummary(fetchData);
+  if (error) return <WidgetError message={error} onRetry={retry} />;
   const rows = data?.customers ?? [];
   return (
     <WidgetShell title="Recent customers" subtitle="Open customer record" style={{ height: "100%" }}>
@@ -380,8 +382,8 @@ export function RecentCustomersWidget({ fetchData }: WidgetProps) {
 }
 
 export function PriceOpsWidget({ fetchData }: WidgetProps) {
-  const { data, error } = useOpsSummary(fetchData);
-  if (error) return <WidgetError message={error} />;
+  const { data, error, retry } = useOpsSummary(fetchData);
+  if (error) return <WidgetError message={error} onRetry={retry} />;
   const rows = data?.priceLists ?? [];
   return (
     <WidgetShell title="Price lists" subtitle="Open a list to review rates" style={{ height: "100%" }}>
@@ -414,8 +416,8 @@ export function PriceOpsWidget({ fetchData }: WidgetProps) {
 }
 
 export function RecentProductsWidget({ fetchData }: WidgetProps) {
-  const { data, error } = useOpsSummary(fetchData);
-  if (error) return <WidgetError message={error} />;
+  const { data, error, retry } = useOpsSummary(fetchData);
+  if (error) return <WidgetError message={error} onRetry={retry} />;
   const rows = data?.products ?? [];
   return (
     <WidgetShell title="Catalog snapshot" subtitle="Open a product" style={{ height: "100%" }}>

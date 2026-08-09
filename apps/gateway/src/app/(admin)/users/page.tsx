@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, getTenantId } from "@/lib/admin-api";
-import { PageHeader, Button, Input } from "@erp/ui";
+import { Button, Input, WorkspaceHero } from "@erp/ui";
 
 const OMS_ROLES = [
   "ADMIN",
@@ -136,15 +136,13 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="max-w-5xl space-y-6 p-4 md:p-8">
+    <div className="ws-page max-w-5xl space-y-6">
       <div>
-        <PageHeader title="Users & roles" />
-        <p className="-mt-4 mb-2 text-sm text-[var(--ink-soft)]">
-          Create team members and assign permission sets. Prefer{" "}
-          <code className="text-xs">PROCESS_OWNER</code> (workflows / forms) and{" "}
-          <code className="text-xs">CATALOG_MANAGER</code> (products) over giving everyone{" "}
-          <code className="text-xs">ADMIN</code>. Operations roles execute tasks only.
-        </p>
+        <WorkspaceHero
+          eyebrow="Administration"
+          title="Users & roles"
+          description="Create team members and assign permission sets. Prefer Process Owner and Catalog Manager over giving everyone Admin."
+        />
         <p className="text-xs text-[var(--ink-soft)] font-mono">Tenant: {tenantId || "—"}</p>
       </div>
 

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/admin-api";
-import { PageHeader, StatusBadge } from "@erp/ui";
+import { StatusBadge, WorkspaceHero } from "@erp/ui";
 
 type TemplateRow = {
   id: string;
@@ -73,13 +73,13 @@ export default function WorkflowTemplatesPage() {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-8">
+    <div className="ws-page space-y-6">
       <div>
-        <PageHeader title="Workflow templates" />
-        <p className="-mt-4 mb-6 text-sm text-[var(--ink-soft)]">
-          Published templates are read-only. Use <strong>Clone draft</strong> to edit, add, or delete tasks — then
-          Publish. Catalog starts empty — build your own workflow, or restore the SO_STANDARD starter.
-        </p>
+        <WorkspaceHero
+          eyebrow="Process Studio"
+          title="Workflow templates"
+          description="Published templates are read-only. Clone a draft to edit, then publish. Order Desk uses the OMS Trading pack."
+        />
       </div>
 
       {error && (

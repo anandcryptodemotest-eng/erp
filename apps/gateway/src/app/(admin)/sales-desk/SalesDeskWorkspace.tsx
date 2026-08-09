@@ -297,6 +297,13 @@ function formatMoney(n: number | null | undefined): string {
   return `₹${Number(n ?? 0).toFixed(2)}`;
 }
 
+/** User-facing task copy — same actions, clearer verbs. */
+function friendlyTaskLabel(action: string, fallback: string): string {
+  if (action === "complete-pricing") return "Verify dealer quote";
+  if (action === "verify-stock") return "Confirm reservation";
+  return fallback;
+}
+
 /* ─── Page ──────────────────────────────────────────────────────────────── */
 
 export function SalesDeskWorkspace({
@@ -372,6 +379,8 @@ export function SalesDeskWorkspace({
   const [sreqItemPrice, setSreqItemPrice] = useState<Record<string, string>>({});
 
   /* Reject modal */
+  const [confirmConvert, setConfirmConvert] = useState(false);
+  const [reservedQty, setReservedQty] = useState<number | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
@@ -500,6 +509,27 @@ export function SalesDeskWorkspace({
   }, []);
 
   useEffect(() => {
+    const soId = selectedSreq?.salesOrder?.id;
+    if (!soId) {
+      setReservedQty(null);
+      return;
+    }
+    let alive = true;
+    void api<{ meta?: { totalQty?: number } }>(`/api/stock/reserve?reference=${encodeURIComponent(soId)}`)
+      .then((r) => {
+        if (!alive) return;
+        const qty = r.meta?.totalQty;
+        setReservedQty(typeof qty === "number" ? qty : null);
+      })
+      .catch(() => {
+        if (alive) setReservedQty(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [selectedSreq?.salesOrder?.id]);
+
+  useEffect(() => {
     const tenantId = getTenantId();
     if (!tenantId) return;
     void api(`/api/tenants/${tenantId}/settings`)
@@ -542,6 +572,8 @@ export function SalesDeskWorkspace({
       setSelected(null);
       setShowRejectModal(false);
       setRejectReason("");
+      setConfirmConvert(false);
+      setReservedQty(null);
       hydrateSreqEdit(data);
       if (data?.salesOrder?.id) {
         await openOrder(data.salesOrder.id);
@@ -621,6 +653,7 @@ export function SalesDeskWorkspace({
 
       const r = await api(`/api/sales-requests/${id}/convert`, { method: "POST", body: "{}" });
       const soNum = r.data?.soNumber ?? r.data?.salesOrder?.orderNumber;
+      setConfirmConvert(false);
       toast.success(
         r.data?.alreadyConverted
           ? `Already converted → ${soNum}`
@@ -1182,7 +1215,12 @@ export function SalesDeskWorkspace({
       if (seen.has(a.action)) continue;
       if (openMyAction(a.action)) {
         seen.add(a.action);
-        result.push({ ...a, ui: a.ui, blockedBy: a.blockedBy ?? getBlockedBy(a.action) });
+        result.push({
+          ...a,
+          label: friendlyTaskLabel(a.action, a.label),
+          ui: a.ui,
+          blockedBy: a.blockedBy ?? getBlockedBy(a.action),
+        });
       }
     }
 
@@ -1195,7 +1233,7 @@ export function SalesDeskWorkspace({
       seen.add(t.action);
       result.push({
         action: t.action,
-        label: t.title,
+        label: friendlyTaskLabel(t.action, t.title),
         uiPanel: "none",
         roleHint: t.assignedRole,
         sortOrder: 999,
@@ -1215,7 +1253,7 @@ export function SalesDeskWorkspace({
       seen.add(t.action);
       result.push({
         action: t.action,
-        label: t.title,
+        label: friendlyTaskLabel(t.action, t.title),
         uiPanel: "none",
         roleHint: t.assignedRole,
         sortOrder: 999,
@@ -1375,23 +1413,30 @@ export function SalesDeskWorkspace({
         </div>
       )}
 
-      {!workflow && (
-        <Card className="mb-6 border-[var(--accent)]/40 bg-[color-mix(in_srgb,var(--accent)_12%,var(--surface-raised))] p-4 space-y-3">
-          <div className="flex items-center gap-2 text-sm text-[var(--ink)]">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            No workflow is active for this tenant. Apply the trading process pack first.
+      {!loading && !workflow ? (
+        <div className="ws-empty mt-4">
+          <AlertCircle className="mx-auto mb-3 h-8 w-8 text-[var(--brand)]" aria-hidden />
+          <h2>Apply OMS Trading template</h2>
+          <p>
+            Order Desk needs an active workflow before you can convert sales requests. Apply the
+            trading process pack to continue.
+          </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            {templates.length === 0 ? (
+              <p className="text-sm text-[var(--ink-soft)]">No templates available. Check Process Studio.</p>
+            ) : (
+              templates.map((t) => (
+                <Button key={t.templateId} type="button" onClick={() => applyTemplate(t.templateId)}>
+                  Apply {t.name}
+                </Button>
+              ))
+            )}
           </div>
-          <div className="flex flex-wrap gap-2">
-            {templates.map((t) => (
-              <Button key={t.templateId} type="button" size="sm" onClick={() => applyTemplate(t.templateId)}>
-                Apply {t.name}
-              </Button>
-            ))}
-          </div>
-        </Card>
-      )}
+        </div>
+      ) : null}
 
-
+      {!workflow ? null : (
+      <>
       <WorkspaceLayout
         detailOpen={detailOpen}
         onMobileBack={() => {
@@ -1434,6 +1479,7 @@ export function SalesDeskWorkspace({
               selectedId={selectedSreq?.id}
               loading={loading}
               onSelect={(id) => void openSreq(id)}
+              onRefresh={() => void loadSreqs()}
             />
           )}
 
@@ -1442,7 +1488,7 @@ export function SalesDeskWorkspace({
               {workOrders.map((group) => {
                 const openTitles = group.tasks
                   .filter((t) => t.status !== "COMPLETED" && t.status !== "CANCELLED")
-                  .map((t) => t.title);
+                  .map((t) => friendlyTaskLabel(t.action, t.title));
                 return (
                   <li key={group.order.id}>
                     <button
@@ -1487,7 +1533,7 @@ export function SalesDeskWorkspace({
                                 }
                               >
                                 {done ? "✓ " : active ? "● " : "○ "}
-                                {task.title}
+                                {friendlyTaskLabel(task.action, task.title)}
                               </span>
                               <span className="flex flex-col items-end gap-0.5">
                                 <span
@@ -1578,7 +1624,19 @@ export function SalesDeskWorkspace({
                 <EmptyState
                   icon={PackageSearch}
                   title="No fulfillment work"
-                  subtitle="Orders in picking, dispatch, invoice, or payment appear here."
+                  subtitle="Orders ready for dispatch or already in flight appear here."
+                  action={
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        setDeskTab("tasks");
+                        setSelected(null);
+                      }}
+                    >
+                      Go to My Work
+                    </Button>
+                  }
                 />
               )}
             </ul>
@@ -1601,6 +1659,19 @@ export function SalesDeskWorkspace({
                     Created {new Date(selectedSreq.createdAt).toLocaleString()}
                     {selectedSreq.paymentMethod ? ` · ${selectedSreq.paymentMethod}` : ""}
                   </p>
+                  {(selectedSreq.items?.length ?? 0) > 0 ? (
+                    <p className="mt-1 text-xs text-[var(--ink-soft)]">
+                      {selectedSreq.items!.length} line
+                      {selectedSreq.items!.length === 1 ? "" : "s"} ·{" "}
+                      {selectedSreq.items!.reduce((sum, item) => sum + Number(item.quantity || 0), 0)}{" "}
+                      units from dealer quote
+                      {reservedQty != null && reservedQty > 0
+                        ? ` · ${reservedQty} units reserved`
+                        : selectedSreq.salesOrder
+                          ? " · reservation lookup unavailable"
+                          : " · stock reserved at convert"}
+                    </p>
+                  ) : null}
                   {selectedSreq.salesOrder && (
                     <p className="text-xs text-[var(--brand)] mt-1">
                       Linked {selectedSreq.salesOrder.orderNumber} · {selectedSreq.salesOrder.status}
@@ -2325,7 +2396,7 @@ export function SalesDeskWorkspace({
                             className="flex items-center justify-between gap-2 rounded-md bg-[var(--mist)] px-2 py-1.5"
                           >
                             <span className={mine ? "text-[var(--ink)]" : "text-[var(--ink-soft)]"}>
-                              {task.title}
+                              {friendlyTaskLabel(task.action, task.title)}
                               {!mine && " · other team"}
                             </span>
                             <StatusBadge status={task.status} />
@@ -2344,6 +2415,38 @@ export function SalesDeskWorkspace({
         bottomBar={
           <WorkspaceBottomBar>
             {deskTab === "sreq" && selectedSreq?.status === "OPEN" && !selectedSreq.salesOrder?.id ? (
+              confirmConvert ? (
+              <>
+                <p className="mr-auto min-w-0 text-sm text-[var(--ink)]">
+                  Convert <span className="font-semibold">{selectedSreq.requestNumber}</span>
+                  {" · "}
+                  {customerSummary?.name ?? selectedSreq.customer?.name ?? "customer"}
+                  {" · "}
+                  {selectedSreq.items?.length ?? 0} line
+                  {(selectedSreq.items?.length ?? 0) === 1 ? "" : "s"}
+                  {" · "}
+                  {formatMoney(selectedSreq.total)}?
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmConvert(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="min-w-[10rem] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+                  loading={actionBusy === "convert"}
+                  disabled={customerSummary?.isBlocked === true}
+                  onClick={() => void convertSreq(selectedSreq.id)}
+                >
+                  Confirm convert
+                </Button>
+              </>
+              ) : (
               <>
                 <p className="mr-auto text-sm text-[var(--ink-soft)]">
                   Next: convert this request into a Sales Order
@@ -2372,19 +2475,19 @@ export function SalesDeskWorkspace({
                 <Button
                   type="button"
                   size="sm"
-                  className="min-w-[10rem] font-semibold"
-                  loading={actionBusy === "convert"}
+                  className="min-w-[10rem] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
                   disabled={customerSummary?.isBlocked === true}
                   title={
                     customerSummary?.isBlocked
                       ? "Customer is blocked — cannot convert"
                       : "Create Sales Order from this request"
                   }
-                  onClick={() => void convertSreq(selectedSreq.id)}
+                  onClick={() => setConfirmConvert(true)}
                 >
                   Convert to Sales Order
                 </Button>
               </>
+              )
             ) : deskTab === "tasks" && selected && myVisibleActions[0] ? (
               <>
                 <p className="mr-auto min-w-0 truncate text-sm text-[var(--ink-soft)]">
@@ -2393,6 +2496,7 @@ export function SalesDeskWorkspace({
                 <Button
                   type="button"
                   size="sm"
+                  className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
                   loading={Boolean(actionBusy)}
                   onClick={() =>
                     void runAction(
@@ -2481,6 +2585,8 @@ export function SalesDeskWorkspace({
             </ul>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );

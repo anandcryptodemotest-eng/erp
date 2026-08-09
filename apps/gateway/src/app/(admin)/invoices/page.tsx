@@ -1,20 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
+import { StatusBadge, WorkspaceHero } from "@erp/ui";
 import { api, openAuthenticatedDocument } from "@/lib/admin-api";
 import LeadToCashGuide from "@/components/LeadToCashGuide";
 import LeadToCashUnderstanding from "@/components/LeadToCashUnderstanding";
 
 interface Invoice { id: string; number: string; type: string; status: string; total: number; paidAmount: number; dueDate: string; pdfUrl?: string | null; entityName?: string | null; customer?: { name: string } | null; vendor?: { name: string } | null; createdAt: string; }
-
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-[var(--mist)] text-[var(--ink-soft)]",
-  ISSUED: "bg-blue-100 text-[var(--brand)]",
-  SENT: "bg-blue-100 text-[var(--brand)]",
-  PARTIALLY_PAID: "bg-yellow-100 text-yellow-700",
-  PAID: "bg-green-100 text-green-700",
-  OVERDUE: "bg-red-100 text-red-600",
-  CANCELLED: "bg-[var(--mist)] text-[var(--ink-soft)]",
-};
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -62,14 +53,24 @@ export default function InvoicesPage() {
   }
 
   return (
-    <div className="p-4 md:p-8">
-      <LeadToCashGuide current="invoices" />
-      <LeadToCashUnderstanding current="invoices" />
-
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-[var(--ink)]">Invoices</h1>
-      </div>
-      {msg && <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">{msg}</div>}
+    <div className="ws-page">
+      <WorkspaceHero
+        eyebrow="Trading operations"
+        title="Invoices"
+        description="Issue, print, and record payment on tax invoices. Process orders on Order Desk."
+      />
+      <details className="mb-6 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] px-4 py-3 text-sm">
+        <summary className="cursor-pointer font-semibold text-[var(--ink)]">How this works</summary>
+        <div className="mt-3 space-y-3">
+          <LeadToCashGuide current="invoices" />
+          <LeadToCashUnderstanding current="invoices" />
+        </div>
+      </details>
+      {msg && (
+        <div className="mb-4 rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] px-4 py-2 text-sm text-[var(--success)]">
+          {msg}
+        </div>
+      )}
       {loading ? <p className="text-[var(--ink-soft)]">Loading…</p> : (
         <div className="overflow-x-auto rounded-xl border bg-white">
           <table className="w-full text-sm">
@@ -86,26 +87,26 @@ export default function InvoicesPage() {
                   <tr key={inv.id} className="hover:bg-[var(--mist)]">
                     <td className="px-4 py-3 font-mono text-xs font-semibold">{inv.number}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${inv.type === "RECEIVABLE" || inv.type === "AR" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>{inv.type}</span>
+                      <StatusBadge status={inv.type} />
                     </td>
                     <td className="px-4 py-3">{party}</td>
                     <td className="px-4 py-3 font-semibold">₹{inv.total?.toFixed(2)}</td>
                     <td className="px-4 py-3 text-[var(--ink-soft)]">₹{(inv.paidAmount ?? 0).toFixed(2)}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[inv.status] ?? "bg-[var(--mist)] text-[var(--ink-soft)]"}`}>{inv.status}</span>
+                      <StatusBadge status={inv.status} />
                     </td>
                     <td className="px-4 py-3 text-xs text-[var(--ink-soft)]">{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : "—"}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
                         {inv.pdfUrl ? (
-                          <button type="button" onClick={() => void openPdf(inv)} className="text-xs border px-2 py-1 rounded hover:bg-[var(--mist)]">PDF</button>
+                          <button type="button" onClick={() => void openPdf(inv)} className="ws-btn">PDF</button>
                         ) : null}
                         {inv.status === "DRAFT" && (
-                          <button onClick={() => issue(inv.id)} className="text-xs bg-[var(--brand)] text-white px-2 py-1 rounded hover:bg-[var(--brand-mid)]">Issue</button>
+                          <button type="button" onClick={() => issue(inv.id)} className="ws-btn ws-btn--primary">Issue</button>
                         )}
                         {inv.status !== "PAID" && inv.status !== "CANCELLED" && inv.status !== "DRAFT" && remaining > 0 && (
-                          <button onClick={() => { setPayModal(inv); setPayAmount(remaining.toFixed(2)); setMsg(""); }}
-                            className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700">Pay</button>
+                          <button type="button" onClick={() => { setPayModal(inv); setPayAmount(remaining.toFixed(2)); setMsg(""); }}
+                            className="ws-btn">Record payment</button>
                         )}
                       </div>
                     </td>
@@ -143,8 +144,8 @@ export default function InvoicesPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={pay} className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-green-700">Confirm</button>
-              <button onClick={() => setPayModal(null)} className="flex-1 bg-[var(--mist)] text-[var(--ink-soft)] py-2 rounded-lg text-sm hover:bg-gray-200">Cancel</button>
+              <button type="button" onClick={pay} className="ws-btn ws-btn--primary flex-1">Confirm</button>
+              <button type="button" onClick={() => setPayModal(null)} className="ws-btn flex-1">Cancel</button>
             </div>
           </div>
         </div>

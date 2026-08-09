@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { PageHeader } from "@erp/ui";
+import { WorkspaceHero } from "@erp/ui";
 
 const STUDIO_ITEMS: {
   href: string;
@@ -55,17 +55,20 @@ const STUDIO_ITEMS: {
 
 export default function ProcessStudioPage() {
   return (
-    <div className="space-y-6 p-4 md:p-8">
+    <div className="ws-page space-y-6">
       <div>
-        <PageHeader title="Process Studio" />
-        <p className="-mt-4 mb-2 text-sm text-[var(--ink-soft)]">
-          Business configuration — workflows, forms, and related process assets. Owned by the{" "}
-          <strong className="font-semibold text-[var(--ink-soft)]">Process Owner</strong>. Organisation
-          settings live under{" "}
-          <Link href="/administration" className="font-medium text-emerald-800 underline">
-            Administration
-          </Link>
-          .
+        <WorkspaceHero
+          eyebrow="Process owner"
+          title="Process Studio"
+          description="Workflows, forms, and process assets. Organisation settings live under Administration."
+          actions={
+            <Link href="/administration" className="ws-btn">
+              Administration
+            </Link>
+          }
+        />
+        <p className="mb-2 text-sm text-[var(--ink-soft)]">
+          Owned by the <strong className="font-semibold text-[var(--ink)]">Process Owner</strong>.
         </p>
         <p className="text-xs text-[var(--ink-soft)]">
           Lifecycle: Draft → Validate → Publish → Snapshot → Execute. Runtime never sees drafts.

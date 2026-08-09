@@ -36,10 +36,15 @@ export function WidgetEmpty({ message = "No data available" }: { message?: strin
   );
 }
 
-export function WidgetError({ message }: { message: string }) {
+export function WidgetError({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div className="flex h-full min-h-[96px] items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-3 text-center text-xs text-[var(--danger)]">
-      {message}
+    <div className="flex h-full min-h-[96px] flex-col items-center justify-center gap-2 rounded-lg bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-3 text-center text-xs text-[var(--danger)]">
+      <p>{message}</p>
+      {onRetry ? (
+        <button type="button" onClick={onRetry} className="ws-btn">
+          Retry
+        </button>
+      ) : null}
     </div>
   );
 }

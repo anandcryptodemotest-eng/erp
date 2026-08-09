@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api, getTenantId } from "@/lib/admin-api";
-import { PageHeader, Button, Input } from "@erp/ui";
+import { Button, Input, WorkspaceHero } from "@erp/ui";
 import { WhatsAppIntegrationPanel } from "./whatsapp-integration-panel";
 import { PorterLogisticsPanel } from "./porter-logistics-panel";
 
@@ -249,14 +249,13 @@ export default function AdministrationPage() {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-8">
+    <div className="ws-page space-y-6">
       <div>
-        <PageHeader title="Administration" />
-        <p className="-mt-4 mb-2 text-sm text-[var(--ink-soft)]">
-          Tenant configuration — organisation identity, portal, and branches. Module licenses and
-          Process Studio are managed by Platform Admin.
-          workflows live under Process Studio.
-        </p>
+        <WorkspaceHero
+          eyebrow="Tenant"
+          title="Administration"
+          description="Organisation identity, portal, and branches. Licenses and Process Studio are managed separately."
+        />
         {tenant && (
           <p className="text-xs text-[var(--ink-soft)]">
             {tenant.name} · <span className="font-mono">{tenant.slug}</span> · your role {tenant.role}

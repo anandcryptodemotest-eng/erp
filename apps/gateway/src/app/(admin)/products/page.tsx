@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ActionGroup, Button, SquarePen, Trash2 } from "@erp/ui";
+import { ActionGroup, Button, SquarePen, Trash2, WorkspaceHero } from "@erp/ui";
 import { api, getAdminUser } from "@/lib/admin-api";
 import { fetchPricingQuote, type QuoteSuccess } from "@/lib/pricing-quote";
 import dynamic from "next/dynamic";
@@ -1338,19 +1338,17 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-[1400px] mx-auto">
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)] tracking-tight">
-            {isCatalogAdmin ? "Products" : "Product lookup"}
-          </h1>
-          <p className="text-sm text-[var(--ink-soft)] mt-0.5">
-            {isCatalogAdmin
-              ? "Catalog, categories, brands and attributes — all configured in one place."
-              : "Search SKU, size, thickness and stock while reviewing sales requests."}
-          </p>
-        </div>
-        {tab === "catalog" && isCatalogAdmin && (
+    <div className="ws-page mx-auto max-w-[1400px]">
+      <WorkspaceHero
+        eyebrow="Catalog"
+        title={isCatalogAdmin ? "Products" : "Product lookup"}
+        description={
+          isCatalogAdmin
+            ? "Catalog, categories, brands and attributes — configured in one place."
+            : "Search SKU, size, thickness and stock while reviewing sales requests."
+        }
+        actions={
+          tab === "catalog" && isCatalogAdmin ? (
           <div className="flex gap-2 flex-wrap items-center">
             <div className="flex gap-1">
               <input
@@ -1362,36 +1360,33 @@ export default function ProductsPage() {
                 className="border border-[var(--line)] rounded-lg px-3 py-2 text-sm w-44 focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:border-transparent"
               />
               <button
+                type="button"
                 onClick={() => lookupBarcode()}
                 disabled={barcodeLooking}
-                className="bg-[var(--brand)] text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-[var(--brand-mid)] disabled:opacity-50 transition-colors"
+                className="ws-btn ws-btn--primary"
               >
                 {barcodeLooking ? "…" : "Find"}
               </button>
-              <button
-                onClick={() => setShowScanner(true)}
-                className="bg-[var(--mist)] text-[var(--brand)] px-3 py-2 rounded-lg text-sm font-medium hover:bg-[var(--mist)] transition-colors"
-              >
+              <button type="button" onClick={() => setShowScanner(true)} className="ws-btn">
                 Camera
               </button>
             </div>
             <input ref={csvRef} type="file" accept=".csv" onChange={handleCsvFile} className="hidden" />
             <button
+              type="button"
               onClick={() => csvRef.current?.click()}
               disabled={importing}
-              className="bg-[var(--surface-raised)] border border-[var(--line)] text-[var(--ink-soft)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--mist)] disabled:opacity-50 transition-colors"
+              className="ws-btn"
             >
               {importing ? "Importing…" : "Import CSV"}
             </button>
-            <button
-              onClick={() => setShowCreateEditor(true)}
-              className="bg-[var(--brand)] text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-[var(--brand-mid)] shadow-[var(--shadow-sm)] transition-colors"
-            >
-              + New Product
+            <button type="button" onClick={() => setShowCreateEditor(true)} className="ws-btn ws-btn--primary">
+              + New product
             </button>
           </div>
-        )}
-      </div>
+          ) : null
+        }
+      />
 
       <div className="mb-6 inline-flex gap-1 rounded-lg bg-[var(--mist)] p-1">
         {(

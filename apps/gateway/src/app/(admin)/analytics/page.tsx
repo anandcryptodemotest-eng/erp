@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { WorkspaceHero } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 
 type SalesReport = {
@@ -145,14 +146,14 @@ export default function AnalyticsPage() {
   const hasErrors = Object.keys(state.errors).length > 0;
 
   return (
-    <main className="p-5 md:p-8">
+    <main className="ws-page">
       <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">Business intelligence</p>
-          <h1 className="mt-2 font-display text-3xl font-semibold text-[var(--ink)]">Analytics</h1>
-          <p className="mt-2 max-w-xl text-sm text-[var(--ink-soft)]/70">A focused view of sales performance, inventory exposure, and delivery execution.</p>
-        </div>
-        <div className="flex flex-wrap items-end gap-3 rounded-xl border border-[var(--line)] bg-white p-3 shadow-sm">
+        <WorkspaceHero
+          eyebrow="Business intelligence"
+          title="Analytics"
+          description="Sales performance, inventory exposure, and delivery execution."
+        />
+        <div className="flex flex-wrap items-end gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-raised)] p-3 shadow-[var(--shadow-sm)]">
           <label className="text-xs font-medium text-[var(--ink-soft)]">From<input type="date" value={from} onChange={(event) => { setRetryPanel(null); setFrom(event.target.value); }} className="mt-1 block rounded-lg border border-[var(--line)] px-3 py-2 text-sm text-[var(--ink)]" /></label>
           <label className="text-xs font-medium text-[var(--ink-soft)]">To<input type="date" value={to} onChange={(event) => { setRetryPanel(null); setTo(event.target.value); }} className="mt-1 block rounded-lg border border-[var(--line)] px-3 py-2 text-sm text-[var(--ink)]" /></label>
         </div>

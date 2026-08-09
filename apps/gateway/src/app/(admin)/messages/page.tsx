@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useRef, useCallback } from "react";
+import { Plus } from "lucide-react";
 import { api, getToken, getAdminUser } from "@/lib/admin-api";
 
 type Conversation = {
@@ -290,23 +291,26 @@ export default function MessagesPage() {
   };
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] overflow-hidden bg-gray-50">
+    <div className="flex h-[calc(100dvh-3.5rem)] overflow-hidden bg-[var(--page-bg)]">
       {/* Conversation List */}
       <div
-        className={`w-full md:w-80 border-r border-gray-200 bg-white flex-col ${
+        className={`w-full md:w-80 border-r border-[var(--line)] bg-[var(--surface-raised)] flex-col ${
           activeConversation ? "hidden md:flex" : "flex"
         }`}
       >
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-gray-900">Messages</h1>
+        <div className="p-4 border-b border-[var(--line)] flex items-center justify-between">
+          <div>
+            <p className="ws-hero__eyebrow">Workspace</p>
+            <h1 className="text-lg font-semibold text-[var(--ink)]">Messages</h1>
+          </div>
           <button
+            type="button"
             onClick={() => setShowNewChat(true)}
-            className="p-2 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 transition"
+            className="ws-btn ws-btn--primary h-10 w-10 min-h-10 p-0"
             title="New chat"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+            <Plus className="h-5 w-5" aria-hidden />
+            <span className="sr-only">New chat</span>
           </button>
         </div>
 
@@ -403,7 +407,7 @@ export default function MessagesPage() {
                       <div
                         className={`max-w-[85%] md:max-w-[70%] rounded-lg px-4 py-2 ${
                           isMine
-                            ? "bg-emerald-600 text-white"
+                            ? "bg-[var(--brand)] text-[var(--ink-inverse)]"
                             : "bg-white text-gray-900 border border-gray-200"
                         }`}
                       >
@@ -572,7 +576,7 @@ export default function MessagesPage() {
               <button
                 onClick={sendMessage}
                 disabled={loading || uploading || (!input.trim() && pendingAttachments.length === 0) || activeConversation.status === "LOCKED"}
-                className="p-2 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                className="ws-btn ws-btn--primary h-10 w-10 min-h-10 p-0 disabled:opacity-50"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -684,7 +688,7 @@ export default function MessagesPage() {
               </button>
               <button
                 onClick={createConversation}
-                className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700"
+                className="ws-btn ws-btn--primary flex-1"
               >
                 Create
               </button>

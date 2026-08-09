@@ -31,6 +31,7 @@ export function DashboardEditor({
   saving,
 }: DashboardEditorProps) {
   const [adding, setAdding] = useState(false);
+  const [customizing, setCustomizing] = useState(false);
   const catalog = allowedWidgets(auth, portal).filter(
     (w) => !config.widgets.some((p) => p.type === w.id)
   );
@@ -67,18 +68,36 @@ export function DashboardEditor({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => setAdding((v) => !v)} className="ws-btn ws-btn--primary">
-          + Add widget
-        </button>
-        <button type="button" onClick={onSave} disabled={saving} className="ws-btn">
-          {saving ? "Saving…" : "Save layout"}
-        </button>
-        <button type="button" onClick={onReset} className="ws-btn ws-btn--ghost">
-          Reset to default
-        </button>
+        {customizing ? (
+          <>
+            <button type="button" onClick={() => setAdding((v) => !v)} className="ws-btn ws-btn--primary">
+              + Add widget
+            </button>
+            <button type="button" onClick={onSave} disabled={saving} className="ws-btn">
+              {saving ? "Saving…" : "Save layout"}
+            </button>
+            <button type="button" onClick={onReset} disabled={saving} className="ws-btn ws-btn--ghost">
+              Reset to default
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAdding(false);
+                setCustomizing(false);
+              }}
+              className="ws-btn ws-btn--ghost"
+            >
+              Done
+            </button>
+          </>
+        ) : (
+          <button type="button" onClick={() => setCustomizing(true)} className="ws-btn">
+            Customize layout
+          </button>
+        )}
       </div>
 
-      {adding ? (
+      {customizing && adding ? (
         <div className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] p-4 shadow-[var(--shadow-sm)]">
           <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--ink-soft)]/70">
             Add a widget
@@ -100,7 +119,7 @@ export function DashboardEditor({
       {resolved.length === 0 ? (
         <div className="ws-empty">
           <h2>This dashboard is empty</h2>
-          <p>Reset to your role default, or add widgets and save the layout.</p>
+          <p>Restore your role default, or customize and add widgets.</p>
           <button type="button" onClick={onReset} className="ws-btn ws-btn--primary">
             Restore default layout
           </button>
@@ -111,56 +130,60 @@ export function DashboardEditor({
           auth={auth}
           portal={portal}
           fetchData={fetchData}
-          renderWidget={(widget, props) => {
-            const index = config.widgets.findIndex((p) => p.type === widget.type);
-            return (
-              <div className="group relative flex h-full flex-col">
-                <div className="absolute right-3 top-3 z-10 flex flex-wrap gap-1 md:hidden md:group-hover:flex">
-                  <button
-                    type="button"
-                    disabled={index <= 0}
-                    onClick={() => move(index, -1)}
-                    className="rounded-md bg-[var(--surface-raised)] px-1.5 text-sm shadow-[var(--shadow-sm)]"
-                    title="Move up"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    disabled={index < 0 || index >= config.widgets.length - 1}
-                    onClick={() => move(index, 1)}
-                    className="rounded-md bg-[var(--surface-raised)] px-1.5 text-sm shadow-[var(--shadow-sm)]"
-                    title="Move down"
-                  >
-                    ↓
-                  </button>
-                  <select
-                    value={widget.w}
-                    aria-label="Width"
-                    onChange={(e) => resize(index, Number(e.target.value))}
-                    className="rounded-md bg-[var(--surface-raised)] px-1 text-xs shadow-[var(--shadow-sm)]"
-                  >
-                    {WIDTH_PRESETS.map((w) => (
-                      <option key={w} value={w}>
-                        {w} cols
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => remove(index)}
-                    className="rounded-md bg-[color-mix(in_srgb,var(--danger)_14%,white)] px-1.5 text-sm text-[var(--danger)] shadow-[var(--shadow-sm)]"
-                    title="Remove"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="flex-1">
-                  <widget.definition.component {...props} />
-                </div>
-              </div>
-            );
-          }}
+          renderWidget={
+            customizing
+              ? (widget, props) => {
+                  const index = config.widgets.findIndex((p) => p.type === widget.type);
+                  return (
+                    <div className="group relative flex h-full flex-col">
+                      <div className="absolute right-3 top-3 z-10 flex flex-wrap gap-1">
+                        <button
+                          type="button"
+                          disabled={index <= 0}
+                          onClick={() => move(index, -1)}
+                          className="rounded-md bg-[var(--surface-raised)] px-1.5 text-sm shadow-[var(--shadow-sm)]"
+                          title="Move up"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          disabled={index < 0 || index >= config.widgets.length - 1}
+                          onClick={() => move(index, 1)}
+                          className="rounded-md bg-[var(--surface-raised)] px-1.5 text-sm shadow-[var(--shadow-sm)]"
+                          title="Move down"
+                        >
+                          ↓
+                        </button>
+                        <select
+                          value={widget.w}
+                          aria-label="Width"
+                          onChange={(e) => resize(index, Number(e.target.value))}
+                          className="rounded-md bg-[var(--surface-raised)] px-1 text-xs shadow-[var(--shadow-sm)]"
+                        >
+                          {WIDTH_PRESETS.map((w) => (
+                            <option key={w} value={w}>
+                              {w} cols
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => remove(index)}
+                          className="rounded-md bg-[color-mix(in_srgb,var(--danger)_14%,white)] px-1.5 text-sm text-[var(--danger)] shadow-[var(--shadow-sm)]"
+                          title="Remove"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="flex-1 pt-8">
+                        <widget.definition.component {...props} />
+                      </div>
+                    </div>
+                  );
+                }
+              : undefined
+          }
         />
       )}
     </div>

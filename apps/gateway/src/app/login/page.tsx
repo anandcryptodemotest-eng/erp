@@ -240,7 +240,7 @@ function LoginForm() {
           </p>
           <h1 className="font-display mt-2 text-3xl font-semibold leading-tight">{displayName}</h1>
           <p className="mt-2 text-sm text-white/65">
-            {resolved ? "Catalog · orders · dispatch" : "Sign in to your organization"}
+            {resolved ? "Dashboard · Order Desk · catalog" : "Sign in to your organization"}
           </p>
           {resolving && <p className="mt-2 text-xs text-white/50">Looking up organization…</p>}
         </div>
@@ -267,7 +267,9 @@ function LoginForm() {
                 ))}
               </ul>
               {error && (
-                <div className="rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-800">{error}</div>
+                <div className="rounded-xl border border-[color-mix(in_srgb,var(--warning)_40%,var(--line))] bg-[color-mix(in_srgb,var(--warning)_12%,white)] px-4 py-2.5 text-sm text-[var(--warning)]">
+                  {error}
+                </div>
               )}
             </div>
           ) : (
@@ -294,7 +296,9 @@ function LoginForm() {
                 </p>
               )}
               {orgError && (
-                <div className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600">{orgError}</div>
+                <div className="rounded-xl border border-[color-mix(in_srgb,var(--danger)_40%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,white)] px-4 py-2.5 text-sm text-[var(--danger)]">
+                  {orgError}
+                </div>
               )}
               <div className="flex gap-2 text-xs font-semibold">
                 <button
@@ -368,7 +372,9 @@ function LoginForm() {
                 </>
               )}
               {error && !picker && (
-                <div className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600">{error}</div>
+                <div className="rounded-xl border border-[color-mix(in_srgb,var(--danger)_40%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,white)] px-4 py-2.5 text-sm text-[var(--danger)]">
+                  {error}
+                </div>
               )}
               <button
                 type="submit"

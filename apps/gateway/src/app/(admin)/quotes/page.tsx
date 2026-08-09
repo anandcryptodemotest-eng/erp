@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { StatusBadge, WorkspaceHero } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 import { buildLinePricingMeta, fetchPricingQuote } from "@/lib/pricing-quote";
 import LeadToCashGuide from "@/components/LeadToCashGuide";
@@ -41,13 +42,6 @@ interface SOLine {
   pricingMeta?: ReturnType<typeof buildLinePricingMeta> | null;
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-[var(--mist)] text-[var(--ink-soft)]",
-  SENT: "bg-blue-100 text-[var(--brand)]",
-  ACCEPTED: "bg-green-100 text-green-700",
-  REJECTED: "bg-red-100 text-red-600",
-  EXPIRED: "bg-orange-100 text-orange-700",
-};
 
 type QuoteStatus = "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED";
 
@@ -274,29 +268,33 @@ export default function QuotesPage() {
   }
 
   return (
-    <div className="p-4 md:p-6">
-      <LeadToCashGuide current="quotes" />
-      <LeadToCashUnderstanding current="quotes" />
+    <div className="ws-page">
+      <WorkspaceHero
+        eyebrow="CRM"
+        title="Quotes"
+        description={`${total} quotes. Prefer Order Desk for dealer sales requests.`}
+        actions={
+          <button type="button" onClick={() => setShowForm(true)} className="ws-btn ws-btn--primary">
+            + New quote
+          </button>
+        }
+      />
+      <details className="mb-6 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] px-4 py-3 text-sm">
+        <summary className="cursor-pointer font-semibold text-[var(--ink)]">How this works</summary>
+        <div className="mt-3 space-y-3">
+          <LeadToCashGuide current="quotes" />
+          <LeadToCashUnderstanding current="quotes" />
+        </div>
+      </details>
 
       {customers.length === 0 && (
-        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          No customers found. Create a customer from the Leads conversion drawer or directly in the Customers page before creating quotes.
+        <div className="mb-4 rounded-lg border border-[color-mix(in_srgb,var(--warning)_40%,var(--line))] bg-[color-mix(in_srgb,var(--warning)_12%,white)] px-4 py-3 text-sm text-[var(--warning)]">
+          No customers found. Create a customer before creating quotes.
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Quotes</h1>
-          <p className="text-sm text-[var(--ink-soft)]">{total} total quotes</p>
-        </div>
-        <button onClick={() => setShowForm(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition">
-          + New Quote
-        </button>
-      </div>
-
       {msg && (
-        <div className={`mb-4 px-4 py-2.5 rounded-lg text-sm font-medium ${msgType === "ok" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+        <div className={`mb-4 px-4 py-2.5 rounded-lg text-sm font-medium ${msgType === "ok" ? "border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] text-[var(--success)]" : "border border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,white)] text-[var(--danger)]"}`}>
           {msg}
         </div>
       )}
@@ -312,7 +310,7 @@ export default function QuotesPage() {
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-[var(--ink-soft)]">{status}</span>
-                <span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_COLORS[status]}`}>{statusCounts[status]}</span>
+                <StatusBadge status={status} /> <span className="text-xs text-[var(--ink-soft)]">{statusCounts[status]}</span>
               </div>
               <p className="mt-1 text-[11px] text-[var(--ink-soft)]">{QUOTE_HINT[status]}</p>
             </button>
@@ -435,9 +433,8 @@ export default function QuotesPage() {
               className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           <div className="flex gap-2 justify-end">
-            <button onClick={() => { setShowForm(false); setLines([]); }} className="px-4 py-2 text-sm text-[var(--ink-soft)] border rounded-lg hover:bg-[var(--mist)]">Cancel</button>
-            <button onClick={createQuote} disabled={saving}
-              className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
+            <button type="button" onClick={() => { setShowForm(false); setLines([]); }} className="ws-btn">Cancel</button>
+            <button type="button" onClick={createQuote} disabled={saving} className="ws-btn ws-btn--primary">
               {saving ? "Saving..." : "Create Quote"}
             </button>
           </div>
@@ -472,9 +469,7 @@ export default function QuotesPage() {
                   <td className="px-4 py-3 text-[var(--ink-soft)] text-xs">{new Date(quote.validUntil).toLocaleDateString()}</td>
                   <td className="px-4 py-3 text-right font-medium">₹{Number(quote.total).toLocaleString()}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[quote.status] ?? "bg-[var(--mist)] text-[var(--ink-soft)]"}`}>
-                      {quote.status}
-                    </span>
+                    <StatusBadge status={quote.status} />
                   </td>
                   <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                     <div className="flex gap-1">
@@ -509,7 +504,7 @@ export default function QuotesPage() {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h2 className="text-lg font-bold text-[var(--ink)]">{selected.quoteNumber}</h2>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[selected.status] ?? "bg-[var(--mist)] text-[var(--ink-soft)]"}`}>{selected.status}</span>
+                <StatusBadge status={selected.status} />
               </div>
               <button onClick={() => setSelected(null)} className="text-[var(--ink-soft)] hover:text-[var(--ink-soft)] text-xl">✕</button>
             </div>
@@ -557,20 +552,17 @@ export default function QuotesPage() {
                 <button
                   key={nextStatus}
                   onClick={() => changeStatus(selected, nextStatus)}
-                  className={`w-full py-2.5 rounded-lg text-sm font-medium ${
-                    nextStatus === "SENT"
-                      ? "bg-[var(--brand)] text-white hover:bg-[var(--brand-mid)]"
-                      : nextStatus === "ACCEPTED"
-                        ? "bg-green-600 text-white hover:bg-green-700"
-                        : "border border-red-300 text-red-600 hover:bg-red-50"
-                  }`}
+                  className={
+                    nextStatus === "REJECTED" || nextStatus === "EXPIRED"
+                      ? "ws-btn w-full text-[var(--danger)]"
+                      : "ws-btn ws-btn--primary w-full"
+                  }
                 >
                   {nextStatus === "SENT" ? "Mark as Sent" : `Mark as ${nextStatus}`}
                 </button>
               ))}
               {selected.status === "ACCEPTED" && (
-                <button onClick={() => convertToOrder(selected)}
-                  className="w-full bg-green-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-green-700">
+                <button type="button" onClick={() => convertToOrder(selected)} className="ws-btn ws-btn--primary w-full">
                   Convert to Sales Order →
                 </button>
               )}

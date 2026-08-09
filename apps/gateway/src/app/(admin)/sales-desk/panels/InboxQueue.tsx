@@ -1,6 +1,6 @@
 "use client";
 
-import { EmptyState, StatusBadge, cn } from "@erp/ui";
+import { Button, EmptyState, StatusBadge, cn } from "@erp/ui";
 import { ClipboardList } from "lucide-react";
 
 type SreqRow = {
@@ -29,11 +29,13 @@ export function InboxQueue({
   selectedId,
   loading,
   onSelect,
+  onRefresh,
 }: {
   sreqs: SreqRow[];
   selectedId?: string | null;
   loading: boolean;
   onSelect: (id: string) => void;
+  onRefresh?: () => void;
 }) {
   return (
     <ul className="max-h-[72vh] divide-y divide-[var(--line)] overflow-y-auto">
@@ -84,7 +86,14 @@ export function InboxQueue({
         <EmptyState
           icon={ClipboardList}
           title="Inbox is empty"
-          subtitle="Customer checkouts appear here as sales requests."
+          subtitle="Dealer checkouts appear here as sales requests."
+          action={
+            onRefresh ? (
+              <Button type="button" size="sm" onClick={onRefresh}>
+                Refresh inbox
+              </Button>
+            ) : null
+          }
         />
       )}
     </ul>

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api, getAdminUser } from "@/lib/admin-api";
-import { StatusBadge } from "@erp/ui";
+import { StatusBadge, WorkspaceHero } from "@erp/ui";
 
 interface Customer {
   id: string;
@@ -100,26 +100,21 @@ export default function CustomersPage() {
   });
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">
-            {isSalesLookup ? "Customer lookup" : "Customers"}
-          </h1>
-          <p className="text-sm text-[var(--ink-soft)] mt-1">
-            {isSalesLookup
-              ? "Find buyers, credit and recent orders while reviewing sales requests."
-              : "Customer master data for trading and portal accounts."}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowForm(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700"
-        >
-          + New Customer
-        </button>
-      </div>
+    <div className="ws-page mx-auto max-w-7xl space-y-6">
+      <WorkspaceHero
+        eyebrow="Trading operations"
+        title={isSalesLookup ? "Customer lookup" : "Customers"}
+        description={
+          isSalesLookup
+            ? "Find buyers and recent orders while reviewing sales requests."
+            : "Customer master data for trading and portal accounts."
+        }
+        actions={
+          <button type="button" onClick={() => setShowForm(true)} className="ws-btn ws-btn--primary">
+            + New customer
+          </button>
+        }
+      />
 
       {msg && (
         <div className="p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">{msg}</div>
@@ -267,22 +262,15 @@ export default function CustomersPage() {
                     required={key === "name"}
                     value={form[key]}
                     onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
                   />
                 </div>
               ))}
               <div className="flex gap-2 pt-2">
-                <button
-                  type="submit"
-                  className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-green-700"
-                >
+                <button type="submit" className="ws-btn ws-btn--primary flex-1">
                   Create
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="flex-1 bg-[var(--mist)] text-[var(--ink-soft)] py-2 rounded-lg text-sm hover:bg-gray-200"
-                >
+                <button type="button" onClick={() => setShowForm(false)} className="ws-btn flex-1">
                   Cancel
                 </button>
               </div>

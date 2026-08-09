@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { StatusBadge, WorkspaceHero } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 
 interface Payroll { id: string; period: string; status: string; netSalary: number; employee: { firstName: string; lastName: string } | null; }
@@ -47,12 +48,22 @@ export default function PayrollPage() {
   }
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[var(--ink)]">Payroll</h1>
-        <button onClick={() => { setShowForm(true); setMsg(""); }} className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700">+ Create Payroll</button>
-      </div>
-      {msg && <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">{msg}</div>}
+    <div className="ws-page">
+      <WorkspaceHero
+        eyebrow="HR"
+        title="Payroll"
+        description="Generate and process payroll runs."
+        actions={
+          <button type="button" onClick={() => { setShowForm(true); setMsg(""); }} className="ws-btn ws-btn--primary">
+            + Create payroll
+          </button>
+        }
+      />
+      {msg && (
+        <div className="mb-4 rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] px-4 py-2 text-sm text-[var(--success)]">
+          {msg}
+        </div>
+      )}
       {loading ? <p className="text-[var(--ink-soft)]">Loading…</p> : (
         <div className="bg-white rounded-xl border overflow-hidden">
           <table className="w-full text-sm">
@@ -66,14 +77,14 @@ export default function PayrollPage() {
                   <td className="px-4 py-3 text-[var(--ink-soft)]">{pr.period}</td>
                   <td className="px-4 py-3 font-semibold">₹{pr.netSalary?.toLocaleString()}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${pr.status === "PAID" ? "bg-green-100 text-green-700" : pr.status === "PROCESSED" ? "bg-blue-100 text-[var(--brand)]" : "bg-[var(--mist)] text-[var(--ink-soft)]"}`}>{pr.status}</span>
+                    <StatusBadge status={pr.status} />
                   </td>
                   <td className="px-4 py-3">
                     {pr.status === "DRAFT" && (
-                      <button onClick={() => process(pr.id)} className="text-xs bg-[var(--brand)] text-white px-3 py-1 rounded hover:bg-[var(--brand-mid)]">Process</button>
+                      <button type="button" onClick={() => process(pr.id)} className="ws-btn">Process</button>
                     )}
                     {pr.status === "PROCESSED" && (
-                      <button onClick={() => pay(pr.id)} className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Mark Paid</button>
+                      <button type="button" onClick={() => pay(pr.id)} className="ws-btn ws-btn--primary">Mark paid</button>
                     )}
                   </td>
                 </tr>
@@ -114,7 +125,7 @@ export default function PayrollPage() {
                 </div>
               </div>
               <div className="flex gap-2 pt-2">
-                <button type="submit" className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-green-700">Generate</button>
+                <button type="submit" className="ws-btn ws-btn--primary flex-1">Generate</button>
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-[var(--mist)] text-[var(--ink-soft)] py-2 rounded-lg text-sm hover:bg-gray-200">Cancel</button>
               </div>
             </form>

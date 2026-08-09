@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { StatusBadge, WorkspaceHero } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 import LeadToCashGuide from "@/components/LeadToCashGuide";
 import LeadToCashUnderstanding from "@/components/LeadToCashUnderstanding";
@@ -29,12 +30,6 @@ const STAGE_COLORS: Record<OpportunityStage, string> = {
   PROPOSAL: "bg-[var(--mist)] text-[var(--brand)]",
   NEGOTIATION: "bg-amber-100 text-amber-700",
   CLOSED: "bg-emerald-100 text-emerald-700",
-};
-
-const STATUS_COLORS: Record<OpportunityStatus, string> = {
-  OPEN: "bg-sky-100 text-[var(--brand)]",
-  WON: "bg-emerald-100 text-emerald-700",
-  LOST: "bg-rose-100 text-rose-700",
 };
 
 function nextStage(stage: OpportunityStage): OpportunityStage | null {
@@ -95,19 +90,24 @@ export default function OpportunitiesPage() {
   }, {} as Record<OpportunityStage, number>);
 
   return (
-    <div className="p-4 md:p-6">
-      <LeadToCashGuide current="opportunities" />
-      <LeadToCashUnderstanding current="opportunities" />
-
-      <div className="mb-5 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Opportunities</h1>
-          <p className="text-sm text-[var(--ink-soft)]">Manage stage progression and close deals with clear lifecycle actions.</p>
+    <div className="ws-page">
+      <WorkspaceHero
+        eyebrow="CRM"
+        title="Opportunities"
+        description="Stage progression for CRM deals. Dealer orders stay on Order Desk."
+        actions={
+          <Link href="/leads" className="ws-btn">
+            Convert from leads
+          </Link>
+        }
+      />
+      <details className="mb-6 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] px-4 py-3 text-sm">
+        <summary className="cursor-pointer font-semibold text-[var(--ink)]">How this works</summary>
+        <div className="mt-3 space-y-3">
+          <LeadToCashGuide current="opportunities" />
+          <LeadToCashUnderstanding current="opportunities" />
         </div>
-        <Link href="/leads" className="rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink-soft)] hover:bg-[var(--mist)]">
-          + Convert from Leads
-        </Link>
-      </div>
+      </details>
 
       {msg && (
         <div className={`mb-4 rounded-lg border px-4 py-2.5 text-sm ${msgType === "ok" ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"}`}>
@@ -165,7 +165,7 @@ export default function OpportunitiesPage() {
                     <td className="px-4 py-3 text-[var(--ink-soft)]">{op.customer?.name ?? "—"}</td>
                     <td className="px-4 py-3 text-right font-medium">₹{Number(op.value).toLocaleString()}</td>
                     <td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-medium ${STAGE_COLORS[op.stage]}`}>{op.stage}</span></td>
-                    <td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[op.status]}`}>{op.status}</span></td>
+                    <td className="px-4 py-3"><StatusBadge status={op.status} /></td>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <div className="flex flex-wrap gap-1.5">
                         {next && op.status === "OPEN" && (
@@ -221,7 +221,7 @@ export default function OpportunitiesPage() {
               <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Value</span><span>₹{Number(selected.value).toLocaleString()}</span></div>
               <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Probability</span><span>{selected.probability}%</span></div>
               <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Stage</span><span className={`rounded-full px-2 py-0.5 text-xs ${STAGE_COLORS[selected.stage]}`}>{selected.stage}</span></div>
-              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Status</span><span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_COLORS[selected.status]}`}>{selected.status}</span></div>
+              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Status</span><StatusBadge status={selected.status} /></div>
               {selected.notes && <p className="mt-3 rounded border bg-[var(--mist)] p-2 text-xs text-[var(--ink-soft)]">{selected.notes}</p>}
             </div>
 

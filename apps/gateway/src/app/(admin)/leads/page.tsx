@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { StatusBadge, WorkspaceHero } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 import LeadToCashGuide from "@/components/LeadToCashGuide";
 import LeadToCashUnderstanding from "@/components/LeadToCashUnderstanding";
@@ -225,20 +226,24 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className="p-4 md:p-6">
-      <LeadToCashGuide current="leads" />
-      <LeadToCashUnderstanding current="leads" />
-
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Leads</h1>
-          <p className="text-sm text-[var(--ink-soft)]">{total} total leads</p>
+    <div className="ws-page">
+      <WorkspaceHero
+        eyebrow="CRM"
+        title="Leads"
+        description={`${total} leads. Dealer trading starts on Order Desk, not here.`}
+        actions={
+          <button type="button" onClick={() => setShowForm(true)} className="ws-btn ws-btn--primary">
+            + New lead
+          </button>
+        }
+      />
+      <details className="mb-6 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] px-4 py-3 text-sm">
+        <summary className="cursor-pointer font-semibold text-[var(--ink)]">How this works</summary>
+        <div className="mt-3 space-y-3">
+          <LeadToCashGuide current="leads" />
+          <LeadToCashUnderstanding current="leads" />
         </div>
-        <button onClick={() => setShowForm(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition">
-          + New Lead
-        </button>
-      </div>
+      </details>
 
       {msg && (
         <div className={`mb-4 px-4 py-2.5 rounded-lg text-sm font-medium ${msgType === "ok" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
@@ -318,7 +323,7 @@ export default function LeadsPage() {
           <div className="flex gap-2 justify-end">
             <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-[var(--ink-soft)] border rounded-lg hover:bg-[var(--mist)]">Cancel</button>
             <button onClick={createLead} disabled={saving}
-              className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
+              className="ws-btn ws-btn--primary">
               {saving ? "Saving..." : "Create Lead"}
             </button>
           </div>
@@ -355,9 +360,7 @@ export default function LeadsPage() {
                   </td>
                   <td className="px-4 py-3 text-[var(--ink-soft)]">{lead.source ?? "—"}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[lead.status] ?? "bg-[var(--mist)] text-[var(--ink-soft)]"}`}>
-                      {lead.status}
-                    </span>
+                    <StatusBadge status={lead.status} />
                   </td>
                   <td className="px-4 py-3 text-[var(--ink-soft)] text-xs">{new Date(lead.createdAt).toLocaleDateString()}</td>
                   <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
@@ -402,7 +405,7 @@ export default function LeadsPage() {
               <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Source</span><span>{selected.source ?? "—"}</span></div>
               <div className="flex justify-between items-center">
                 <span className="text-[var(--ink-soft)]">Status</span>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[selected.status] ?? "bg-[var(--mist)] text-[var(--ink-soft)]"}`}>{selected.status}</span>
+                <StatusBadge status={selected.status} />
               </div>
               {selected.notes && <div className="pt-2 text-[var(--ink-soft)] border-t">{selected.notes}</div>}
             </div>
@@ -473,7 +476,7 @@ export default function LeadsPage() {
                   )}
 
                   <button onClick={convertToOpportunity} disabled={converting}
-                    className="w-full bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50">
+                    className="ws-btn ws-btn--primary w-full">
                     {converting ? "Converting..." : "Convert → Opportunity"}
                   </button>
                 </div>

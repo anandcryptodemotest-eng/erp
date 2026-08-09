@@ -5,6 +5,8 @@ export async function register() {
   if (process.env.NEXT_PHASE === "phase-production-build") return;
   validateAuthSecrets();
   if (process.env.OTEL_SDK_DISABLED === "true" || !process.env.OTEL_EXPORTER_OTLP_ENDPOINT) return;
-  const { bootstrapTelemetry } = await import("@erp/telemetry/bootstrap");
+  const { bootstrapTelemetry } = await import(
+    /* webpackIgnore: true */ "@erp/telemetry/bootstrap"
+  );
   await bootstrapTelemetry({ serviceName: process.env.SERVICE_NAME || "accounting" });
 }

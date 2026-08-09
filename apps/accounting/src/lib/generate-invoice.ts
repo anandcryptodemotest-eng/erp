@@ -4,6 +4,7 @@
  */
 
 import { createHash } from "node:crypto";
+import { access } from "node:fs/promises";
 import {
   invoicePdfPath,
   renderDocument,
@@ -96,12 +97,17 @@ export async function generateInvoice(input: GenerateInvoiceInput) {
     include: { lines: true },
   });
   if (existing?.pdfUrl && !input.force) {
-    return {
-      invoice: existing,
-      created: false,
-      pdfUrl: existing.pdfUrl,
-      checksum: existing.pdfChecksum ?? undefined,
-    };
+    try {
+      await access(invoicePdfPath(tenantId, existing.id));
+      return {
+        invoice: existing,
+        created: false,
+        pdfUrl: existing.pdfUrl,
+        checksum: existing.pdfChecksum ?? undefined,
+      };
+    } catch {
+      /* pdfUrl set but file gone (ephemeral /tmp or volume wipe) — re-render */
+    }
   }
 
   const order = await loadSalesOrder(tenantId, salesOrderId, userId);

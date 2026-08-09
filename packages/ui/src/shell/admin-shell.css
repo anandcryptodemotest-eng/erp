@@ -678,6 +678,11 @@
   background: var(--mist);
 }
 
+.ws-btn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
 .ws-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;

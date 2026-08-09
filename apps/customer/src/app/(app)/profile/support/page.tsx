@@ -14,8 +14,8 @@ export default function ProfileSupportPage() {
       <SectionHeader title="Support" className="mt-2" />
       <div className="mt-4 space-y-3 rounded-lg border border-[#e8e8e8] bg-white px-4 py-5 text-sm">
         <p className="text-[var(--ink)]">
-          For order or delivery help, contact your {orgName} sales desk with your request number
-          (SREQ-…).
+          For order or delivery help, contact your {orgName} Order Desk / sales team with your
+          request number (SREQ-…).
         </p>
         <p className="text-[var(--ink-soft)]">
           You can also track status under{" "}

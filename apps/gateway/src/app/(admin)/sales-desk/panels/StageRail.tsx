@@ -5,9 +5,9 @@ import { cn } from "@erp/ui";
 export type DeskStage = "inbox" | "mywork" | "active";
 
 const STAGES: { id: DeskStage; label: string; hint: string }[] = [
-  { id: "inbox", label: "Inbox", hint: "Sales requests" },
-  { id: "mywork", label: "My Work", hint: "Your tasks" },
-  { id: "active", label: "Fulfillment", hint: "In flight" },
+  { id: "inbox", label: "Inbox", hint: "Dealer sales requests" },
+  { id: "mywork", label: "My Work", hint: "Your prep steps" },
+  { id: "active", label: "Fulfillment", hint: "Dispatch & delivery" },
 ];
 
 /** Hero stage rail — Inbox → My Work → Fulfillment. */

@@ -15,6 +15,22 @@ import {
 
 const log = createLogger({ service: "inventory" });
 
+/** GET /api/stock/reserve?reference=SO-id — open reservations for a sales order / SREQ ref */
+export async function GET(request: Request) {
+  const tenantId = request.headers.get("x-tenant-id");
+  if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
+
+  const reference = new URL(request.url).searchParams.get("reference")?.trim();
+  if (!reference) return NextResponse.json({ error: "reference required" }, { status: 400 });
+
+  const rows = await prisma.stockReservation.findMany({
+    where: { tenantId, reference, isReleased: false },
+    select: { id: true, productId: true, reservedQty: true, warehouseId: true, variantId: true },
+  });
+  const totalQty = rows.reduce((sum, row) => sum + Number(row.reservedQty || 0), 0);
+  return NextResponse.json({ data: rows, meta: { totalQty, count: rows.length } });
+}
+
 const reserveSchema = z.object({
   items: z
     .array(

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { StatusBadge, WorkspaceHero } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 import LeadToCashGuide from "@/components/LeadToCashGuide";
 import LeadToCashUnderstanding from "@/components/LeadToCashUnderstanding";
@@ -21,15 +22,6 @@ interface SOLine {
   qty: string;
   unitPrice: string;
 }
-
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-[var(--mist)] text-[var(--ink-soft)]",
-  CONFIRMED: "bg-blue-100 text-[var(--brand)]",
-  PARTIALLY_SHIPPED: "bg-yellow-100 text-yellow-800",
-  SHIPPED: "bg-green-100 text-green-700",
-  INVOICED: "bg-purple-100 text-[var(--brand)]",
-  CANCELLED: "bg-red-100 text-red-600",
-};
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -301,17 +293,28 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="p-4 md:p-8">
-      <LeadToCashGuide current="orders" />
-      <LeadToCashUnderstanding current="orders" />
-
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-[var(--ink)]">Sales Orders</h1>
-        <button
-          onClick={() => { setShowForm(true); setMsg(""); setLines([]); setSearch(""); setBarcodeInput(""); setScanQty("1"); setCustomerSearch(""); setShowCustomerDrop(false); setTimeout(() => barcodeRef.current?.focus(), 150); }}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700"
-        >+ New Order</button>
-      </div>
+    <div className="ws-page">
+      <WorkspaceHero
+        eyebrow="Trading operations"
+        title="Sales orders"
+        description="Document list. Day-to-day work stays on Order Desk."
+        actions={
+          <button
+            type="button"
+            onClick={() => { setShowForm(true); setMsg(""); setLines([]); setSearch(""); setBarcodeInput(""); setScanQty("1"); setCustomerSearch(""); setShowCustomerDrop(false); setTimeout(() => barcodeRef.current?.focus(), 150); }}
+            className="ws-btn ws-btn--primary"
+          >
+            + New order
+          </button>
+        }
+      />
+      <details className="mb-6 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] px-4 py-3 text-sm">
+        <summary className="cursor-pointer font-semibold text-[var(--ink)]">How this works</summary>
+        <div className="mt-3 space-y-3">
+          <LeadToCashGuide current="orders" />
+          <LeadToCashUnderstanding current="orders" />
+        </div>
+      </details>
 
       {msg && (
         <div className={`mb-4 p-3 rounded-lg text-sm border ${msgType === "err" ? "bg-red-50 border-red-200 text-red-700" : "bg-green-50 border-green-200 text-green-700"}`}>
@@ -336,9 +339,7 @@ export default function OrdersPage() {
                   <td className="px-4 py-3 font-medium">{o.customer?.name ?? "—"}</td>
                   <td className="px-4 py-3 font-semibold">&#8377;{o.total?.toFixed(2)}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[o.status] ?? "bg-[var(--mist)]"}`}>
-                      {o.status.replace(/_/g, " ")}
-                    </span>
+                    <StatusBadge status={o.status} />
                   </td>
                   <td className="px-4 py-3 text-xs text-[var(--ink-soft)]">{new Date(o.createdAt).toLocaleDateString("en-IN")}</td>
                   <td className="px-4 py-3">
@@ -552,7 +553,7 @@ export default function OrdersPage() {
                     </div>
                     <button type="button"
                       onClick={() => { if (suggestions.length > 0) addProductLine(suggestions[0]); else if (search.trim()) addNewProductLine(search.trim()); }}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 shrink-0">
+                      className="ws-btn ws-btn--primary shrink-0">
                       {Number(scanQty) !== 1 ? `Add \u00d7${scanQty}` : "Add"}
                     </button>
                   </div>
@@ -676,7 +677,7 @@ export default function OrdersPage() {
                   </button>
                 ) : (
                   <button type="submit" disabled={lines.length === 0}
-                    className="flex-1 bg-green-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed">
+                    className="ws-btn ws-btn--primary flex-1">
                     Create Sales Order
                   </button>
                 )}

@@ -111,9 +111,9 @@ export async function PUT(request: Request) {
   // Validate placed widget types against the registry (reject unknown ids).
   const known = new Set(listWidgets().map((w) => w.id));
   const valid = widgets.filter((w) => known.has(w.type));
-  if (widgets.length > 0 && valid.length === 0) {
+  if (valid.length === 0) {
     return NextResponse.json(
-      { error: "No recognized widgets to save. Try Reset, then Save again." },
+      { error: "Cannot save an empty layout. Restore default, then Save again." },
       { status: 400 }
     );
   }

@@ -52,7 +52,7 @@ export default function OrdersPage() {
       <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--amber)]">Tracking</p>
       <SectionHeader title="My requests" className="mb-2" />
       <p className="mb-6 -mt-2 max-w-lg text-sm text-[var(--ink-soft)]">
-        Sales requests convert to sales orders. Once converted, you see live order status here.
+        Sales request → confirmed → dispatched → invoiced. Status matches what sales sees on Order Desk.
       </p>
 
       {loading ? (

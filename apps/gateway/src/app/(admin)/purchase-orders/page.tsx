@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { StatusBadge, WorkspaceHero } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 
 const BarcodeScannerModal = dynamic(() => import("@/components/BarcodeScannerModal"), { ssr: false });
@@ -19,15 +20,6 @@ interface POLine {
   qty: string;
   unitPrice: string;
 }
-
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-[var(--mist)] text-[var(--ink-soft)]",
-  SUBMITTED: "bg-blue-100 text-[var(--brand)]",
-  APPROVED: "bg-green-100 text-green-700",
-  PARTIALLY_RECEIVED: "bg-yellow-100 text-yellow-800",
-  RECEIVED: "bg-purple-100 text-[var(--brand)]",
-  CANCELLED: "bg-red-100 text-red-600",
-};
 
 export default function PurchaseOrdersPage() {
   const [pos, setPOs] = useState<PO[]>([]);
@@ -211,14 +203,21 @@ export default function PurchaseOrdersPage() {
   }
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[var(--ink)]">Purchase Orders</h1>
-        <button
-          onClick={() => { setShowForm(true); setMsg(""); setLines([]); setSearch(""); setBarcodeInput(""); setScanQty("1"); setTimeout(() => barcodeRef.current?.focus(), 150); }}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700"
-        >+ New PO</button>
-      </div>
+    <div className="ws-page">
+      <WorkspaceHero
+        eyebrow="Procurement"
+        title="Purchase orders"
+        description="Draft, submit, and receive stock. Shortage work starts on Order Desk."
+        actions={
+          <button
+            type="button"
+            onClick={() => { setShowForm(true); setMsg(""); setLines([]); setSearch(""); setBarcodeInput(""); setScanQty("1"); setTimeout(() => barcodeRef.current?.focus(), 150); }}
+            className="ws-btn ws-btn--primary"
+          >
+            + New PO
+          </button>
+        }
+      />
 
       {msg && (
         <div className={`mb-4 p-3 rounded-lg text-sm border ${msgType === "err" ? "bg-red-50 border-red-200 text-red-700" : "bg-green-50 border-green-200 text-green-700"}`}>
@@ -243,21 +242,19 @@ export default function PurchaseOrdersPage() {
                   <td className="px-4 py-3 font-medium">{po.vendor?.name ?? "—"}</td>
                   <td className="px-4 py-3 font-semibold">₹{po.total?.toFixed(2)}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[po.status] ?? "bg-[var(--mist)]"}`}>
-                      {po.status.replace(/_/g, " ")}
-                    </span>
+                    <StatusBadge status={po.status} />
                   </td>
                   <td className="px-4 py-3 text-xs text-[var(--ink-soft)]">{new Date(po.createdAt).toLocaleDateString("en-IN")}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
                       {po.status === "DRAFT" && (
-                        <button onClick={() => actionPO(po.id, "submit", "Submitted")} className="text-xs bg-[var(--brand)] text-white px-2 py-1 rounded hover:bg-[var(--brand-mid)]">Submit</button>
+                        <button type="button" onClick={() => actionPO(po.id, "submit", "Submitted")} className="ws-btn">Submit</button>
                       )}
                       {po.status === "SUBMITTED" && (
-                        <button onClick={() => actionPO(po.id, "approve", "Approved")} className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700">Approve</button>
+                        <button type="button" onClick={() => actionPO(po.id, "approve", "Approved")} className="ws-btn ws-btn--primary">Approve</button>
                       )}
                       {(po.status === "APPROVED" || po.status === "PARTIALLY_RECEIVED") && (
-                        <button onClick={() => openReceiveModal(po)} className="text-xs bg-[var(--brand)] text-white px-2 py-1 rounded hover:bg-[var(--brand-mid)]">Receive</button>
+                        <button type="button" onClick={() => openReceiveModal(po)} className="ws-btn">Receive</button>
                       )}
                     </div>
                   </td>
@@ -384,7 +381,7 @@ export default function PurchaseOrdersPage() {
                     </div>
                     <button type="button"
                       onClick={() => { if (suggestions.length > 0) addProductLine(suggestions[0]); else if (search.trim()) addNewProductLine(search.trim()); }}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 shrink-0">
+                      className="ws-btn ws-btn--primary shrink-0">
                       {Number(scanQty) !== 1 ? `Add ×${scanQty}` : "Add"}
                     </button>
                   </div>
@@ -510,7 +507,7 @@ export default function PurchaseOrdersPage() {
               {/* Footer buttons */}
               <div className="px-6 pb-6 flex gap-3">
                 <button type="submit" disabled={lines.length === 0}
-                  className="flex-1 bg-green-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed">
+                  className="ws-btn ws-btn--primary flex-1">
                   Create Purchase Order
                 </button>
                 <button type="button" onClick={() => setShowForm(false)}

@@ -94,7 +94,7 @@ export default function CartPage() {
       </p>
 
       {items.length === 0 && (
-        <div className="rounded-lg border border-[#e8e8e8] bg-[#fafafa] px-6 py-12 text-center">
+        <div className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] px-6 py-12 text-center shadow-[var(--shadow-sm)]">
           <p className="text-lg font-bold text-[var(--ink)]">Cart is empty</p>
           <p className="mt-1 text-sm text-[var(--ink-soft)]">Browse products and add configurations.</p>
           <Link href="/shop" className="mt-5 inline-block">

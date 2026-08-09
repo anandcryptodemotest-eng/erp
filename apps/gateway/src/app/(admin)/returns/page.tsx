@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { StatusBadge, WorkspaceHero } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 
 interface SalesReturn {
@@ -42,13 +43,6 @@ interface OrderItem {
 }
 
 interface Warehouse { id: string; name: string; }
-
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  APPROVED: "bg-blue-100 text-[var(--brand)]",
-  COMPLETED: "bg-green-100 text-green-700",
-  REJECTED: "bg-red-100 text-red-600",
-};
 
 export default function ReturnsPage() {
   const [returns, setReturns] = useState<SalesReturn[]>([]);
@@ -199,20 +193,20 @@ export default function ReturnsPage() {
   }
 
   return (
-    <div className="p-4 md:p-6">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Sales Returns</h1>
-          <p className="text-sm text-[var(--ink-soft)]">{total} total returns</p>
-        </div>
-        <button onClick={openForm}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition">
-          + New Return
-        </button>
-      </div>
+    <div className="ws-page">
+      <WorkspaceHero
+        eyebrow="Trading operations"
+        title="Sales returns"
+        description={`${total} returns. Process dealer orders on Order Desk.`}
+        actions={
+          <button type="button" onClick={openForm} className="ws-btn ws-btn--primary">
+            + New return
+          </button>
+        }
+      />
 
       {msg && (
-        <div className={`mb-4 px-4 py-2.5 rounded-lg text-sm font-medium ${msgType === "ok" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+        <div className={`mb-4 px-4 py-2.5 rounded-lg text-sm font-medium ${msgType === "ok" ? "border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] text-[var(--success)]" : "border border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,white)] text-[var(--danger)]"}`}>
           {msg}
         </div>
       )}
@@ -294,7 +288,7 @@ export default function ReturnsPage() {
           <div className="flex gap-2 justify-end">
             <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-[var(--ink-soft)] border rounded-lg hover:bg-[var(--mist)]">Cancel</button>
             <button onClick={createReturn} disabled={saving || orders.length === 0}
-              className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
+              className="ws-btn ws-btn--primary">
               {saving ? "Saving..." : "Create Return"}
             </button>
           </div>
@@ -329,9 +323,7 @@ export default function ReturnsPage() {
                   <td className="px-4 py-3 text-[var(--ink-soft)] text-xs">{sr.reason ?? "—"}</td>
                   <td className="px-4 py-3 text-right font-medium">₹{Number(sr.total).toLocaleString()}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[sr.status] ?? "bg-[var(--mist)] text-[var(--ink-soft)]"}`}>
-                      {sr.status}
-                    </span>
+                    <StatusBadge status={sr.status} />
                   </td>
                   <td className="px-4 py-3 text-[var(--ink-soft)] text-xs">{new Date(sr.createdAt).toLocaleDateString()}</td>
                 </tr>
@@ -348,7 +340,7 @@ export default function ReturnsPage() {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h2 className="text-lg font-bold text-[var(--ink)]">{selected.returnNumber}</h2>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[selected.status] ?? "bg-[var(--mist)] text-[var(--ink-soft)]"}`}>{selected.status}</span>
+                <StatusBadge status={selected.status} />
               </div>
               <button onClick={() => setSelected(null)} className="text-[var(--ink-soft)] hover:text-[var(--ink-soft)] text-xl">✕</button>
             </div>
@@ -410,7 +402,7 @@ export default function ReturnsPage() {
                   </select>
                 </div>
                 <button onClick={() => doAction("complete")} disabled={actioning || !completeWarehouse}
-                  className="w-full bg-green-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50">
+                  className="ws-btn ws-btn--primary w-full">
                   {actioning ? "Processing..." : "Complete & Restock Inventory"}
                 </button>
               </div>

@@ -401,7 +401,7 @@ export default function CheckoutPage() {
       </section>
 
       {error ? (
-        <div className="mb-3 rounded-[var(--radius)] bg-red-50 px-4 py-2.5 text-sm text-[var(--danger)]">
+        <div className="mb-3 rounded-[var(--radius)] border border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_8%,white)] px-4 py-2.5 text-sm text-[var(--danger)]">
           {error}
         </div>
       ) : null}

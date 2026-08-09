@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { ActionGroup, Button, Trash2 } from "@erp/ui";
+import { ActionGroup, Button, Trash2, WorkspaceHero } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 
 const iconSm = { width: "var(--icon-sm)", height: "var(--icon-sm)" } as const;
@@ -64,20 +64,22 @@ export default function PriceListsPage() {
   }
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Price Lists</h1>
-          <p className="text-sm text-[var(--ink-soft)] mt-1">Operational list prices — quotes still run through @erp/pricing.</p>
+    <div className="ws-page">
+      <WorkspaceHero
+        eyebrow="Catalog"
+        title="Price lists"
+        description="Operational list prices. Quotes still run through the pricing engine."
+        actions={
+          <button type="button" onClick={() => setShowForm(true)} className="ws-btn ws-btn--primary">
+            + New price list
+          </button>
+        }
+      />
+      {msg && (
+        <div className="mb-4 rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] px-4 py-2 text-sm text-[var(--success)]">
+          {msg}
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700"
-        >
-          + New Price List
-        </button>
-      </div>
-      {msg && <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">{msg}</div>}
+      )}
       {loading ? (
         <p className="text-[var(--ink-soft)]">Loading…</p>
       ) : (
@@ -160,10 +162,10 @@ export default function PriceListsPage() {
               Default list
             </label>
             <div className="flex gap-2 pt-2">
-              <button type="submit" className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-semibold">
+              <button type="submit" className="ws-btn ws-btn--primary flex-1">
                 Create
               </button>
-              <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-[var(--mist)] py-2 rounded-lg text-sm">
+              <button type="button" onClick={() => setShowForm(false)} className="ws-btn flex-1">
                 Cancel
               </button>
             </div>

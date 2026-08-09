@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
+import path from "path";
+
+const monorepoRoot = path.join(__dirname, "../..");
+
 const nextConfig: NextConfig = {
   output: "standalone",
+  outputFileTracingRoot: monorepoRoot,
   serverExternalPackages: [
     "@erp/telemetry",
     "@opentelemetry/auto-instrumentations-node",
@@ -12,6 +17,6 @@ const nextConfig: NextConfig = {
     "@opentelemetry/sdk-metrics",
     "@opentelemetry/semantic-conventions",
   ],
-  transpilePackages: ["@erp/ui", "@erp/types", "@erp/auth", "@erp/config", "@erp/logger"],
+  transpilePackages: ["@erp/ui", "@erp/types", "@erp/auth", "@erp/config", "@erp/logger", "@erp/documents", "@erp/workflow"],
 };
 export default nextConfig;

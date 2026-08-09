@@ -1,7 +1,7 @@
 # ERP — Requirements & Dependencies
 
 > **Living document.** Update this file whenever a new host tool, runtime, service dependency, or npm package becomes required for local or production use.
-> **Last updated:** 2026-08-08 (`erp` CLI + compose restart policy + 2-min watchdog; Fast2SMS client unchanged)
+> **Last updated:** 2026-08-09 (invoice PDF volume `erp-files` + `FILE_STORE_ROOT`; Fast2SMS client unchanged)
 
 ---
 
@@ -45,7 +45,9 @@
 
 **Trading document flow:** Customer checkout creates a **Sales Request (SREQ)**; sales converts it to a **Sales Order (SO)**. Parallel prep tasks drive fulfillment — not a long sequential SO status ladder. See `docs/TRADING-JOURNEY.md`.
 
-**Not used for primary ERP data:** Redis, MongoDB, Kafka. Cart state in the customer UI is browser `localStorage` until checkout writes a **sales request** to Postgres via the API.
+**Document files (invoice PDFs):** not in Postgres. Accounting writes PDFs under `FILE_STORE_ROOT` (Compose: `/var/lib/erp-files` on named volume `erp-files`). Local `next dev` defaults to `/tmp/erp-files`. GET `/api/invoices/:id/pdf` re-renders if the DB row exists but the file is missing.
+
+**Not used for primary ERP data:** Redis, MongoDB, Kafka, MinIO. Cart state in the customer UI is browser `localStorage` until checkout writes a **sales request** to Postgres via the API.
 
 ---
 
@@ -59,6 +61,7 @@
 | Git | any recent | ✓ |
 | Docker | Engine + Compose v2+ | 29.1.5 / Compose v5 ✓ |
 | PostgreSQL | **16** via Docker (preferred) or local | `erp-postgres-1` healthy ✓ |
+| Invoice file store | Compose volume `erp-files` → `/var/lib/erp-files` (`FILE_STORE_ROOT`) | accounting ✓ |
 | Workspace deps | `pnpm install` | Installed ✓ |
 | App `.env` files | Per-service `DATABASE_URL` | Created ✓ |
 | Firewall | **TCP 80 + 443 only** (no app ports) | 80/443 ✓ |
@@ -210,6 +213,7 @@ Copy from `.env.example`. Critical keys:
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Same value exposed to the customer portal browser for the sign-in button |
 | `TAX_RATE` | Order tax fraction (e.g. `0.10`) |
 | `OTEL_SDK_DISABLED` | Default **true** in Compose. Set `false` only with `docker compose --profile obs up -d` |
+| `FILE_STORE_ROOT` | Accounting invoice PDF directory (Compose: `/var/lib/erp-files`) |
 | `*_DATABASE_URL` | Per-service Postgres URLs |
 | `GATEWAY_SERVICE_URL` | Customer UI → gateway (see `apps/customer/.env.example`) |
 | `NEXT_PUBLIC_TENANT_SLUG` / `NEXT_PUBLIC_TENANT_NAME` | Customer portal tenant branding |

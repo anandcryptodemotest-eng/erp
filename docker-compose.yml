@@ -142,6 +142,9 @@ services:
       SALES_SERVICE_URL: http://sales:3001
       HR_SERVICE_URL: http://hr:3004
       PROCUREMENT_SERVICE_URL: http://procurement:3005
+      FILE_STORE_ROOT: /var/lib/erp-files
+    volumes:
+      - erp-files:/var/lib/erp-files
     depends_on:
       postgres:
         condition: service_healthy
@@ -324,6 +327,7 @@ services:
 
 volumes:
   pgdata:
+  erp-files:
   tempo-data:
   prometheus-data:
   grafana-data:
