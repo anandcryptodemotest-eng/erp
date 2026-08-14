@@ -41,7 +41,7 @@ export function PwaRegister() {
   if (!updateReady) return null;
 
   return (
-    <div className="fixed bottom-20 left-1/2 z-[var(--z-toast)] flex w-[min(92vw,24rem)] -translate-x-1/2 items-center gap-3 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--ink)] px-4 py-3 text-sm text-white shadow-[var(--shadow)]">
+    <div className="fixed bottom-20 left-1/2 z-[var(--z-toast)] flex w-[min(92vw,24rem)] -translate-x-1/2 items-center gap-3 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--ink)] px-4 py-3 text-sm text-white shadow-[var(--shadow)]">
       <span className="flex-1">A new version is available.</span>
       <Button
         variant="secondary"

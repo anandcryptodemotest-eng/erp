@@ -36,7 +36,7 @@ select {
   font-optical-sizing: auto;
 }
 
-/* Legacy aliases used by older Platform pages */
+/* Legacy aliases used by older Platform pages — map to Design System v2 */
 :root,
 [data-theme="trustwood"] {
   --bg: var(--canvas);

@@ -50,3 +50,14 @@ Build → Observe → Extract → Promote. Do **not** author further architectur
 - `data-theme="platform"` dark operator theme is deprecated for admin hosts (tokens remapped to TrustWood).
 - Immediate ROI: AdminShell + Process Designer share.
 - Mobile remains Kernel → Renderer; no mobile work until web shell/studio stabilize.
+
+## Addendum — Design System v2 (2026-08-13)
+
+**Status:** Implemented (BL-022 shipped). Does **not** create a second brand or second AdminShell.
+
+- Tokens, elevation, radius, motion, StatusChip, PageScaffold, and Button variants are upgraded in `@erp/ui` under the same TrustWood/`data-theme="trustwood"` host contract.
+- Brand remains forest green (`#0B5E3C`) with amber accent used sparingly; white working surfaces replace linen/card-heavy chrome.
+- Apps must consume scaffolds only; see [design-system.md](../guides/design-system.md) Visual Anti-Patterns.
+- `PageHeader` is deprecated for new work; migrate to `PageScaffold` + `WorkspaceHero`.
+- Live hosts: Gateway `/admin` `:3010`, Platform `:3011`, Customer `:3007` (`comfortable`), Delivery `:3009` / POS `:3008` (`compact-touch`).
+- Evidence: portal E2E 20/20, SaaS E2E 25/25; spine pages use `PageScaffold`.

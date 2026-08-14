@@ -77,7 +77,7 @@ export default function AddressesPage() {
             {addresses.map((a) => (
               <li
                 key={a.id}
-                className="rounded-lg border border-[#e8e8e8] bg-white px-4 py-3 text-sm"
+                className="rounded-lg border border-[var(--line)] bg-[var(--surface-raised)] px-4 py-3 text-sm"
               >
                 <p className="font-semibold text-[var(--ink)]">
                   {a.label}{" "}
@@ -106,7 +106,7 @@ export default function AddressesPage() {
               Add address
             </Button>
           ) : customerId ? (
-            <div className="mt-4 rounded-lg border border-[#e8e8e8] bg-white p-4">
+            <div className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--surface-raised)] p-4">
               <p className="mb-3 text-sm font-bold text-[var(--ink)]">New address</p>
               <AddressForm
                 customerId={customerId}

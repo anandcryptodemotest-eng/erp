@@ -69,3 +69,12 @@ test("home path is dashboard-first", () => {
   assert.equal(defaultHomePath(resolveNavModules("ACCOUNTANT")), "/dashboard");
   assert.equal(defaultHomePath(resolveNavModules("DELIVERY_EXECUTIVE")), "/dashboard");
 });
+
+test("Free plan features hide Order Desk from ADMIN", () => {
+  const allowed = resolveNavModules("ADMIN", null, null, ["dashboard", "organization", "users"]);
+  assert.equal(canAccessModule(allowed, "dashboard"), true);
+  assert.equal(canAccessModule(allowed, "administration"), true);
+  assert.equal(canAccessModule(allowed, "users"), true);
+  assert.equal(canAccessModule(allowed, "order_desk"), false);
+  assert.equal(canAccessModule(allowed, "products"), false);
+});

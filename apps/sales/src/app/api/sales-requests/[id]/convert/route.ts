@@ -4,8 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { getDefaultWorkflow } from "@/lib/order-workflow";
 import { startSalesOrderWorkflowV5, getPublishedDefinition } from "@/lib/workflow-runtime-v5";
 import { notifyPortalCustomer } from "@/lib/notify-customer";
+import { assertSaasEntitlement } from "@/lib/assert-saas-entitlement";
 import { withSpan, recordEvent, captureException } from "@erp/telemetry/helpers";
 import { serviceClient } from "@erp/config";
+import type { Prisma } from "@/generated/prisma";
 
 const log = createLogger({ service: "sales" });
 
@@ -42,6 +44,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       if (!role || !CONVERT_ROLES.has(role)) {
         return NextResponse.json({ error: "Only sales staff can convert requests" }, { status: 403 });
       }
+
+      const entitlementBlock = await assertSaasEntitlement(tenantId, "oms");
+      if (entitlementBlock) return entitlementBlock;
 
       const { id } = await params;
 
@@ -126,6 +131,28 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             };
           }
 
+          // Credit exposure: outstanding AR + this SREQ total vs creditLimit
+          if (sreq.customer.creditLimit > 0) {
+            const credit = await serviceClient.call<{
+              data: { outstanding: number; projected: number };
+            }>("accounting", "/api/ar/credit-check", {
+              method: "POST",
+              tenantId,
+              userId,
+              body: { customerId: sreq.customerId, additionalAmount: sreq.total },
+            });
+            const projected = credit.data?.data?.projected;
+            const outstanding = credit.data?.data?.outstanding;
+            if (typeof projected === "number" && projected > sreq.customer.creditLimit) {
+              return {
+                kind: "credit" as const,
+                outstanding,
+                limit: sreq.customer.creditLimit,
+                projected,
+              };
+            }
+          }
+
           const orderNumber = await nextOrderNumber(tenantId, tx);
           const order = await tx.salesOrder.create({
             data: {
@@ -157,7 +184,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
                   quantity: i.quantity,
                   unitPrice: i.unitPrice,
                   taxRate: i.taxRate,
+                  taxTreatment: i.taxTreatment,
                   total: i.total,
+                  customSnapshot: (i.customSnapshot ?? undefined) as Prisma.InputJsonValue | undefined,
                 })),
               },
               modifications: {
@@ -212,6 +241,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         if (result.kind === "blocked") {
           return NextResponse.json(
             { error: `Customer is blocked: ${result.reason}` },
+            { status: 403 }
+          );
+        }
+        if (result.kind === "credit") {
+          return NextResponse.json(
+            {
+              error: `Credit limit exceeded: outstanding ₹${result.outstanding ?? 0} + order would be ₹${result.projected} (limit ₹${result.limit})`,
+              code: "CREDIT_LIMIT",
+              outstanding: result.outstanding,
+              projected: result.projected,
+              limit: result.limit,
+            },
             { status: 403 }
           );
         }

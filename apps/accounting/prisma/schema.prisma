@@ -64,6 +64,7 @@ model Invoice {
   entityId      String?  // Customer or Vendor ID (from other services)
   entityName    String?
   sourceRef     String?  // SalesOrder ID or PurchaseOrder ID
+  sourceKind    String   @default("SALES_ORDER") // SALES_ORDER | QUICK_BILL
   date          DateTime
   dueDate       DateTime
   subtotal      Float
@@ -71,6 +72,22 @@ model Invoice {
   total         Float
   paidAmount    Float    @default(0)
   status        String   @default("DRAFT") // DRAFT, ISSUED, PAID, PARTIALLY_PAID, OVERDUE, CANCELLED
+  documentKind  String   @default("COMMERCIAL") // COMMERCIAL | TAX_INVOICE | BILL_OF_SUPPLY
+  supplyType    String?  // B2B | B2C
+  placeOfSupply String?
+  buyerGstin    String?
+  taxableValue  Float    @default(0)
+  cgst          Float    @default(0)
+  sgst          Float    @default(0)
+  igst          Float    @default(0)
+  einvoiceStatus String  @default("NOT_APPLICABLE") // NOT_APPLICABLE | PENDING | SUCCESS | FAILED | CANCELLED
+  irn           String?
+  ackNo         String?
+  ackDate       DateTime?
+  signedQr      String?
+  ewayStatus    String   @default("NOT_APPLICABLE")
+  ewayBillNo    String?
+  ewayValidUntil DateTime?
   notes         String?
   pdfUrl        String?
   pdfChecksum   String?

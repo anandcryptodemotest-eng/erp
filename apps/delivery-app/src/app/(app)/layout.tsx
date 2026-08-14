@@ -1,13 +1,10 @@
 "use client";
-import { useEffect } from "react";
+
+import { useEffect, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { BottomNav, Button, LogOut, Package, Truck } from "@erp/ui";
 import { isAuthenticated, clearAuth } from "@/lib/api-client";
-
-const NAV = [
-  { href: "/home", label: "📦 Deliveries" },
-  { href: "/earnings", label: "💰 Earnings" },
-];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -22,37 +19,40 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     router.replace("/login");
   }
 
+  const items = useMemo(
+    () => [
+      {
+        href: "/home",
+        label: "Deliveries",
+        icon: <Truck className="h-[var(--icon-md)] w-[var(--icon-md)]" />,
+      },
+      {
+        href: "/earnings",
+        label: "Earnings",
+        icon: <Package className="h-[var(--icon-md)] w-[var(--icon-md)]" />,
+      },
+    ],
+    []
+  );
+
   return (
-    <div className="flex min-h-screen flex-col bg-orange-50 max-w-md mx-auto">
-      {/* Top bar */}
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-orange-100 bg-white px-4 py-3 shadow-sm">
+    <div className="mx-auto flex min-h-screen max-w-md flex-col bg-[var(--canvas)]">
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--line)] bg-[var(--surface-raised)] px-4 py-3 shadow-[var(--shadow-1)]">
         <div className="flex items-center gap-2">
-          <span className="text-lg">🛵</span>
-          <span className="text-sm font-bold text-orange-600">SF Delivery</span>
+          <Truck className="h-5 w-5 text-[var(--accent)]" aria-hidden />
+          <span className="font-display text-sm font-bold text-[var(--brand)]">Delivery</span>
         </div>
-        <button onClick={signOut} className="rounded-xl bg-orange-50 border border-orange-200 px-3 py-1.5 text-xs font-medium text-orange-600 hover:bg-orange-100">
-          Sign Out
-        </button>
+        <Button variant="outline" size="sm" onClick={signOut} className="gap-1.5">
+          <LogOut className="h-3.5 w-3.5" />
+          Sign out
+        </Button>
       </header>
 
-      {/* Page content */}
-      <main className="flex-1 overflow-y-auto pb-20">{children}</main>
+      <main className="flex-1 overflow-y-auto pb-24">{children}</main>
 
-      {/* Bottom nav */}
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md border-t border-orange-100 bg-white">
-        <div className="flex">
-          {NAV.map((n) => {
-            const active = pathname === n.href || (n.href !== "/home" && pathname.startsWith(n.href));
-            return (
-              <Link key={n.href} href={n.href}
-                className={`flex flex-1 flex-col items-center py-3 text-xs font-medium transition-colors
-                  ${active ? "text-orange-600" : "text-stone-400 hover:text-stone-600"}`}>
-                {n.label}
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+      <div className="fixed bottom-0 left-1/2 w-full max-w-md -translate-x-1/2">
+        <BottomNav items={items} pathname={pathname} linkComponent={Link} />
+      </div>
     </div>
   );
 }

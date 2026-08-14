@@ -212,7 +212,8 @@ export function modulesForRole(role: string | null | undefined): Set<NavModuleKe
 export function resolveNavModules(
   role: string | null | undefined,
   userOverride?: string[] | null,
-  capabilities?: string[] | null
+  capabilities?: string[] | null,
+  planFeatures?: string[] | null
 ): Set<NavModuleKey> {
   let allowed: Set<NavModuleKey>;
   if (userOverride?.includes("*")) {
@@ -227,7 +228,39 @@ export function resolveNavModules(
   } else {
     allowed = modulesForRole(role);
   }
-  return applyProcessStudioCapability(allowed, role, capabilities);
+  const withStudio = applyProcessStudioCapability(allowed, role, capabilities);
+  return intersectPlanFeatures(withStudio, planFeatures);
+}
+
+/** Map SaaS feature codes onto sidebar keys. Unknown / omitted features hide nothing (legacy tests). */
+export const FEATURE_NAV_MAP: Record<string, NavModuleKey[]> = {
+  dashboard: ["dashboard"],
+  organization: ["administration"],
+  users: ["users"],
+  oms: ["order_desk", "orders", "customers"],
+  inventory: ["products", "categories", "brands", "attributes", "price_lists"],
+  accounting: ["invoices", "returns"],
+  ar: ["invoices"],
+  gst: ["invoices"],
+  procurement: ["vendors", "purchase_orders"],
+  process_studio: ["workflows", "configuration"],
+  hr: ["employees", "payroll"],
+};
+
+export function intersectPlanFeatures(
+  allowed: Set<NavModuleKey>,
+  planFeatures?: string[] | null
+): Set<NavModuleKey> {
+  if (!planFeatures || planFeatures.includes("*")) return allowed;
+  const unlocked = new Set<NavModuleKey>();
+  for (const code of planFeatures) {
+    for (const key of FEATURE_NAV_MAP[code] ?? []) unlocked.add(key);
+  }
+  const next = new Set<NavModuleKey>();
+  for (const key of allowed) {
+    if (unlocked.has(key)) next.add(key);
+  }
+  return next;
 }
 
 /** Process Studio nav only when TenantCapability processStudio is enabled. */
@@ -325,16 +358,18 @@ export function pathToModuleKey(pathname: string): NavModuleKey | null {
   if (path.startsWith("/attributes")) return "attributes";
   if (path.startsWith("/price-lists")) return "price_lists";
   if (path.startsWith("/products")) return "products";
-  if (path.startsWith("/sales-desk") || path.startsWith("/oms")) return "order_desk";
+  if (path.startsWith("/sales-desk") || path.startsWith("/oms") || path.startsWith("/quick-bill"))
+    return "order_desk";
   if (path.startsWith("/workflows")) return "workflows";
   if (path.startsWith("/configuration") || path.startsWith("/forms")) return "configuration";
-  if (path.startsWith("/administration")) return "administration";
+  if (path.startsWith("/administration") || path.startsWith("/billing")) return "administration";
   if (path.startsWith("/users")) return "users";
   if (path.startsWith("/vendors")) return "vendors";
   if (path.startsWith("/purchase-orders")) return "purchase_orders";
   if (path.startsWith("/employees")) return "employees";
   if (path.startsWith("/payroll")) return "payroll";
-  if (path.startsWith("/invoices")) return "invoices";
+  if (path.startsWith("/invoices") || path.startsWith("/gstr1-export") || path.startsWith("/ar"))
+    return "invoices";
   if (path.startsWith("/returns")) return "returns";
   if (path.startsWith("/messages") || path.startsWith("/communication")) return "communication";
   return null;

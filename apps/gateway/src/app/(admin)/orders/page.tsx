@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { StatusBadge, WorkspaceHero } from "@erp/ui";
+import { Button, PageScaffold, StatusBadge } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 import LeadToCashGuide from "@/components/LeadToCashGuide";
 import LeadToCashUnderstanding from "@/components/LeadToCashUnderstanding";
@@ -293,21 +293,21 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="ws-page">
-      <WorkspaceHero
-        eyebrow="Trading operations"
-        title="Sales orders"
-        description="Document list. Day-to-day work stays on Order Desk."
-        actions={
-          <button
+    <PageScaffold
+      hero={{
+        eyebrow: "Trading operations",
+        title: "Sales orders",
+        description: "Document list. Day-to-day work stays on Order Desk.",
+        actions: (
+          <Button
             type="button"
             onClick={() => { setShowForm(true); setMsg(""); setLines([]); setSearch(""); setBarcodeInput(""); setScanQty("1"); setCustomerSearch(""); setShowCustomerDrop(false); setTimeout(() => barcodeRef.current?.focus(), 150); }}
-            className="ws-btn ws-btn--primary"
           >
             + New order
-          </button>
-        }
-      />
+          </Button>
+        ),
+      }}
+    >
       <details className="mb-6 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] px-4 py-3 text-sm">
         <summary className="cursor-pointer font-semibold text-[var(--ink)]">How this works</summary>
         <div className="mt-3 space-y-3">
@@ -317,7 +317,7 @@ export default function OrdersPage() {
       </details>
 
       {msg && (
-        <div className={`mb-4 p-3 rounded-lg text-sm border ${msgType === "err" ? "bg-red-50 border-red-200 text-red-700" : "bg-green-50 border-green-200 text-green-700"}`}>
+        <div className={`mb-4 p-3 rounded-lg text-sm border ${msgType === "err" ? "border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,white)] text-[var(--danger)]" : "border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] text-[var(--success)]"}`}>
           {msg}
         </div>
       )}
@@ -348,13 +348,13 @@ export default function OrdersPage() {
                         <button onClick={() => setConfirmModal(o)} className="text-xs bg-[var(--brand)] text-white px-2 py-1 rounded hover:bg-[var(--brand-mid)]">Confirm</button>
                       )}
                       {(o.status === "CONFIRMED" || o.status === "PARTIALLY_SHIPPED") && (
-                        <button onClick={() => openShipModal(o)} className="text-xs bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600">Ship</button>
+                        <button onClick={() => openShipModal(o)} className="text-xs bg-[var(--warning)] text-white px-2 py-1 rounded hover:opacity-90">Ship</button>
                       )}
                       {o.status === "SHIPPED" && (
                         <button onClick={() => actionOrder(o.id, "invoice", "Invoice created")} className="text-xs bg-[var(--brand)] text-white px-2 py-1 rounded hover:bg-[var(--brand-mid)]">Invoice</button>
                       )}
                       {o.status === "DRAFT" && (
-                        <button onClick={() => actionOrder(o.id, "cancel", "Order cancelled")} className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">Cancel</button>
+                        <button onClick={() => actionOrder(o.id, "cancel", "Order cancelled")} className="text-xs bg-[var(--danger)] text-white px-2 py-1 rounded hover:opacity-90">Cancel</button>
                       )}
                     </div>
                   </td>
@@ -387,8 +387,8 @@ export default function OrdersPage() {
                 onClick={() => setSaleMode("quicksale")}
                 className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors ${
                   saleMode === "quicksale"
-                    ? "bg-orange-500 text-white border-orange-500 shadow-sm"
-                    : "bg-white text-[var(--ink-soft)] border-[var(--line)] hover:border-orange-300"
+                    ? "bg-[var(--warning)] text-white border-[var(--warning)] shadow-sm"
+                    : "bg-white text-[var(--ink-soft)] border-[var(--line)] hover:border-[color-mix(in_srgb,var(--warning)_45%,var(--line))]"
                 }`}>
                 &#9889; Quick Sale
                 <span className="block text-xs font-normal opacity-80">Scan &rarr; Pay &rarr; Done</span>
@@ -398,7 +398,7 @@ export default function OrdersPage() {
                 className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors ${
                   saleMode === "order"
                     ? "bg-[var(--brand)] text-white border-[var(--brand)] shadow-sm"
-                    : "bg-white text-[var(--ink-soft)] border-[var(--line)] hover:border-blue-300"
+                    : "bg-white text-[var(--ink-soft)] border-[var(--line)] hover:border-[color-mix(in_srgb,var(--info)_45%,var(--line))]"
                 }`}>
                 &#128203; B2B Order
                 <span className="block text-xs font-normal opacity-80">Confirm &rarr; Ship &rarr; Invoice</span>
@@ -420,16 +420,16 @@ export default function OrdersPage() {
                       onFocus={() => setShowCustomerDrop(true)}
                       onBlur={() => setTimeout(() => setShowCustomerDrop(false), 160)}
                       placeholder={saleMode === "quicksale" ? "Type phone or name\u2026" : "Search customer\u2026"}
-                      className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
                     />
                     {showCustomerDrop && (
                       <div className="absolute z-50 w-full bg-white border border-[var(--line)] rounded-lg shadow-lg mt-1 max-h-56 overflow-auto">
                         {saleMode === "quicksale" && (
                           <button type="button" onMouseDown={e => { e.preventDefault(); selectWalkIn(); }}
-                            className="w-full px-3 py-2.5 text-left text-sm hover:bg-orange-50 border-b flex items-center gap-2">
+                            className="w-full px-3 py-2.5 text-left text-sm hover:bg-[color-mix(in_srgb,var(--warning)_10%,white)] border-b flex items-center gap-2">
                             <span className="text-lg">&#128100;</span>
                             <div>
-                              <div className="font-semibold text-orange-700">Walk-in / Cash</div>
+                              <div className="font-semibold text-[var(--warning)]">Walk-in / Cash</div>
                               <div className="text-xs text-[var(--ink-soft)]">anonymous retail customer</div>
                             </div>
                           </button>
@@ -450,7 +450,7 @@ export default function OrdersPage() {
                     )}
                   </div>
                   {customerId && !showCustomerDrop && (
-                    <p className="text-xs text-green-600 mt-1">&#10003; {customers.find(c => c.id === customerId)?.name}</p>
+                    <p className="text-xs text-[var(--success)] mt-1">&#10003; {customers.find(c => c.id === customerId)?.name}</p>
                   )}
                   {!customerId && saleMode === "quicksale" && !showCustomerDrop && (
                     <p className="text-xs text-[var(--ink-soft)] mt-1">Leave blank or pick Walk-in for cash sales</p>
@@ -484,7 +484,7 @@ export default function OrdersPage() {
                   </div>
                   <span className="text-xs text-[var(--ink-soft)]">units per scan / add</span>
                   {lastAdded && (
-                    <span className="ml-auto text-xs font-semibold text-green-600 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
+                    <span className="ml-auto text-xs font-semibold text-[var(--success)] bg-[color-mix(in_srgb,var(--success)_10%,white)] border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] px-2.5 py-1 rounded-full">
                       &#10003; Added: {lastAdded}
                     </span>
                   )}
@@ -498,7 +498,7 @@ export default function OrdersPage() {
                     </svg>
                     Scan Barcode
                   </p>
-                  <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 border-dashed border-[var(--line)] bg-[var(--mist)] focus-within:border-green-400 focus-within:bg-green-50/30 transition-colors group">
+                  <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 border-dashed border-[var(--line)] bg-[var(--mist)] focus-within:border-[var(--success)] focus-within:bg-[color-mix(in_srgb,var(--success)_10%,white)]/30 transition-colors group">
                     <div className="flex items-center gap-[2px] shrink-0 opacity-25 group-focus-within:opacity-60 transition-opacity" aria-hidden>
                       {([3,1,2,1,3,1,2,3,1,2,1,3,2,1] as number[]).map((w, i) => (
                         <div key={i} style={{width: `${w}px`}} className={`bg-gray-700 rounded-[1px] ${i % 2 === 0 ? "h-8" : "h-5"}`} />
@@ -515,7 +515,7 @@ export default function OrdersPage() {
                     />
                     {barcodeInput && (
                       <button type="button" onClick={() => { setBarcodeInput(""); barcodeRef.current?.focus(); }}
-                        className="text-[var(--ink-soft)] hover:text-red-400 text-xl leading-none shrink-0">&times;</button>
+                        className="text-[var(--ink-soft)] hover:text-[var(--danger)] text-xl leading-none shrink-0">&times;</button>
                     )}
                     <button type="button" onClick={() => setShowCameraScanner(true)}
                       title="Scan with laptop camera"
@@ -561,7 +561,7 @@ export default function OrdersPage() {
                     <div className="absolute top-full left-0 right-20 bg-white border rounded-xl shadow-xl z-20 mt-1 max-h-52 overflow-y-auto">
                       {suggestions.map(p => (
                         <button key={p.id} type="button" onClick={() => addProductLine(p)}
-                          className="w-full text-left px-4 py-2.5 text-sm hover:bg-green-50 flex items-center justify-between border-b last:border-0">
+                          className="w-full text-left px-4 py-2.5 text-sm hover:bg-[color-mix(in_srgb,var(--success)_10%,white)] flex items-center justify-between border-b last:border-0">
                           <div>
                             <span className="font-medium text-[var(--ink)]">{p.name}</span>
                             <span className="text-[var(--ink-soft)] text-xs ml-2">{p.sku}</span>
@@ -648,7 +648,7 @@ export default function OrdersPage() {
                             </td>
                             <td className="px-3 py-2">
                               <button type="button" onClick={() => setLines(ls => ls.filter((_, j) => j !== i))}
-                                className="text-red-400 hover:text-red-600 font-bold text-base leading-none">&times;</button>
+                                className="text-[var(--danger)] hover:text-[var(--danger)] font-bold text-base leading-none">&times;</button>
                             </td>
                           </tr>
                         ))}
@@ -658,7 +658,7 @@ export default function OrdersPage() {
                           <td colSpan={4} className="px-3 py-3 text-right text-sm font-semibold text-[var(--ink-soft)]">
                             {lines.length} item{lines.length !== 1 ? "s" : ""} &middot; Order Total
                           </td>
-                          <td className="px-3 py-3 text-right text-base font-bold text-green-700">&#8377;{soTotal.toFixed(2)}</td>
+                          <td className="px-3 py-3 text-right text-base font-bold text-[var(--success)]">&#8377;{soTotal.toFixed(2)}</td>
                           <td></td>
                         </tr>
                       </tfoot>
@@ -670,7 +670,7 @@ export default function OrdersPage() {
               <div className="px-6 pb-6 flex gap-3">
                 {saleMode === "quicksale" ? (
                   <button type="submit" disabled={lines.length === 0}
-                    className="flex-1 bg-orange-500 text-white py-3 rounded-lg text-sm font-bold hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    className="flex-1 bg-[var(--warning)] text-white py-3 rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                     <span>&#9889;</span>
                     Complete Sale &mdash; &#8377;{soTotal.toFixed(2)}
                     <span className="text-xs font-normal opacity-80">(confirms + ships + invoices)</span>
@@ -773,7 +773,7 @@ export default function OrdersPage() {
             </div>
             <div className="px-6 pb-5 flex gap-3">
               <button onClick={doShip}
-                className="flex-1 bg-yellow-500 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-yellow-600">
+                className="flex-1 bg-[var(--warning)] text-white py-2.5 rounded-lg text-sm font-semibold hover:opacity-90">
                 Confirm Shipment &rarr; Deduct Stock
               </button>
               <button onClick={() => setShipModal(null)}
@@ -791,6 +791,6 @@ export default function OrdersPage() {
           onClose={() => { setShowCameraScanner(false); setTimeout(() => barcodeRef.current?.focus(), 100); }}
         />
       )}
-    </div>
+    </PageScaffold>
   );
 }

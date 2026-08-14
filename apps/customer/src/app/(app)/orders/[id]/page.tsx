@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { FormDefinition } from "@erp/workflow";
-import { BillSummary, Button, Container, PriceDisplay, SectionHeader, Skeleton } from "@erp/ui";
+import { BillSummary, Button, Container, PriceDisplay, SectionHeader, Skeleton, StatusChip } from "@erp/ui";
 import { api, openAuthenticatedDocument } from "@/lib/api-client";
 import { billSummaryRows } from "@/lib/bill-summary";
 import { addToCart, clearCart } from "@/lib/cart-store";
@@ -194,15 +194,18 @@ function OrderDetailInner({ params }: { params: Promise<{ id: string }> }) {
   return (
     <Container layout="wide" className="pb-28 pt-5">
       {justPlaced ? (
-        <div className="mb-4 w-fit rounded-[var(--radius-full)] bg-[var(--mist)] px-3 py-1.5 text-xs font-semibold text-[var(--forest)]">
-          Sales request submitted — awaiting convert to order
+        <div className="mb-4">
+          <StatusChip tone="brand">Sales request submitted — awaiting convert to order</StatusChip>
         </div>
       ) : null}
-      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--amber)]">Sales request</p>
-      <SectionHeader title={row.requestNumber} className="mb-1" />
+      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">Sales request</p>
+      <div className="mb-1 flex flex-wrap items-center gap-2">
+        <SectionHeader title={row.requestNumber} className="mb-0" />
+        <StatusChip status={soStatus ?? row.status}>{displayStatus}</StatusChip>
+      </div>
       {soNumber ? (
-        <p className="mb-1 text-sm font-medium text-[var(--forest)]">
-          Sales order {soNumber} · {omsLabel(soStatus!)}
+        <p className="mb-1 text-sm font-medium text-[var(--brand)]">
+          Sales order {soNumber}
         </p>
       ) : null}
       {row.salesOrder?.trackingUrl || row.salesOrder?.trackingNumber ? (
@@ -212,12 +215,12 @@ function OrderDetailInner({ params }: { params: Promise<{ id: string }> }) {
               href={row.salesOrder.trackingUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-semibold text-[var(--forest)] underline"
+              className="font-semibold text-[var(--brand)] underline"
             >
               Track shipment
             </a>
           ) : (
-            <span className="font-semibold text-[var(--forest)]">Tracking</span>
+            <span className="font-semibold text-[var(--brand)]">Tracking</span>
           )}
           {row.salesOrder.trackingNumber ? (
             <span className="ml-2 text-xs text-[var(--ink-soft)]">{row.salesOrder.trackingNumber}</span>
@@ -225,7 +228,7 @@ function OrderDetailInner({ params }: { params: Promise<{ id: string }> }) {
         </p>
       ) : null}
       {row.salesOrder?.documents && row.salesOrder.documents.length > 0 ? (
-        <div className="mb-4 rounded-[var(--radius)] border border-[var(--line)] bg-white p-3">
+        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] p-3">
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
             Invoices
           </p>
@@ -276,7 +279,7 @@ function OrderDetailInner({ params }: { params: Promise<{ id: string }> }) {
         ) : null}
 
         {row.deliveryAddressText ? (
-          <div className="rounded-[var(--radius)] border border-[var(--line)] bg-white p-4 shadow-[var(--shadow-sm)]">
+          <div className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] p-4 shadow-[var(--shadow-1)]">
             <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
               Delivering to
             </div>
@@ -285,7 +288,7 @@ function OrderDetailInner({ params }: { params: Promise<{ id: string }> }) {
         ) : null}
 
         {row.notes ? (
-          <div className="rounded-[var(--radius)] border border-[var(--line)] bg-white p-4">
+          <div className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] p-4">
             <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--ink-soft)]">Notes</div>
             <p className="whitespace-pre-wrap text-sm text-[var(--ink)]">{row.notes}</p>
           </div>

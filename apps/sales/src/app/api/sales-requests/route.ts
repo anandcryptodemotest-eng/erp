@@ -9,6 +9,8 @@ import {
   normalizeLineItems,
 } from "@/lib/order-lines";
 import { z } from "zod";
+import type { Prisma } from "@/generated/prisma";
+import { assertSaasEntitlement } from "@/lib/assert-saas-entitlement";
 
 const log = createLogger({ service: "sales" });
 
@@ -96,6 +98,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Auth context required" }, { status: 400 });
   }
 
+  const entitlementBlock = await assertSaasEntitlement(tenantId, "oms");
+  if (entitlementBlock) return entitlementBlock;
+
   try {
     const body = await request.json();
     const data = createRequestSchema.parse(body);
@@ -161,7 +166,9 @@ export async function POST(request: Request) {
             quantity: i.quantity,
             unitPrice: i.unitPrice,
             taxRate: i.taxRate,
+            taxTreatment: i.taxTreatment,
             total: i.total,
+            customSnapshot: i.customSnapshot as Prisma.InputJsonValue | undefined,
           })),
         },
       },

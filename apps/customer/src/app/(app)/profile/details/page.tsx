@@ -69,7 +69,7 @@ export default function ProfileDetailsPage() {
   }
 
   const fieldCls =
-    "mt-0.5 w-full rounded-md border border-[#e8e8e8] px-3 py-2.5 text-sm outline-none focus:border-[var(--forest-mid)]";
+    "mt-0.5 w-full rounded-md border border-[var(--line)] px-3 py-2.5 text-sm outline-none focus:border-[var(--forest-mid)]";
 
   async function sendWhatsAppCode() {
     setWaBusy(true);
@@ -125,7 +125,7 @@ export default function ProfileDetailsPage() {
         ← Profile
       </Link>
       <SectionHeader title="Personal details" className="mt-2" />
-      <form onSubmit={onSave} className="mt-4 max-w-md space-y-3 rounded-lg border border-[#e8e8e8] bg-white p-4">
+      <form onSubmit={onSave} className="mt-4 max-w-md space-y-3 rounded-lg border border-[var(--line)] bg-[var(--surface-raised)] p-4">
         {error ? <p className="text-sm text-[var(--danger)]">{error}</p> : null}
         {msg ? <p className="text-sm font-semibold text-[var(--forest)]">{msg}</p> : null}
         <label className="block text-xs font-semibold text-[var(--ink-soft)]">
@@ -151,7 +151,7 @@ export default function ProfileDetailsPage() {
       </form>
 
       <SectionHeader title="WhatsApp verification" className="mt-8" />
-      <div className="mt-3 max-w-md space-y-3 rounded-lg border border-[#e8e8e8] bg-white p-4">
+      <div className="mt-3 max-w-md space-y-3 rounded-lg border border-[var(--line)] bg-[var(--surface-raised)] p-4">
         {waStatus?.verified ? (
           <p className="text-sm text-[var(--forest)]">
             Verified WhatsApp · {waStatus.phoneNormalized}

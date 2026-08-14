@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { WorkspaceHero } from "@erp/ui";
+import { Button, PageScaffold } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 
 interface Vendor { id: string; name: string; phone: string; email: string; gstNumber: string; }
@@ -29,17 +29,18 @@ export default function VendorsPage() {
   }
 
   return (
-    <div className="ws-page">
-      <WorkspaceHero
-        eyebrow="Procurement"
-        title="Vendors"
-        description="Supplier contacts for purchase orders and shortage work."
-        actions={
-          <button type="button" onClick={() => setShowForm(true)} className="ws-btn ws-btn--primary">
+    <PageScaffold
+      hero={{
+        eyebrow: "Procurement",
+        title: "Vendors",
+        description: "Supplier contacts for purchase orders and shortage work.",
+        actions: (
+          <Button type="button" onClick={() => setShowForm(true)}>
             + New vendor
-          </button>
-        }
-      />
+          </Button>
+        ),
+      }}
+    >
       {msg && (
         <div className="mb-4 rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] px-4 py-2 text-sm text-[var(--success)]">
           {msg}
@@ -86,6 +87,6 @@ export default function VendorsPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageScaffold>
   );
 }

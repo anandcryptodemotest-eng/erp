@@ -80,15 +80,17 @@ model AuthCredential {
 }
 
 model Tenant {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
+  id                 String   @id @default(cuid())
+  name               String
+  slug               String   @unique
   /// @deprecated Use TenantDomain mappings for portal routing.
-  domain    String?  @unique
-  plan      String   @default("starter")
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  domain             String?  @unique
+  plan               String   @default("starter")
+  isActive           Boolean  @default(true)
+  /// Razorpay customer id on Sankalp MID (SaaS billing). Not dealer AR.
+  providerCustomerId String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   users                 TenantUser[]
   domains               TenantDomain[]
@@ -103,6 +105,7 @@ model Tenant {
   integrations          TenantIntegration[]
   integrationSecrets    TenantIntegrationSecret[]
   otpChallenges         OtpChallenge[]
+  billingSubscription   BillingSubscription?
 }
 
 model TenantDomain {
@@ -686,6 +689,241 @@ model Presence {
 }
 
 // ── Communication: AI ────────────────────────────────────────────
+
+// ── Sankalp internal SaaS billing (tenant → Sankalp). Never share accounting Invoice. ──
+
+model PaymentPlatformConfig {
+  id           String   @id @default("platform")
+  mode         String   @default("DEMO") // DEMO | LIVE
+  graceDays    Int      @default(3)
+  reminderDays Int      @default(2) // also renewal invoice lead days
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model SaasProduct {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  plans     BillingPlan[]
+}
+
+model SaasFeature {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  kind      String // MODULE | CAPABILITY | FLOW
+  mapsTo    String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  planLinks BillingPlanFeature[]
+}
+
+model BillingPlan {
+  id              String   @id @default(cuid())
+  productId       String
+  code            String   @unique
+  name            String
+  billingInterval String // ONCE | WEEKLY | MONTHLY | QUARTERLY | YEARLY
+  amountPaise     Int
+  currency        String   @default("INR")
+  includedSeats   Int      @default(5)
+  razorpayPlanId  String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  product              SaasProduct           @relation(fields: [productId], references: [id])
+  features             BillingPlanFeature[]
+  subscriptions        BillingSubscription[] @relation("CurrentPlan")
+  pendingSubscriptions BillingSubscription[] @relation("PendingPlan")
+  invoices             BillingInvoice[]
+}
+
+model BillingPlanFeature {
+  id        String @id @default(cuid())
+  planId    String
+  featureId String
+
+  plan    BillingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  feature SaasFeature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, featureId])
+}
+
+model BillingSubscription {
+  id                 String    @id @default(cuid())
+  tenantId           String    @unique
+  planId             String
+  pendingPlanId      String?
+  status             String    @default("INITIATED") // INITIATED | ACTIVE | PAST_DUE | PAUSED | CANCELLED | EXPIRED
+  startDate          DateTime  @default(now())
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  nextBillingDate    DateTime?
+  seatLimit          Int       @default(5)
+  featureCodes       String[]  @default([])
+  lastError          String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan        BillingPlan      @relation("CurrentPlan", fields: [planId], references: [id])
+  pendingPlan BillingPlan?     @relation("PendingPlan", fields: [pendingPlanId], references: [id])
+  schedule    BillingSchedule?
+  invoices    BillingInvoice[]
+  payments    BillingPayment[]
+  notices     BillingNotice[]
+
+  @@index([status])
+  @@index([nextBillingDate])
+  @@index([currentPeriodEnd])
+}
+
+model BillingSchedule {
+  id             String    @id @default(cuid())
+  subscriptionId String    @unique
+  frequency      String // ONCE | MONTHLY | YEARLY
+  nextRunAt      DateTime?
+  lastRunAt      DateTime?
+  status         String    @default("ACTIVE") // ACTIVE | PAUSED | COMPLETED
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  subscription BillingSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+}
+
+model BillingRun {
+  id          String    @id @default(cuid())
+  runDate     DateTime  @default(now())
+  status      String    @default("RUNNING") // RUNNING | COMPLETED | FAILED
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  items BillingRunItem[]
+}
+
+model BillingRunItem {
+  id             String @id @default(cuid())
+  billingRunId   String
+  subscriptionId String
+  status         String // SUCCESS | FAILED | SKIPPED
+  invoiceId      String?
+  error          String?
+
+  run BillingRun @relation(fields: [billingRunId], references: [id], onDelete: Cascade)
+
+  @@unique([billingRunId, subscriptionId])
+}
+
+model BillingInvoice {
+  id               String    @id @default(cuid())
+  tenantId         String
+  subscriptionId   String
+  planId           String
+  invoiceNumber    String    @unique
+  billingPeriodKey String
+  periodStart      DateTime
+  periodEnd        DateTime
+  subtotalPaise    Int
+  taxPaise         Int       @default(0)
+  totalPaise       Int
+  currency         String    @default("INR")
+  status           String    @default("OPEN") // DRAFT | OPEN | PARTIALLY_PAID | PAID | VOID | OVERDUE
+  issueDate        DateTime  @default(now())
+  dueDate          DateTime
+  paidAt           DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  subscription BillingSubscription        @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  plan         BillingPlan                @relation(fields: [planId], references: [id])
+  lines        BillingInvoiceLine[]
+  allocations  BillingPaymentAllocation[]
+
+  @@unique([subscriptionId, billingPeriodKey])
+  @@index([tenantId, status])
+}
+
+model BillingNotice {
+  id             String   @id @default(cuid())
+  kind           String // SAAS_RENEWAL_REMINDER
+  subscriptionId String
+  periodKey      String
+  createdAt      DateTime @default(now())
+
+  subscription BillingSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([kind, subscriptionId, periodKey])
+}
+
+model BillingInvoiceLine {
+  id            String @id @default(cuid())
+  invoiceId     String
+  description   String
+  quantity      Int    @default(1)
+  unitPricePaise Int
+  amountPaise   Int
+  taxRate       Int    @default(0)
+
+  invoice BillingInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model BillingPayment {
+  id                String    @id @default(cuid())
+  tenantId          String
+  subscriptionId    String
+  amountPaise       Int
+  currency          String    @default("INR")
+  status            String    @default("INITIATED") // INITIATED | CAPTURED | FAILED
+  provider          String // DEMO | MANUAL | RAZORPAY
+  providerPaymentId String?
+  providerOrderId   String?
+  paidAt            DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  subscription BillingSubscription         @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  allocations  BillingPaymentAllocation[]
+
+  @@index([tenantId])
+  @@index([provider, providerPaymentId])
+}
+
+model BillingPaymentAllocation {
+  id          String @id @default(cuid())
+  paymentId   String
+  invoiceId   String
+  amountPaise Int
+  createdAt   DateTime @default(now())
+
+  payment BillingPayment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoice BillingInvoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@unique([paymentId, invoiceId])
+}
+
+model PaymentProviderTransaction {
+  id                String    @id @default(cuid())
+  provider          String
+  providerEventId   String
+  providerPaymentId String?
+  providerOrderId   String?
+  eventType         String
+  payloadHash       String?
+  processedAt       DateTime  @default(now())
+  status            String    @default("PROCESSED")
+  error             String?
+  createdAt         DateTime  @default(now())
+
+  @@unique([provider, providerEventId])
+  @@unique([provider, providerPaymentId])
+}
 
 model ConversationSummary {
   id             String   @id @default(cuid())

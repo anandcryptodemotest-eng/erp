@@ -1,14 +1,15 @@
 # Greenfield OMS E2E
 
-Tenant: gf-mskn4dia
-Started: 2026-08-08T17:21:14.338Z
-Duration: 11.5s
-Result: 165 pass / 0 fail
+Tenant: gf-mssvckdd
+Started: 2026-08-14T11:33:42.817Z
+Duration: 10.5s
+Result: 166 pass / 0 fail
 
 ## Platform
 ✓ operator login
-✓ tenant created gf-mskn4dia
+✓ tenant created gf-mssvckdd
 ✓ licenses enabled
+✓ Growth billing granted
 ✓ Process Studio enabled
 ✓ admin login
 ✓ staff SALES_EXECUTIVE
@@ -182,6 +183,6 @@ Result: 165 pass / 0 fail
 ✓ invoice.subtotal == SO.subtotal
 ✓ invoice.tax == SO.tax
 ✓ invoice.total == subtotal + tax
-✓ payment == invoice total — paid=1829 total=1829
+✓ payment == invoice total — paid=1550 total=1550
 ✓ stock deducted by ordered qty
 ✓ SREQ CONVERTED + 10 lines

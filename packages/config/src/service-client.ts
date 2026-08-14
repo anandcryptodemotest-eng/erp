@@ -28,8 +28,19 @@ const PROPAGATED_CTX_HEADERS = [
 ] as const;
 
 function getServiceUrl(moduleId: ModuleId): string {
-  const baseUrl = process.env[`${moduleId.toUpperCase()}_SERVICE_URL`];
-  return baseUrl || `http://localhost:${SERVICE_PORTS[moduleId] ?? 3000}`;
+  const envKey = `${moduleId.toUpperCase()}_SERVICE_URL`;
+  const baseUrl = process.env[envKey];
+  if (baseUrl) return baseUrl;
+  // Gateway is registered as ModuleId "core" but compose/env often use GATEWAY_*
+  if (moduleId === "core") {
+    return (
+      process.env.GATEWAY_SERVICE_URL ||
+      process.env.GATEWAY_URL ||
+      process.env.CORE_SERVICE_URL ||
+      `http://localhost:${SERVICE_PORTS.core}`
+    );
+  }
+  return `http://localhost:${SERVICE_PORTS[moduleId] ?? 3000}`;
 }
 
 /**

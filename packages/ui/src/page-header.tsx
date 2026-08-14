@@ -34,6 +34,10 @@ export interface PageHeaderProps {
   className?: string;
 }
 
+/**
+ * @deprecated Design System v2 — do not use on new routes.
+ * Migrate to `PageScaffold` + `WorkspaceHero`. Existing PageHeader usage on v2 routes must migrate.
+ */
 export function PageHeader({ title, breadcrumb, primaryAction, secondaryActions, className }: PageHeaderProps) {
   return (
     <div className={cn("mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4", className)}>

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/admin-api";
-import { PageHeader, StatusBadge } from "@erp/ui";
+import { Button, PageScaffold, StatusBadge } from "@erp/ui";
 import type { DocumentDefinition } from "@erp/documents";
 import { DocumentDesigner } from "@erp/document-designer";
 
@@ -134,66 +134,52 @@ export default function DocumentStudioPage() {
 
   if (!row || !definition) {
     return (
-      <div className="p-4 md:p-8">
-        {error ? <p className="text-red-600">{error}</p> : <p>Loading…</p>}
-      </div>
+      <PageScaffold hero={{ title: "Document" }}>
+        {error ? <p className="text-[var(--danger)]">{error}</p> : <p>Loading…</p>}
+      </PageScaffold>
     );
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-white px-4 py-3">
-        <div>
-          <Link href="/configuration/documents" className="text-xs text-emerald-800 underline">
+    <PageScaffold
+      className="!max-w-none"
+      hero={{
+        title: row.name ?? row.documentId,
+        description: `${row.documentId} · v${row.version}`,
+        badge: <StatusBadge status={row.lifecycle} />,
+        actions: readOnly ? (
+          <Button type="button" disabled={busy} onClick={() => void cloneToDraft()}>
+            Clone to draft
+          </Button>
+        ) : (
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" disabled={busy} onClick={() => void save()}>
+              Save draft
+            </Button>
+            <Button type="button" disabled={busy} onClick={() => void publish()}>
+              Publish
+            </Button>
+          </div>
+        ),
+      }}
+      ahead={
+        <div className="mb-3 space-y-2">
+          <Link href="/configuration/documents" className="text-xs text-[var(--brand)] underline">
             ← Documents
           </Link>
-          <PageHeader title={row.name ?? row.documentId} />
-          <div className="mt-1 flex items-center gap-2 text-xs text-[var(--ink-soft)]">
-            <span>
-              {row.documentId} · v{row.version}
-            </span>
-            <StatusBadge status={row.lifecycle} />
-          </div>
-        </div>
-        <div className="flex gap-2">
-          {readOnly ? (
-            <button
-              type="button"
-              className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-semibold text-white"
-              disabled={busy}
-              onClick={() => void cloneToDraft()}
+          {readOnly && (
+            <p
+              className="rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--warning)_35%,var(--line))] bg-[color-mix(in_srgb,var(--warning)_10%,white)] px-4 py-2 text-sm text-[var(--warning)]"
+              role="status"
             >
-              Clone to draft
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="rounded-lg border px-3 py-2 text-xs font-semibold"
-                disabled={busy}
-                onClick={() => void save()}
-              >
-                Save draft
-              </button>
-              <button
-                type="button"
-                className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-semibold text-white"
-                disabled={busy}
-                onClick={() => void publish()}
-              >
-                Publish
-              </button>
-            </>
+              View only — published versions are immutable. Clone to draft to edit this template.
+            </p>
           )}
+          {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
         </div>
-      </div>
-      {readOnly && (
-        <p className="border-b bg-amber-50 px-4 py-2 text-sm text-amber-900" role="status">
-          View only — published versions are immutable. Clone to draft to edit this template.
-        </p>
-      )}
-      {error && <p className="px-4 py-2 text-sm text-red-600">{error}</p>}
-      <div className="min-h-0 flex-1">
+      }
+    >
+      <div className="min-h-[calc(100vh-12rem)]">
         <DocumentDesigner
           key={studioKey}
           definition={definition}
@@ -212,6 +198,6 @@ export default function DocumentStudioPage() {
           }}
         />
       </div>
-    </div>
+    </PageScaffold>
   );
 }

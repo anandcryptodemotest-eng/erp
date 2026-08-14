@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { ActionGroup, Button, Trash2, WorkspaceHero } from "@erp/ui";
+import { ActionGroup, Button, PageScaffold, Trash2 } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 
 const iconSm = { width: "var(--icon-sm)", height: "var(--icon-sm)" } as const;
@@ -64,17 +64,18 @@ export default function PriceListsPage() {
   }
 
   return (
-    <div className="ws-page">
-      <WorkspaceHero
-        eyebrow="Catalog"
-        title="Price lists"
-        description="Operational list prices. Quotes still run through the pricing engine."
-        actions={
-          <button type="button" onClick={() => setShowForm(true)} className="ws-btn ws-btn--primary">
+    <PageScaffold
+      hero={{
+        eyebrow: "Catalog",
+        title: "Price lists",
+        description: "Operational list prices. Quotes still run through the pricing engine.",
+        actions: (
+          <Button type="button" onClick={() => setShowForm(true)}>
             + New price list
-          </button>
-        }
-      />
+          </Button>
+        ),
+      }}
+    >
       {msg && (
         <div className="mb-4 rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] px-4 py-2 text-sm text-[var(--success)]">
           {msg}
@@ -172,6 +173,6 @@ export default function PriceListsPage() {
           </form>
         </div>
       )}
-    </div>
+    </PageScaffold>
   );
 }

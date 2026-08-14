@@ -2,6 +2,9 @@ import { createLogger } from "@erp/logger";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { normalizeCustomerPhone } from "@/lib/customer-phone";
+import { parseGstinStateCode } from "@erp/tax-india";
+import { fetchTenantTaxProfile } from "@/lib/fetch-tenant-tax-profile";
+import { validateCustomerTaxId } from "@/lib/order-lines";
 import { z } from "zod";
 
 const log = createLogger({ service: "sales" });
@@ -68,6 +71,12 @@ export async function POST(request: Request) {
     const body = await request.json();
     const data = createCustomerSchema.parse(body);
 
+    const profile = await fetchTenantTaxProfile(tenantId);
+    const taxCheck = validateCustomerTaxId(data.taxId, profile.regime);
+    if (!taxCheck.ok) return NextResponse.json({ error: taxCheck.error }, { status: 400 });
+
+    const gstinState = data.taxId ? parseGstinStateCode(data.taxId) : null;
+
     const customer = await prisma.customer.create({
       data: {
         name: data.name,
@@ -76,7 +85,8 @@ export async function POST(request: Request) {
         address: data.address,
         city: data.city,
         country: data.country,
-        taxId: data.taxId,
+        taxId: data.taxId?.trim().toUpperCase() || undefined,
+        stateCode: gstinState ?? undefined,
         customerGroup: data.customerGroup,
         tenantId,
         portalUserId: data.portalUserId,

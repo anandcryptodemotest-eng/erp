@@ -75,7 +75,7 @@ function SearchInner() {
       </form>
 
       {q.trim().length >= 2 && suggestions.length > 0 ? (
-        <div className="mb-4 overflow-hidden rounded-lg border border-[#e8e8e8] bg-white">
+        <div className="mb-4 overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface-raised)]">
           {suggestions.map((s) => (
             <Link
               key={`${s.type}-${s.id}`}

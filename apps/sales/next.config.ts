@@ -12,6 +12,6 @@ const nextConfig: NextConfig = {
     "@opentelemetry/sdk-metrics",
     "@opentelemetry/semantic-conventions",
   ],
-  transpilePackages: ["@erp/ui", "@erp/types", "@erp/auth", "@erp/config", "@erp/workflow", "@erp/logger"],
+  transpilePackages: ["@erp/ui", "@erp/types", "@erp/auth", "@erp/config", "@erp/workflow", "@erp/logger", "@erp/tax-india"],
 };
 export default nextConfig;

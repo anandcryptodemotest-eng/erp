@@ -93,7 +93,7 @@ export function AddressForm({
   }
 
   const fieldCls =
-    "mt-0.5 w-full rounded-md border border-[#e8e8e8] bg-white px-3 py-2.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--forest-mid)] focus:ring-2 focus:ring-[var(--forest)]/20";
+    "mt-0.5 w-full rounded-md border border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--forest-mid)] focus:ring-2 focus:ring-[var(--forest)]/20";
 
   return (
     <form onSubmit={onSubmit} className="space-y-3">

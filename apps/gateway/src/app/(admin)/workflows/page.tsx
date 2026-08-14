@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/admin-api";
-import { StatusBadge, WorkspaceHero } from "@erp/ui";
+import { Button, PageScaffold, StatusBadge } from "@erp/ui";
 
 type TemplateRow = {
   id: string;
@@ -73,17 +73,17 @@ export default function WorkflowTemplatesPage() {
   }
 
   return (
-    <div className="ws-page space-y-6">
-      <div>
-        <WorkspaceHero
-          eyebrow="Process Studio"
-          title="Workflow templates"
-          description="Published templates are read-only. Clone a draft to edit, then publish. Order Desk uses the OMS Trading pack."
-        />
-      </div>
-
+    <PageScaffold
+      className="space-y-6"
+      hero={{
+        eyebrow: "Process Studio",
+        title: "Workflow templates",
+        description:
+          "Published templates are read-only. Clone a draft to edit, then publish. Order Desk uses the OMS Trading pack.",
+      }}
+    >
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>
+        <div className="rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,white)] px-4 py-3 text-sm text-[var(--danger)]">{error}</div>
       )}
 
       {!loading && rows.length === 0 && (
@@ -93,14 +93,13 @@ export default function WorkflowTemplatesPage() {
             After you publish forms, create a workflow that references them on each activity. You can restore the
             starter SO_STANDARD template (and its forms) as a reference.
           </p>
-          <button
+          <Button
             type="button"
             disabled={busy === "seed"}
             onClick={() => void restoreStarter()}
-            className="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-50"
           >
             Restore starter workflow
-          </button>
+          </Button>
         </div>
       )}
 
@@ -148,7 +147,7 @@ export default function WorkflowTemplatesPage() {
                     type="button"
                     disabled={busy === row.id}
                     onClick={() => void clone(row.id)}
-                    className="inline-flex rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-800 disabled:opacity-50"
+                    className="inline-flex rounded-[var(--radius-sm)] bg-[var(--brand)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--brand-dark)] disabled:opacity-50"
                   >
                     {busy === row.id ? "…" : "Clone draft"}
                   </button>
@@ -163,6 +162,6 @@ export default function WorkflowTemplatesPage() {
       <p className="text-xs text-[var(--ink-soft)]">
         Canvas → JSON → Validator → Publish. The engine never reads the diagram — only published definition JSON.
       </p>
-    </div>
+    </PageScaffold>
   );
 }

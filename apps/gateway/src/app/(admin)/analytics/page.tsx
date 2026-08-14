@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { WorkspaceHero } from "@erp/ui";
+import { PageScaffold } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 
 type SalesReport = {
@@ -88,7 +88,7 @@ function Stat({ label, value, detail }: { label: string; value: string; detail?:
 
 function PanelError({ report, message, onRetry }: { report: string; message: string; onRetry: () => void }) {
   return (
-    <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+    <div className="mt-5 rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,white)] px-4 py-3 text-sm text-[var(--danger)]">
       <p>{report} could not be loaded: {message}</p>
       <button type="button" onClick={onRetry} className="mt-2 font-semibold underline">Retry {report.toLowerCase()}</button>
     </div>
@@ -146,20 +146,20 @@ export default function AnalyticsPage() {
   const hasErrors = Object.keys(state.errors).length > 0;
 
   return (
-    <main className="ws-page">
-      <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-        <WorkspaceHero
-          eyebrow="Business intelligence"
-          title="Analytics"
-          description="Sales performance, inventory exposure, and delivery execution."
-        />
-        <div className="flex flex-wrap items-end gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-raised)] p-3 shadow-[var(--shadow-sm)]">
+    <PageScaffold
+      hero={{
+        eyebrow: "Business intelligence",
+        title: "Analytics",
+        description: "Sales performance, inventory exposure, and delivery execution.",
+      }}
+      ahead={
+        <div className="mb-8 flex flex-wrap items-end gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-raised)] p-3 shadow-[var(--shadow-sm)]">
           <label className="text-xs font-medium text-[var(--ink-soft)]">From<input type="date" value={from} onChange={(event) => { setRetryPanel(null); setFrom(event.target.value); }} className="mt-1 block rounded-lg border border-[var(--line)] px-3 py-2 text-sm text-[var(--ink)]" /></label>
           <label className="text-xs font-medium text-[var(--ink-soft)]">To<input type="date" value={to} onChange={(event) => { setRetryPanel(null); setTo(event.target.value); }} className="mt-1 block rounded-lg border border-[var(--line)] px-3 py-2 text-sm text-[var(--ink)]" /></label>
         </div>
-      </div>
-
-      {hasErrors && <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Some report panels are unavailable. Each affected panel can be retried independently.</div>}
+      }
+    >
+      {hasErrors && <div className="mb-6 rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--warning)_35%,var(--line))] bg-[color-mix(in_srgb,var(--warning)_10%,white)] px-4 py-3 text-sm text-[var(--warning)]">Some report panels are unavailable. Each affected panel can be retried independently.</div>}
       {Object.values(state.loading).some(Boolean) && <div className="mb-6 rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--ink-soft)]">Refreshing reports...</div>}
 
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -176,11 +176,11 @@ export default function AnalyticsPage() {
           <div className="mt-3 flex justify-between text-xs text-[var(--ink-soft)]/55"><span>{daily[0]?.date ?? ""}</span><span>{daily[daily.length - 1]?.date ?? ""}</span></div>
         </div>
 
-        <div className="admin-card p-6"><h2 className="font-display text-lg font-semibold text-[var(--ink)]">Delivery execution</h2><p className="mt-1 text-sm text-[var(--ink-soft)]/65">Operational health in the selected period.</p>{state.errors.delivery ? <PanelError report="Delivery" message={state.errors.delivery} onRetry={() => retry("delivery")} /> : <div className="mt-7 space-y-5"><div><div className="mb-2 flex justify-between text-sm"><span className="text-[var(--ink-soft)]">Delivered</span><strong className="text-[var(--ink)]">{state.delivery?.summary.deliveredCount ?? 0}</strong></div><div className="h-2 rounded-full bg-[var(--mist)]"><div className="h-2 rounded-full bg-emerald-500" style={{ width: `${state.delivery?.summary.successRate ?? 0}%` }} /></div></div><div className="flex justify-between border-t border-[var(--line)] pt-4 text-sm"><span className="text-[var(--ink-soft)]">Failed</span><strong className="text-[var(--ink)]">{state.delivery?.summary.failedCount ?? 0}</strong></div><div className="flex justify-between text-sm"><span className="text-[var(--ink-soft)]">Average delivery time</span><strong className="text-[var(--ink)]">{state.delivery?.summary.avgDeliveryMinutes ?? 0} min</strong></div></div>}</div>
+        <div className="admin-card p-6"><h2 className="font-display text-lg font-semibold text-[var(--ink)]">Delivery execution</h2><p className="mt-1 text-sm text-[var(--ink-soft)]/65">Operational health in the selected period.</p>{state.errors.delivery ? <PanelError report="Delivery" message={state.errors.delivery} onRetry={() => retry("delivery")} /> : <div className="mt-7 space-y-5"><div><div className="mb-2 flex justify-between text-sm"><span className="text-[var(--ink-soft)]">Delivered</span><strong className="text-[var(--ink)]">{state.delivery?.summary.deliveredCount ?? 0}</strong></div><div className="h-2 rounded-full bg-[var(--mist)]"><div className="h-2 rounded-full bg-[var(--success)]" style={{ width: `${state.delivery?.summary.successRate ?? 0}%` }} /></div></div><div className="flex justify-between border-t border-[var(--line)] pt-4 text-sm"><span className="text-[var(--ink-soft)]">Failed</span><strong className="text-[var(--ink)]">{state.delivery?.summary.failedCount ?? 0}</strong></div><div className="flex justify-between text-sm"><span className="text-[var(--ink-soft)]">Average delivery time</span><strong className="text-[var(--ink)]">{state.delivery?.summary.avgDeliveryMinutes ?? 0} min</strong></div></div>}</div>
       </section>
 
       <section className="mt-6 grid gap-6 lg:grid-cols-2">
-        <div className="admin-card p-6"><div className="flex items-center justify-between"><div><h2 className="font-display text-lg font-semibold text-[var(--ink)]">Inventory watchlist</h2><p className="mt-1 text-sm text-[var(--ink-soft)]/65">Items at or below the threshold of 10 units.</p></div><strong className="text-2xl text-amber-600">{state.stock?.summary.lowStockCount ?? 0}</strong></div>{state.errors.stock ? <PanelError report="Inventory" message={state.errors.stock} onRetry={() => retry("stock")} /> : (state.stock?.lowStockItems ?? []).length === 0 ? <p className="py-10 text-center text-sm text-[var(--ink-soft)]/60">Inventory levels look healthy.</p> : <div className="mt-5 divide-y divide-[var(--line)]">{state.stock?.lowStockItems.slice(0, 6).map((item) => <div key={`${item.sku}-${item.warehouse}`} className="flex items-center justify-between gap-4 py-3"><div className="min-w-0"><p className="truncate text-sm font-medium text-[var(--ink)]">{item.productName}</p><p className="text-xs text-[var(--ink-soft)]/60">{item.sku} / {item.warehouse}</p></div><span className="shrink-0 text-sm font-semibold text-amber-700">{item.availableQty} left</span></div>)}</div>}</div>
+        <div className="admin-card p-6"><div className="flex items-center justify-between"><div><h2 className="font-display text-lg font-semibold text-[var(--ink)]">Inventory watchlist</h2><p className="mt-1 text-sm text-[var(--ink-soft)]/65">Items at or below the threshold of 10 units.</p></div><strong className="text-2xl text-[var(--warning)]">{state.stock?.summary.lowStockCount ?? 0}</strong></div>{state.errors.stock ? <PanelError report="Inventory" message={state.errors.stock} onRetry={() => retry("stock")} /> : (state.stock?.lowStockItems ?? []).length === 0 ? <p className="py-10 text-center text-sm text-[var(--ink-soft)]/60">Inventory levels look healthy.</p> : <div className="mt-5 divide-y divide-[var(--line)]">{state.stock?.lowStockItems.slice(0, 6).map((item) => <div key={`${item.sku}-${item.warehouse}`} className="flex items-center justify-between gap-4 py-3"><div className="min-w-0"><p className="truncate text-sm font-medium text-[var(--ink)]">{item.productName}</p><p className="text-xs text-[var(--ink-soft)]/60">{item.sku} / {item.warehouse}</p></div><span className="shrink-0 text-sm font-semibold text-[var(--warning)]">{item.availableQty} left</span></div>)}</div>}</div>
         <div className="admin-card p-6"><h2 className="font-display text-lg font-semibold text-[var(--ink)]">Period snapshot</h2><p className="mt-1 text-sm text-[var(--ink-soft)]/65">The selected window at a glance.</p><dl className="mt-5 divide-y divide-[var(--line)]">{[["Revenue tax", money(state.sales?.summary.tax ?? 0)], ["Tracked products", (state.stock?.summary.totalProducts ?? 0).toLocaleString()], ["Retail stock value", money(state.stock?.summary.totalRetailValue ?? 0)], ["Delivery assignments", (state.delivery?.summary.totalAssignments ?? 0).toLocaleString()]].map(([label, value]) => <div key={label} className="flex justify-between gap-4 py-3 text-sm"><dt className="text-[var(--ink-soft)]">{label}</dt><dd className="font-semibold text-[var(--ink)]">{value}</dd></div>)}</dl></div>
       </section>
 
@@ -198,6 +198,6 @@ export default function AnalyticsPage() {
       <section className="mt-6">
         <div className="admin-card p-6"><h2 className="font-display text-lg font-semibold text-[var(--ink)]">Accounting reconciliation</h2><p className="mt-1 text-sm text-[var(--ink-soft)]/65">Invoice payments, notes, journals, and trial-balance consistency.</p>{state.errors.reconciliation ? <PanelError report="Accounting" message={state.errors.reconciliation} onRetry={() => retry("reconciliation")} /> : <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><div className="rounded-lg bg-[var(--mist)] p-4"><p className="text-xs text-[var(--ink-soft)]">Invoice mismatches</p><strong className="mt-2 block text-xl text-[var(--ink)]">{state.reconciliation?.invoices.discrepancies.length ?? 0}</strong></div><div className="rounded-lg bg-[var(--mist)] p-4"><p className="text-xs text-[var(--ink-soft)]">Journal status</p><strong className="mt-2 block text-xl text-[var(--ink)]">{state.reconciliation?.journals.balanced ? "Balanced" : "Review"}</strong></div><div className="rounded-lg bg-[var(--mist)] p-4"><p className="text-xs text-[var(--ink-soft)]">Trial balance difference</p><strong className="mt-2 block text-xl text-[var(--ink)]">{money(state.reconciliation?.trialBalance.difference ?? 0)}</strong></div><div className="rounded-lg bg-[var(--mist)] p-4"><p className="text-xs text-[var(--ink-soft)]">Open invoice balance</p><strong className="mt-2 block text-xl text-[var(--ink)]">{money(state.reconciliation?.invoices.outstanding ?? 0)}</strong></div></div>}</div>
       </section>
-    </main>
+    </PageScaffold>
   );
 }

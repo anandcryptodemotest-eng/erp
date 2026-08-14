@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, extractToken } from "@erp/auth";
+import { validateTaxSettingsUpdate } from "@erp/tax-india";
 import { z } from "zod";
 
 const upsertSettingsSchema = z.record(z.string(), z.string());
@@ -61,8 +62,23 @@ export async function PUT(request: Request, { params }: Params) {
     const body = await request.json();
     const settings = upsertSettingsSchema.parse(body);
 
+    const hasTaxKeys = Object.keys(settings).some((k) => k.startsWith("tax."));
+    let toUpsert = settings;
+    if (hasTaxKeys) {
+      const existingRows = await prisma.tenantSetting.findMany({ where: { tenantId: id } });
+      const existing = Object.fromEntries(existingRows.map((s) => [s.key, s.value]));
+      const taxIncoming = Object.fromEntries(
+        Object.entries(settings).filter(([k]) => k.startsWith("tax."))
+      );
+      const validated = validateTaxSettingsUpdate(taxIncoming, existing);
+      if (!validated.ok) {
+        return NextResponse.json({ error: validated.error }, { status: 400 });
+      }
+      toUpsert = { ...settings, ...validated.normalized };
+    }
+
     await prisma.$transaction(
-      Object.entries(settings).map(([key, value]) =>
+      Object.entries(toUpsert).map(([key, value]) =>
         prisma.tenantSetting.upsert({
           where: { tenantId_key: { tenantId: id, key } },
           create: { tenantId: id, key, value },

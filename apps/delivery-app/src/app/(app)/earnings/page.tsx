@@ -1,5 +1,7 @@
 "use client";
+
 import { useEffect, useState, useCallback } from "react";
+import { Button, Container, SectionHeader, StatusChip } from "@erp/ui";
 import { api, getUserId } from "@/lib/api-client";
 
 interface EarningLog {
@@ -11,7 +13,13 @@ interface EarningLog {
   createdAt: string;
 }
 
-interface PeriodSummary { period: string; total: number; count: number }
+function typeTone(type: string): "success" | "info" | "danger" | "warning" | "neutral" {
+  if (type === "DELIVERY") return "success";
+  if (type === "BONUS") return "info";
+  if (type === "DEDUCTION") return "danger";
+  if (type === "ADJUSTMENT") return "warning";
+  return "neutral";
+}
 
 export default function EarningsPage() {
   const [logs, setLogs] = useState<EarningLog[]>([]);
@@ -24,7 +32,10 @@ export default function EarningsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     const userId = getUserId();
-    if (!userId) { setLoading(false); return; }
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
     const res = await api<{ data: EarningLog[] }>(
       "delivery",
       `/api/earnings?executiveId=${userId}&period=${selectedPeriod}&limit=100`
@@ -33,12 +44,13 @@ export default function EarningsPage() {
     setLoading(false);
   }, [selectedPeriod]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const totalEarnings = logs.reduce((s, l) => s + Number(l.amount), 0);
   const totalDeliveries = logs.filter((l) => l.type === "DELIVERY").length;
 
-  // Generate last 6 month options
   const monthOptions: string[] = [];
   const now = new Date();
   for (let i = 0; i < 6; i++) {
@@ -48,80 +60,89 @@ export default function EarningsPage() {
 
   function formatPeriod(p: string) {
     const [y, m] = p.split("-");
-    return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+    return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString("en-IN", {
+      month: "long",
+      year: "numeric",
+    });
   }
 
-  const TYPE_STYLE: Record<string, string> = {
-    DELIVERY: "bg-green-100 text-green-700",
-    BONUS: "bg-blue-100 text-blue-700",
-    DEDUCTION: "bg-red-100 text-red-600",
-    ADJUSTMENT: "bg-amber-100 text-amber-700",
-  };
-
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-lg font-bold text-stone-800">My Earnings</h1>
+    <Container layout="compact" className="space-y-4 py-4">
+      <SectionHeader title="My earnings" className="mb-0" />
 
-      {/* Month picker */}
       <div>
-        <label className="mb-1 block text-xs font-medium text-stone-500">Period</label>
-        <select value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value)}
-          className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 outline-none focus:border-orange-400">
+        <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Period</label>
+        <select
+          value={selectedPeriod}
+          onChange={(e) => setSelectedPeriod(e.target.value)}
+          className="w-full rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] px-4 py-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+        >
           {monthOptions.map((m) => (
-            <option key={m} value={m}>{formatPeriod(m)}</option>
+            <option key={m} value={m}>
+              {formatPeriod(m)}
+            </option>
           ))}
         </select>
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl bg-white border border-stone-100 p-4 shadow-sm text-center">
-          <div className="text-2xl font-bold text-orange-600">₹{totalEarnings.toLocaleString("en-IN")}</div>
-          <div className="text-xs text-stone-400 mt-1">Total Earnings</div>
+        <div className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] p-4 text-center shadow-[var(--shadow-1)]">
+          <div className="font-display text-2xl font-bold text-[var(--accent)]">
+            ₹{totalEarnings.toLocaleString("en-IN")}
+          </div>
+          <div className="mt-1 text-xs text-[var(--ink-soft)]">Total earnings</div>
         </div>
-        <div className="rounded-2xl bg-white border border-stone-100 p-4 shadow-sm text-center">
-          <div className="text-2xl font-bold text-green-600">{totalDeliveries}</div>
-          <div className="text-xs text-stone-400 mt-1">Deliveries</div>
+        <div className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] p-4 text-center shadow-[var(--shadow-1)]">
+          <div className="font-display text-2xl font-bold text-[var(--success)]">{totalDeliveries}</div>
+          <div className="mt-1 text-xs text-[var(--ink-soft)]">Deliveries</div>
         </div>
       </div>
 
-      {/* Transactions */}
-      {loading && <div className="py-12 text-center text-stone-400">Loading…</div>}
+      {loading ? <div className="py-12 text-center text-[var(--ink-soft)]">Loading…</div> : null}
 
-      {!loading && logs.length === 0 && (
-        <div className="flex flex-col items-center py-16 text-stone-400">
-          <div className="text-5xl mb-3">💰</div>
-          <div className="text-sm">No earnings for {formatPeriod(selectedPeriod)}</div>
+      {!loading && logs.length === 0 ? (
+        <div className="flex flex-col items-center py-16 text-[var(--ink-soft)]">
+          <p className="text-sm">No earnings for {formatPeriod(selectedPeriod)}</p>
+          <Button variant="outline" size="sm" className="mt-3" onClick={() => void load()}>
+            Refresh
+          </Button>
         </div>
-      )}
+      ) : null}
 
-      {!loading && logs.length > 0 && (
-        <div className="rounded-2xl bg-white border border-stone-100 shadow-sm overflow-hidden">
-          <div className="border-b border-stone-100 px-4 py-3">
-            <h2 className="text-sm font-semibold text-stone-700">Transactions</h2>
+      {!loading && logs.length > 0 ? (
+        <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] shadow-[var(--shadow-1)]">
+          <div className="border-b border-[var(--line)] px-4 py-3">
+            <h2 className="text-sm font-semibold text-[var(--ink)]">Transactions</h2>
           </div>
-          <div className="divide-y divide-stone-50">
+          <div className="divide-y divide-[var(--line)]">
             {logs.map((log) => (
               <div key={log.id} className="flex items-center justify-between px-4 py-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_STYLE[log.type] ?? "bg-stone-100 text-stone-500"}`}>
-                      {log.type}
-                    </span>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-0.5 flex items-center gap-2">
+                    <StatusChip tone={typeTone(log.type)}>{log.type}</StatusChip>
                   </div>
-                  {log.description && <div className="text-xs text-stone-400 truncate">{log.description}</div>}
-                  <div className="text-xs text-stone-300 mt-0.5">
-                    {new Date(log.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                  {log.description ? (
+                    <div className="truncate text-xs text-[var(--ink-soft)]">{log.description}</div>
+                  ) : null}
+                  <div className="mt-0.5 text-xs text-[var(--ink-soft)]">
+                    {new Date(log.createdAt).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                    })}
                   </div>
                 </div>
-                <div className={`text-sm font-bold ml-4 ${log.type === "DEDUCTION" ? "text-red-500" : "text-green-600"}`}>
+                <div
+                  className={`ml-4 text-sm font-bold ${
+                    log.type === "DEDUCTION" ? "text-[var(--danger)]" : "text-[var(--success)]"
+                  }`}
+                >
                   {log.type === "DEDUCTION" ? "−" : "+"}₹{Number(log.amount).toLocaleString("en-IN")}
                 </div>
               </div>
             ))}
           </div>
         </div>
-      )}
-    </div>
+      ) : null}
+    </Container>
   );
 }

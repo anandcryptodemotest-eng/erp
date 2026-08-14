@@ -13,7 +13,7 @@ export default function ProfileSecurityPage() {
   const [saving, setSaving] = useState(false);
 
   const fieldCls =
-    "mt-0.5 w-full rounded-md border border-[#e8e8e8] px-3 py-2.5 text-sm outline-none focus:border-[var(--forest-mid)]";
+    "mt-0.5 w-full rounded-md border border-[var(--line)] px-3 py-2.5 text-sm outline-none focus:border-[var(--forest-mid)]";
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,7 +52,7 @@ export default function ProfileSecurityPage() {
         Set a password to sign in with your email and password in addition to Google. This also
         applies to accounts created with Google.
       </p>
-      <form onSubmit={onSubmit} className="mt-4 max-w-md space-y-3 rounded-lg border border-[#e8e8e8] bg-white p-4">
+      <form onSubmit={onSubmit} className="mt-4 max-w-md space-y-3 rounded-lg border border-[var(--line)] bg-[var(--surface-raised)] p-4">
         {error ? <p className="text-sm text-[var(--danger)]">{error}</p> : null}
         {msg ? <p className="text-sm font-semibold text-[var(--forest)]">{msg}</p> : null}
         <label className="block text-xs font-semibold text-[var(--ink-soft)]">

@@ -78,13 +78,13 @@ export default function InboxPage() {
       ) : null}
 
       {!loading && error ? (
-        <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-[var(--danger)]">
+        <div className="rounded-[var(--radius-md)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-[var(--danger)]">
           {error}
         </div>
       ) : null}
 
       {!loading && !error && conversations.length === 0 ? (
-        <div className="rounded-[var(--radius)] border border-[var(--line)] bg-white px-6 py-12 text-center shadow-[var(--shadow-sm)]">
+        <div className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] px-6 py-12 text-center shadow-[var(--shadow-1)]">
           <p className="font-display text-xl text-[var(--ink)]">No messages yet</p>
           <p className="mt-1 text-sm text-[var(--ink-soft)]">
             Support conversations and order updates will appear here.
@@ -93,7 +93,7 @@ export default function InboxPage() {
             <button
               type="button"
               onClick={() => setShowComposer(true)}
-              className="mt-5 min-h-[var(--touch-min)] rounded-[var(--radius)] bg-[var(--forest)] px-4 text-sm font-semibold text-white"
+              className="mt-5 min-h-[var(--touch-min)] rounded-[var(--radius-md)] bg-[var(--forest)] px-4 text-sm font-semibold text-white"
             >
               Start a conversation
             </button>
@@ -109,13 +109,13 @@ export default function InboxPage() {
                 placeholder="Order question, product help..."
                 maxLength={120}
                 autoFocus
-                className="mt-2 min-h-[var(--touch-min)] w-full rounded-[var(--radius)] border border-[var(--line)] bg-white px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--forest-mid)]"
+                className="mt-2 min-h-[var(--touch-min)] w-full rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--forest-mid)]"
               />
               <div className="mt-3 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowComposer(false)}
-                  className="min-h-[var(--touch-min)] rounded-[var(--radius)] px-3 text-sm font-semibold text-[var(--ink-soft)]"
+                  className="min-h-[var(--touch-min)] rounded-[var(--radius-md)] px-3 text-sm font-semibold text-[var(--ink-soft)]"
                 >
                   Cancel
                 </button>
@@ -123,7 +123,7 @@ export default function InboxPage() {
                   type="button"
                   onClick={createConversation}
                   disabled={creating}
-                  className="min-h-[var(--touch-min)] rounded-[var(--radius)] bg-[var(--forest)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="min-h-[var(--touch-min)] rounded-[var(--radius-md)] bg-[var(--forest)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {creating ? "Starting..." : "Continue"}
                 </button>
@@ -141,7 +141,7 @@ export default function InboxPage() {
               <Link
                 key={conversation.id}
                 href={`/inbox/${conversation.id}`}
-                className="block rounded-[var(--radius)] border border-[var(--line)] bg-white p-4 shadow-[var(--shadow-sm)] transition hover:border-[var(--forest-mid)]"
+                className="block rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] p-4 shadow-[var(--shadow-1)] transition hover:border-[var(--forest-mid)]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">

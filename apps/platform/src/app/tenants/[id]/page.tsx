@@ -14,11 +14,16 @@ type Detail = {
   isActive: boolean;
   createdAt: string;
   users: number;
-  licenses: { moduleId: string; plan: string; isActive: boolean }[];
+      licenses: { moduleId: string; plan: string; isActive: boolean }[];
   loginUrl: string;
   lastLogin: string | null;
   storage: string | null;
   apiUsage: string | null;
+  billingSubscription?: {
+    status: string;
+    currentPeriodEnd: string | null;
+    plan: { code: string; name: string };
+  } | null;
 };
 
 type TenantDomain = {
@@ -174,9 +179,9 @@ export default function TenantDetailPage() {
     }
   }
 
-  async function toggleProcessStudio() {
+  async function toggleCapability(key: string) {
     if (!caps) return;
-    const current = caps.capabilities.find((c) => c.key === CapabilityKey.ProcessStudio);
+    const current = caps.capabilities.find((c) => c.key === key);
     const nextEnabled = !current?.enabled;
     setBusy(true);
     setError(null);
@@ -184,13 +189,13 @@ export default function TenantDetailPage() {
     try {
       await api(`/api/platform/tenants/${id}/capabilities`, {
         method: "PUT",
-        body: JSON.stringify({ key: CapabilityKey.ProcessStudio, enabled: nextEnabled }),
+        body: JSON.stringify({ key, enabled: nextEnabled }),
       });
       await loadCaps();
       setOk(
         nextEnabled
-          ? "Tenant Process Studio enabled (users must re-login)"
-          : "Tenant Process Studio disabled"
+          ? `${key} enabled (users must re-login for JWT capabilities)`
+          : `${key} disabled`
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Capability update failed");
@@ -199,7 +204,12 @@ export default function TenantDetailPage() {
     }
   }
 
+  async function toggleProcessStudio() {
+    await toggleCapability(CapabilityKey.ProcessStudio);
+  }
+
   const processCap = caps?.capabilities.find((c) => c.key === CapabilityKey.ProcessStudio);
+  const indiaGstCap = caps?.capabilities.find((c) => c.key === CapabilityKey.IndiaGst);
 
   return (
     <Shell>
@@ -271,6 +281,20 @@ export default function TenantDetailPage() {
                 {busy ? "Saving…" : "Save changes"}
               </button>
             </form>
+
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4 space-y-1">
+              <h3 className="text-sm font-semibold">Sankalp SaaS subscription</h3>
+              <p className="text-sm text-[var(--muted)]">
+                {row.billingSubscription
+                  ? `${row.billingSubscription.status} · ${row.billingSubscription.plan.name} (${row.billingSubscription.plan.code})`
+                  : "No subscription row (grandfathered — ModuleLicense only)"}
+              </p>
+              {row.billingSubscription?.currentPeriodEnd ? (
+                <p className="text-sm text-[var(--muted)]">
+                  Period end {new Date(row.billingSubscription.currentPeriodEnd).toLocaleDateString()}
+                </p>
+              ) : null}
+            </div>
 
             <section className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4 space-y-3">
               <div>
@@ -374,6 +398,22 @@ export default function TenantDetailPage() {
                   className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm disabled:opacity-50"
                 >
                   {processCap?.enabled ? "Disable for tenant" : "Allow tenant Process Studio"}
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 text-sm border-t border-[var(--line)] pt-3">
+                <div>
+                  <p className="font-medium">India GST pack</p>
+                  <p className="text-xs text-[var(--muted)]">
+                    Operational flag for GST tax pack · {indiaGstCap?.enabled ? "on" : "off"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void toggleCapability(CapabilityKey.IndiaGst)}
+                  className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm disabled:opacity-50"
+                >
+                  {indiaGstCap?.enabled ? "Disable India GST" : "Enable India GST"}
                 </button>
               </div>
             </div>

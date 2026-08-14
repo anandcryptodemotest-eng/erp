@@ -5,6 +5,7 @@ import { hashPassword } from "@/lib/identity/password";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, extractToken } from "@erp/auth";
 import { z } from "zod";
+import { assertSeatAvailable } from "@/lib/billing-core";
 
 const log = createLogger({ service: "gateway" });
 
@@ -126,6 +127,11 @@ export async function POST(request: Request, { params }: Params) {
   if ("error" in gate && gate.error) return gate.error;
   if (gate.caller!.role !== "ADMIN") {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
+
+  const seats = await assertSeatAvailable(id);
+  if (!seats.ok) {
+    return NextResponse.json({ error: seats.error, code: "SAAS_SEAT_LIMIT" }, { status: 403 });
   }
 
   try {

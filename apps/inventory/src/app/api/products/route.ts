@@ -116,6 +116,7 @@ export async function GET(request: Request) {
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20")));
   const skip = (page - 1) * limit;
   const search = url.searchParams.get("search") ?? undefined;
+  const sku = url.searchParams.get("sku")?.trim() || undefined;
   const categoryId = url.searchParams.get("categoryId") ?? undefined;
   const brandId = url.searchParams.get("brandId") ?? undefined;
   const barcode = url.searchParams.get("barcode") ?? undefined;
@@ -162,6 +163,7 @@ export async function GET(request: Request) {
   const where = {
     tenantId,
     ...(includeInactive ? {} : { isActive: true }),
+    ...(sku && { sku }),
     ...(search && { name: { contains: search, mode: "insensitive" as const } }),
     ...(categoryId && { categoryId }),
     ...(brandId && { brandId }),

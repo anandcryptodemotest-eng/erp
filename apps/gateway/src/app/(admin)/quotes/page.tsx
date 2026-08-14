@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { StatusBadge, WorkspaceHero } from "@erp/ui";
+import { Button, PageScaffold, StatusBadge } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 import { buildLinePricingMeta, fetchPricingQuote } from "@/lib/pricing-quote";
 import LeadToCashGuide from "@/components/LeadToCashGuide";
@@ -268,17 +268,18 @@ export default function QuotesPage() {
   }
 
   return (
-    <div className="ws-page">
-      <WorkspaceHero
-        eyebrow="CRM"
-        title="Quotes"
-        description={`${total} quotes. Prefer Order Desk for dealer sales requests.`}
-        actions={
-          <button type="button" onClick={() => setShowForm(true)} className="ws-btn ws-btn--primary">
+    <PageScaffold
+      hero={{
+        eyebrow: "CRM",
+        title: "Quotes",
+        description: `${total} quotes. Prefer Order Desk for dealer sales requests.`,
+        actions: (
+          <Button type="button" onClick={() => setShowForm(true)}>
             + New quote
-          </button>
-        }
-      />
+          </Button>
+        ),
+      }}
+    >
       <details className="mb-6 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] px-4 py-3 text-sm">
         <summary className="cursor-pointer font-semibold text-[var(--ink)]">How this works</summary>
         <div className="mt-3 space-y-3">
@@ -322,7 +323,7 @@ export default function QuotesPage() {
       <div className="flex gap-2 mb-4">
         {["", "DRAFT", "SENT", "ACCEPTED", "REJECTED", "EXPIRED"].map(s => (
           <button key={s} onClick={() => setStatusFilter(s)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${statusFilter === s ? "bg-[var(--brand)] text-white border-gray-800" : "bg-white text-[var(--ink-soft)] border-[var(--line)] hover:border-gray-400"}`}>
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${statusFilter === s ? "bg-[var(--brand)] text-white border-[var(--brand)]" : "bg-white text-[var(--ink-soft)] border-[var(--line)] hover:border-[var(--line-strong)]"}`}>
             {s || "All"}
           </button>
         ))}
@@ -336,19 +337,19 @@ export default function QuotesPage() {
             <div>
               <label className="block text-xs text-[var(--ink-soft)] mb-1">Customer *</label>
               <select value={customerId} onChange={e => setCustomerId(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]">
                 {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-xs text-[var(--ink-soft)] mb-1">Quote Date *</label>
               <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
             </div>
             <div>
               <label className="block text-xs text-[var(--ink-soft)] mb-1">Valid Until *</label>
               <input type="date" value={validUntil} onChange={e => setValidUntil(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
             </div>
           </div>
 
@@ -357,7 +358,7 @@ export default function QuotesPage() {
             <label className="block text-xs text-[var(--ink-soft)] mb-1">Add Products</label>
             <input value={productSearch} onChange={e => setProductSearch(e.target.value)}
               placeholder="Search product by name or SKU..."
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
             {suggestions.length > 0 && (
               <div className="absolute z-10 bg-white border rounded-lg shadow-lg w-full mt-1">
                 {suggestions.map(p => (
@@ -403,7 +404,7 @@ export default function QuotesPage() {
                       </td>
                       <td className="px-3 py-2 text-right font-medium">₹{lineTotal(l).toFixed(2)}</td>
                       <td className="px-3 py-2">
-                        <button onClick={() => removeLine(i)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
+                        <button onClick={() => removeLine(i)} className="text-[var(--danger)] hover:text-[var(--danger)] text-xs">✕</button>
                       </td>
                     </tr>
                   ))}
@@ -417,9 +418,9 @@ export default function QuotesPage() {
                     <td className="px-3 py-2 text-right text-[var(--ink-soft)]">₹{tax.toFixed(2)}</td>
                     <td></td>
                   </tr>
-                  <tr className="bg-green-50">
+                  <tr className="bg-[color-mix(in_srgb,var(--success)_10%,white)]">
                     <td colSpan={4} className="px-3 py-2 text-right text-sm font-bold text-[var(--ink)]">Total</td>
-                    <td className="px-3 py-2 text-right font-bold text-green-700">₹{(subtotal + tax).toFixed(2)}</td>
+                    <td className="px-3 py-2 text-right font-bold text-[var(--success)]">₹{(subtotal + tax).toFixed(2)}</td>
                     <td></td>
                   </tr>
                 </tbody>
@@ -430,7 +431,7 @@ export default function QuotesPage() {
           <div className="mb-3">
             <label className="block text-xs text-[var(--ink-soft)] mb-1">Notes</label>
             <input value={formNotes} onChange={e => setFormNotes(e.target.value)} placeholder="Optional notes"
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
           </div>
           <div className="flex gap-2 justify-end">
             <button type="button" onClick={() => { setShowForm(false); setLines([]); }} className="ws-btn">Cancel</button>
@@ -481,8 +482,8 @@ export default function QuotesPage() {
                             nextStatus === "SENT"
                               ? "bg-[var(--mist)] text-[var(--brand)] border-[var(--line)]"
                               : nextStatus === "ACCEPTED"
-                                ? "bg-green-50 text-green-700 border-green-200"
-                                : "bg-red-50 text-red-700 border-red-200"
+                                ? "bg-[color-mix(in_srgb,var(--success)_10%,white)] text-[var(--success)] border-[color-mix(in_srgb,var(--success)_35%,var(--line))]"
+                                : "bg-[color-mix(in_srgb,var(--danger)_10%,white)] text-[var(--danger)] border-[color-mix(in_srgb,var(--danger)_35%,var(--line))]"
                           }`}
                         >
                           {nextStatus}
@@ -515,7 +516,7 @@ export default function QuotesPage() {
               <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Valid Until</span><span>{new Date(selected.validUntil).toLocaleDateString()}</span></div>
               <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Subtotal</span><span>₹{Number(selected.subtotal).toLocaleString()}</span></div>
               <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Tax</span><span>₹{Number(selected.tax).toLocaleString()}</span></div>
-              <div className="flex justify-between font-semibold text-green-700"><span>Total</span><span>₹{Number(selected.total).toLocaleString()}</span></div>
+              <div className="flex justify-between font-semibold text-[var(--success)]"><span>Total</span><span>₹{Number(selected.total).toLocaleString()}</span></div>
             </div>
 
             {selected.items && selected.items.length > 0 && (
@@ -570,6 +571,6 @@ export default function QuotesPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageScaffold>
   );
 }

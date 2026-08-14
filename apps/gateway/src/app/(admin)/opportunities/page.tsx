@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { StatusBadge, WorkspaceHero } from "@erp/ui";
+import { buttonVariants, PageScaffold, StatusBadge, StatusChip } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 import LeadToCashGuide from "@/components/LeadToCashGuide";
 import LeadToCashUnderstanding from "@/components/LeadToCashUnderstanding";
@@ -24,12 +24,12 @@ interface Opportunity {
 
 const STAGE_ORDER: OpportunityStage[] = ["PROSPECTING", "QUALIFICATION", "PROPOSAL", "NEGOTIATION", "CLOSED"];
 
-const STAGE_COLORS: Record<OpportunityStage, string> = {
-  PROSPECTING: "bg-[var(--mist)] text-[var(--ink-soft)]",
-  QUALIFICATION: "bg-blue-100 text-[var(--brand)]",
-  PROPOSAL: "bg-[var(--mist)] text-[var(--brand)]",
-  NEGOTIATION: "bg-amber-100 text-amber-700",
-  CLOSED: "bg-emerald-100 text-emerald-700",
+const STAGE_TONES: Record<OpportunityStage, "neutral" | "info" | "brand" | "warning" | "success"> = {
+  PROSPECTING: "neutral",
+  QUALIFICATION: "info",
+  PROPOSAL: "brand",
+  NEGOTIATION: "warning",
+  CLOSED: "success",
 };
 
 function nextStage(stage: OpportunityStage): OpportunityStage | null {
@@ -90,17 +90,18 @@ export default function OpportunitiesPage() {
   }, {} as Record<OpportunityStage, number>);
 
   return (
-    <div className="ws-page">
-      <WorkspaceHero
-        eyebrow="CRM"
-        title="Opportunities"
-        description="Stage progression for CRM deals. Dealer orders stay on Order Desk."
-        actions={
-          <Link href="/leads" className="ws-btn">
+    <PageScaffold
+      hero={{
+        eyebrow: "CRM",
+        title: "Opportunities",
+        description: "Stage progression for CRM deals. Dealer orders stay on Order Desk.",
+        actions: (
+          <Link href="/leads" className={buttonVariants({ variant: "secondary" })}>
             Convert from leads
           </Link>
-        }
-      />
+        ),
+      }}
+    >
       <details className="mb-6 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] px-4 py-3 text-sm">
         <summary className="cursor-pointer font-semibold text-[var(--ink)]">How this works</summary>
         <div className="mt-3 space-y-3">
@@ -110,7 +111,7 @@ export default function OpportunitiesPage() {
       </details>
 
       {msg && (
-        <div className={`mb-4 rounded-lg border px-4 py-2.5 text-sm ${msgType === "ok" ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"}`}>
+        <div className={`mb-4 rounded-lg border px-4 py-2.5 text-sm ${msgType === "ok" ? "border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] text-[var(--success)]" : "border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,white)] text-[var(--danger)]"}`}>
           {msg}
         </div>
       )}
@@ -126,7 +127,7 @@ export default function OpportunitiesPage() {
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-[var(--ink-soft)]">{stage}</span>
-                <span className={`rounded-full px-2 py-0.5 text-xs ${STAGE_COLORS[stage]}`}>{stageCounts[stage]}</span>
+                <StatusChip tone={STAGE_TONES[stage]}>{stageCounts[stage]}</StatusChip>
               </div>
               <p className="mt-1 text-[11px] text-[var(--ink-soft)]">{stage === "CLOSED" ? "Terminal stage" : `Move next: ${nextStage(stage)}`}</p>
             </button>
@@ -164,7 +165,7 @@ export default function OpportunitiesPage() {
                     <td className="px-4 py-3 text-[var(--ink-soft)]">{op.lead?.name ?? "—"}</td>
                     <td className="px-4 py-3 text-[var(--ink-soft)]">{op.customer?.name ?? "—"}</td>
                     <td className="px-4 py-3 text-right font-medium">₹{Number(op.value).toLocaleString()}</td>
-                    <td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-medium ${STAGE_COLORS[op.stage]}`}>{op.stage}</span></td>
+                    <td className="px-4 py-3"><StatusChip tone={STAGE_TONES[op.stage]}>{op.stage}</StatusChip></td>
                     <td className="px-4 py-3"><StatusBadge status={op.status} /></td>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <div className="flex flex-wrap gap-1.5">
@@ -180,20 +181,20 @@ export default function OpportunitiesPage() {
                           <>
                             <button
                               onClick={() => patchOpportunity(op, { status: "WON" })}
-                              className="rounded border border-green-200 bg-green-50 px-2 py-1 text-xs text-green-700 hover:bg-green-100"
+                              className="rounded border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] px-2 py-1 text-xs text-[var(--success)] hover:bg-[color-mix(in_srgb,var(--success)_16%,white)]"
                             >
                               Mark WON
                             </button>
                             <button
                               onClick={() => patchOpportunity(op, { status: "LOST" })}
-                              className="rounded border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 hover:bg-red-100"
+                              className="rounded border border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,white)] px-2 py-1 text-xs text-[var(--danger)] hover:bg-[color-mix(in_srgb,var(--danger)_14%,white)]"
                             >
                               Mark LOST
                             </button>
                           </>
                         )}
                         {canCreateQuote && (
-                          <Link href="/quotes" className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-100">
+                          <Link href="/quotes" className="rounded border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] px-2 py-1 text-xs text-[var(--success)] hover:bg-[color-mix(in_srgb,var(--success)_16%,white)]">
                             Create Quote
                           </Link>
                         )}
@@ -220,7 +221,7 @@ export default function OpportunitiesPage() {
               <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Customer</span><span>{selected.customer?.name ?? "—"}</span></div>
               <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Value</span><span>₹{Number(selected.value).toLocaleString()}</span></div>
               <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Probability</span><span>{selected.probability}%</span></div>
-              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Stage</span><span className={`rounded-full px-2 py-0.5 text-xs ${STAGE_COLORS[selected.stage]}`}>{selected.stage}</span></div>
+              <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Stage</span><StatusChip tone={STAGE_TONES[selected.stage]}>{selected.stage}</StatusChip></div>
               <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Status</span><StatusBadge status={selected.status} /></div>
               {selected.notes && <p className="mt-3 rounded border bg-[var(--mist)] p-2 text-xs text-[var(--ink-soft)]">{selected.notes}</p>}
             </div>
@@ -231,6 +232,6 @@ export default function OpportunitiesPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageScaffold>
   );
 }

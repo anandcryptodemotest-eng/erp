@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { StatusBadge, WorkspaceHero } from "@erp/ui";
+import { Button, PageScaffold, StatusBadge } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 
 const BarcodeScannerModal = dynamic(() => import("@/components/BarcodeScannerModal"), { ssr: false });
@@ -203,24 +203,24 @@ export default function PurchaseOrdersPage() {
   }
 
   return (
-    <div className="ws-page">
-      <WorkspaceHero
-        eyebrow="Procurement"
-        title="Purchase orders"
-        description="Draft, submit, and receive stock. Shortage work starts on Order Desk."
-        actions={
-          <button
+    <PageScaffold
+      hero={{
+        eyebrow: "Procurement",
+        title: "Purchase orders",
+        description: "Draft, submit, and receive stock. Shortage work starts on Order Desk.",
+        actions: (
+          <Button
             type="button"
             onClick={() => { setShowForm(true); setMsg(""); setLines([]); setSearch(""); setBarcodeInput(""); setScanQty("1"); setTimeout(() => barcodeRef.current?.focus(), 150); }}
-            className="ws-btn ws-btn--primary"
           >
             + New PO
-          </button>
-        }
-      />
+          </Button>
+        ),
+      }}
+    >
 
       {msg && (
-        <div className={`mb-4 p-3 rounded-lg text-sm border ${msgType === "err" ? "bg-red-50 border-red-200 text-red-700" : "bg-green-50 border-green-200 text-green-700"}`}>
+        <div className={`mb-4 p-3 rounded-lg text-sm border ${msgType === "err" ? "border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,white)] text-[var(--danger)]" : "border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] text-[var(--success)]"}`}>
           {msg}
         </div>
       )}
@@ -284,7 +284,7 @@ export default function PurchaseOrdersPage() {
               <div className="px-6 py-4 bg-[var(--mist)] border-b">
                 <label className="block text-xs font-semibold text-[var(--ink-soft)] uppercase tracking-wide mb-1">Vendor *</label>
                 <select value={vendorId} onChange={e => setVendorId(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]">
                   {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
                 </select>
               </div>
@@ -311,7 +311,7 @@ export default function PurchaseOrdersPage() {
                   </div>
                   <span className="text-xs text-[var(--ink-soft)]">units per scan / add</span>
                   {lastAdded && (
-                    <span className="ml-auto text-xs font-semibold text-green-600 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
+                    <span className="ml-auto text-xs font-semibold text-[var(--success)] bg-[color-mix(in_srgb,var(--success)_10%,white)] border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] px-2.5 py-1 rounded-full">
                       ✓ Added: {lastAdded}
                     </span>
                   )}
@@ -325,7 +325,7 @@ export default function PurchaseOrdersPage() {
                     </svg>
                     Scan Barcode
                   </p>
-                  <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 border-dashed border-[var(--line)] bg-[var(--mist)] focus-within:border-green-400 focus-within:bg-green-50/30 transition-colors group">
+                  <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 border-dashed border-[var(--line)] bg-[var(--mist)] focus-within:border-[var(--success)] focus-within:bg-[color-mix(in_srgb,var(--success)_10%,white)]/30 transition-colors group">
                     {/* Decorative barcode stripes */}
                     <div className="flex items-center gap-[2px] shrink-0 opacity-25 group-focus-within:opacity-60 transition-opacity" aria-hidden>
                       {([3,1,2,1,3,1,2,3,1,2,1,3,2,1] as number[]).map((w, i) => (
@@ -343,7 +343,7 @@ export default function PurchaseOrdersPage() {
                     />
                     {barcodeInput && (
                       <button type="button" onClick={() => { setBarcodeInput(""); barcodeRef.current?.focus(); }}
-                        className="text-[var(--ink-soft)] hover:text-red-400 text-xl leading-none shrink-0">×</button>
+                        className="text-[var(--ink-soft)] hover:text-[var(--danger)] text-xl leading-none shrink-0">×</button>
                     )}
                     <button type="button" onClick={() => setShowCameraScanner(true)}
                       title="Scan with laptop camera"
@@ -391,7 +391,7 @@ export default function PurchaseOrdersPage() {
                     <div className="absolute top-full left-0 right-20 bg-white border rounded-xl shadow-xl z-20 mt-1 max-h-52 overflow-y-auto">
                       {suggestions.map(p => (
                         <button key={p.id} type="button" onClick={() => addProductLine(p)}
-                          className="w-full text-left px-4 py-2.5 text-sm hover:bg-green-50 flex items-center justify-between border-b last:border-0">
+                          className="w-full text-left px-4 py-2.5 text-sm hover:bg-[color-mix(in_srgb,var(--success)_10%,white)] flex items-center justify-between border-b last:border-0">
                           <div>
                             <span className="font-medium text-[var(--ink)]">{p.name}</span>
                             <span className="text-[var(--ink-soft)] text-xs ml-2">{p.sku}</span>
@@ -485,7 +485,7 @@ export default function PurchaseOrdersPage() {
                             {/* Remove */}
                             <td className="px-3 py-2">
                               <button type="button" onClick={() => setLines(ls => ls.filter((_, j) => j !== i))}
-                                className="text-red-400 hover:text-red-600 font-bold text-base leading-none">×</button>
+                                className="text-[var(--danger)] hover:text-[var(--danger)] font-bold text-base leading-none">×</button>
                             </td>
                           </tr>
                         ))}
@@ -495,7 +495,7 @@ export default function PurchaseOrdersPage() {
                           <td colSpan={4} className="px-3 py-3 text-right text-sm font-semibold text-[var(--ink-soft)]">
                             {lines.length} item{lines.length !== 1 ? "s" : ""} · PO Total
                           </td>
-                          <td className="px-3 py-3 text-right text-base font-bold text-green-700">₹{poTotal.toFixed(2)}</td>
+                          <td className="px-3 py-3 text-right text-base font-bold text-[var(--success)]">₹{poTotal.toFixed(2)}</td>
                           <td></td>
                         </tr>
                       </tfoot>
@@ -592,6 +592,6 @@ export default function PurchaseOrdersPage() {
           onClose={() => { setShowCameraScanner(false); setTimeout(() => barcodeRef.current?.focus(), 100); }}
         />
       )}
-    </div>
+    </PageScaffold>
   );
 }

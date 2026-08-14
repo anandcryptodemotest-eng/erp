@@ -108,9 +108,10 @@ Trustwood may onboard paying customers only when every Tier 1 item is checked or
 - [ ] **T1** Add production monitoring, logs, health checks, and alerts for auth, downstream 5xx, reconciliation, notifications, and reports.
 - [ ] **T2** Add canonical full-journey traces, reconciliation-backlog alerts, dashboards, and staging SLOs.
 - [x] Run the focused Accounting reconciliation route tests in the validation workflow.
+- [x] **T1** Add GitHub Actions workflow [`.github/workflows/e2e-api.yml`](../.github/workflows/e2e-api.yml) running `pnpm ci:e2e` (greenfield + gst + portal + saas) with report artifacts; first GitHub green run still required to close the gate.
 - [ ] **T1** Wire architecture, typecheck, lint, unit, route, contract, smoke, and E2E tests into CI.
 - [x] **T1** Wire architecture fitness validation into CI; build, lint, workspace tests, route validation, deployment artifacts, and dependency audit are also covered.
-- [ ] E2E journeys require the full service stack; all seven services are now healthy, but Trustwood seeding is blocked by persistent Inventory API `500` responses for category, brand, attribute, and warehouse writes after schema synchronization.
+- [x] E2E journeys require the full service stack; `scripts/ci-e2e.sh` waits on postgres + all seven service `/health/live` endpoints, then seeds platform + Trustwood (Growth grant) before marathon suites.
 - [x] **T1** Run every workspace's declared unit/contract test script in CI through the root `test:workspaces` command.
 - [x] **T1** Run shared authentication and ServiceClient contract tests in the validation workflow.
 - [ ] **T1** Add deployment migration, secret, nginx, database, and rollback smoke tests.

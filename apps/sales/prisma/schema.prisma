@@ -21,6 +21,7 @@ model Customer {
   city            String?
   country         String?
   taxId           String?
+  stateCode       String?
   creditLimit     Float     @default(0)
   paymentTerms    Int       @default(0)
   customerGroup   String?
@@ -94,7 +95,9 @@ model SalesRequestItem {
   quantity       Int
   unitPrice      Float
   taxRate        Float   @default(0)
+  taxTreatment   String  @default("TAXABLE") // TAXABLE | EXEMPT | ZERO_RATED
   total          Float
+  customSnapshot Json? // HSN / tax snapshot at request time
 
   salesRequest SalesRequest @relation(fields: [salesRequestId], references: [id], onDelete: Cascade)
 
@@ -243,6 +246,8 @@ model SalesOrder {
   date                 DateTime
   deliveryDate         DateTime?
   status               String    @default("DRAFT")
+  sourceKind           String    @default("SALES_ORDER") // SALES_ORDER | QUICK_BILL
+  placeOfSupply        String?
   // Trading OMS coarse statuses: DRAFT | CONFIRMED | FULFILLING | READY_FOR_DISPATCH |
   // DISPATCHED | DELIVERED | INVOICED | PAID | CLOSED | CANCELLED
   // Grocery template uses its own statuses. Do not add per-customer statuses in code.
@@ -464,6 +469,7 @@ model SalesOrderItem {
   purchasePrice  Float?
   discount       Float   @default(0)
   taxRate        Float   @default(0)
+  taxTreatment   String  @default("TAXABLE") // TAXABLE | EXEMPT | ZERO_RATED
   total          Float
   customSnapshot Json? // product customAttributes at order time
   remarks        String?

@@ -10,7 +10,7 @@ export default function ProfilePreferencesPage() {
         ← Profile
       </Link>
       <SectionHeader title="Preferences" className="mt-2" />
-      <div className="mt-4 rounded-lg border border-[#e8e8e8] bg-white px-4 py-5 text-sm text-[var(--ink-soft)]">
+      <div className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--surface-raised)] px-4 py-5 text-sm text-[var(--ink-soft)]">
         Notification and language preferences will appear here. Defaults follow your organisation settings.
       </div>
     </Container>

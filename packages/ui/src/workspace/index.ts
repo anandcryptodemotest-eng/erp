@@ -13,3 +13,4 @@ export {
   type WorkspaceBottomBarProps,
 } from "./WorkspaceLayout";
 export { WorkspaceHero, type WorkspaceHeroProps } from "./WorkspaceHero";
+export { PageScaffold, type PageScaffoldProps } from "./PageScaffold";

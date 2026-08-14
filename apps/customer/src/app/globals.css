@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "@erp/ui/tokens.css";
 
-/* Scan shared UI so Chip / ProductCard utilities are generated */
+/* Scan shared UI so Chip / ProductCard / BottomNav utilities are generated */
 @source "../../../../packages/ui/src";
 
 * {
@@ -17,7 +17,8 @@ body {
   min-height: 100dvh;
   font-family: var(--font-body);
   color: var(--ink);
-  background: #f5f5f5;
+  background: var(--page-bg);
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   padding-bottom: env(safe-area-inset-bottom);
 }
@@ -37,44 +38,65 @@ img {
   font-optical-sizing: auto;
 }
 
+/* Layout chrome — structure only; colors from tokens */
 .portal-shell {
   min-height: 100dvh;
   width: 100%;
   max-width: var(--layout-wide);
   margin: 0 auto;
   position: relative;
-  background: #fff;
+  background: var(--surface-raised);
 }
 
 .portal-frame {
   min-height: 100dvh;
-  background: #fff;
+  background: var(--surface-sunken);
 }
 
 @keyframes rise-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(100%); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .anim-rise {
   animation: rise-in var(--motion-slow) var(--ease-out) both;
 }
 
-.anim-rise-delay-1 { animation-delay: 60ms; }
-.anim-rise-delay-2 { animation-delay: 120ms; }
+.anim-rise-delay-1 {
+  animation-delay: 60ms;
+}
+.anim-rise-delay-2 {
+  animation-delay: 120ms;
+}
 
 .anim-slide-up {
-  animation: slide-up 220ms var(--ease-out) both;
+  animation: slide-up var(--motion-standard) var(--ease-out) both;
 }
 
 .scrollbar-hide {
@@ -93,26 +115,27 @@ img {
   }
 }
 
-/* —— Commerce utilities —— */
+/* —— Commerce utilities (token surfaces only) —— */
 
 .cx-eyebrow {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--forest-mid);
+  color: var(--brand);
 }
 
 .cx-surface {
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-1);
 }
 
 .cx-empty {
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   border: 1px dashed var(--line);
-  background: #fafafa;
+  background: var(--surface-sunken);
 }
 
 .btn-dark,
@@ -124,11 +147,13 @@ img {
   min-height: var(--touch-min);
   padding: 0.65rem 1.25rem;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   font-size: 0.875rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition:
+    background var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
 }
 
 .btn-dark {
@@ -138,13 +163,17 @@ img {
 .btn-dark:hover {
   background: var(--ink-soft);
 }
+.btn-dark:active,
+.btn-primary:active {
+  transform: scale(var(--press-scale));
+}
 
 .btn-primary {
-  background: var(--forest);
-  color: white;
+  background: var(--brand);
+  color: var(--ink-inverse);
 }
 .btn-primary:hover {
-  background: var(--forest-mid);
+  background: var(--brand-dark);
 }
 
 .btn-dark-block,
@@ -154,13 +183,15 @@ img {
   min-height: 2.75rem;
   padding: 0.75rem 1.25rem;
   font-size: 0.95rem;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   font-weight: 700;
   align-items: center;
   justify-content: center;
   border: none;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition:
+    background var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
 }
 
 .btn-dark-block {
@@ -172,24 +203,29 @@ img {
 }
 
 .btn-primary-block {
-  background: var(--forest);
-  color: white;
+  background: var(--brand);
+  color: var(--ink-inverse);
 }
 .btn-primary-block:hover {
-  background: var(--forest-mid);
+  background: var(--brand-dark);
+}
+.btn-dark-block:active,
+.btn-primary-block:active {
+  transform: scale(var(--press-scale));
 }
 
 .product-tile {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-radius: 0.5rem;
-  border: 1px solid #e8e8e8;
-  background: #fff;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-1);
   transition: transform var(--motion-fast) var(--ease-out);
 }
 .product-tile:active {
-  transform: scale(0.98);
+  transform: scale(var(--press-scale));
 }
 
 .chip {
@@ -197,41 +233,43 @@ img {
   align-items: center;
   min-height: 2.25rem;
   padding: 0 0.85rem;
-  border-radius: 0.375rem;
+  border-radius: var(--radius-sm);
   border: 1.5px solid var(--line);
-  background: white;
+  background: var(--surface-raised);
   color: var(--ink);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.1s ease;
+  transition:
+    background var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
 }
 .chip:hover {
-  border-color: var(--forest-mid);
+  border-color: var(--brand);
 }
 .chip:active {
-  transform: scale(0.96);
+  transform: scale(var(--press-scale));
 }
 .chip-active {
-  border-color: var(--forest);
-  background: var(--forest);
-  color: white;
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--ink-inverse);
 }
 
-/* Sticky ATC bar */
 .atc-bar {
   position: sticky;
   bottom: 0;
   z-index: 20;
-  border-top: 1px solid #e8e8e8;
-  background: rgba(255, 255, 255, 0.97);
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-raised) 94%, transparent);
   backdrop-filter: blur(8px);
   padding: 0.75rem 1rem;
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-2);
 }
 
-/* Category rail thumb */
 .cat-rail-item {
   display: flex;
   flex-direction: column;
@@ -245,8 +283,8 @@ img {
   height: 3.5rem;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #eee;
-  background: #f5f5f5;
+  border: 2px solid var(--line);
+  background: var(--mist);
 }
 .cat-rail-item span {
   font-size: 0.6875rem;
@@ -262,7 +300,6 @@ img {
   -webkit-box-orient: vertical;
 }
 
-/* Search field in header */
 .portal-search {
   display: flex;
   align-items: center;
@@ -270,16 +307,19 @@ img {
   flex: 1;
   min-height: 2.5rem;
   padding: 0 0.875rem;
-  border-radius: 0.5rem;
-  background: #f1f3f2;
+  border-radius: var(--radius-sm);
+  background: var(--mist);
   border: 1px solid transparent;
   color: var(--ink-soft);
   font-size: 0.875rem;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    background var(--motion-fast) var(--ease-out);
 }
 .portal-search:focus-within {
-  background: #fff;
-  border-color: var(--forest-mid);
+  background: var(--surface-raised);
+  border-color: var(--brand);
+  box-shadow: var(--focus-ring);
 }
 .portal-search input {
   flex: 1;

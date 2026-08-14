@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { WorkspaceHero } from "@erp/ui";
+import { Button, PageScaffold } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 
 interface Employee { id: string; employeeId: string; firstName: string; lastName: string; position: string; department: string; salary: number; isActive: boolean; }
@@ -29,17 +29,18 @@ export default function EmployeesPage() {
   }
 
   return (
-    <div className="ws-page">
-      <WorkspaceHero
-        eyebrow="HR"
-        title="Employees"
-        description="Staff master data. Trading work stays on Order Desk."
-        actions={
-          <button type="button" onClick={() => setShowForm(true)} className="ws-btn ws-btn--primary">
+    <PageScaffold
+      hero={{
+        eyebrow: "HR",
+        title: "Employees",
+        description: "Staff master data. Trading work stays on Order Desk.",
+        actions: (
+          <Button type="button" onClick={() => setShowForm(true)}>
             + New employee
-          </button>
-        }
-      />
+          </Button>
+        ),
+      }}
+    >
       {msg && (
         <div className="mb-4 rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] px-4 py-2 text-sm text-[var(--success)]">
           {msg}
@@ -93,6 +94,6 @@ export default function EmployeesPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageScaffold>
   );
 }

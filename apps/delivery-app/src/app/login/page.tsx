@@ -1,6 +1,8 @@
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button, Input, Truck } from "@erp/ui";
 import { saveAuth } from "@/lib/api-client";
 
 export default function LoginPage() {
@@ -13,7 +15,8 @@ export default function LoginPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
 
     const res = await fetch("/api/auth", {
       method: "POST",
@@ -23,7 +26,10 @@ export default function LoginPage() {
     const json = await res.json();
     setLoading(false);
 
-    if (!res.ok) { setError(json.error ?? "Login failed"); return; }
+    if (!res.ok) {
+      setError(json.error ?? "Login failed");
+      return;
+    }
 
     const token = json.token;
     const tenantId = json.tenant?.id ?? json.tenants?.[0]?.id ?? "";
@@ -34,42 +40,59 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-orange-50 px-4">
+    <div className="erp-canvas flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="text-5xl mb-3">🛵</div>
-          <h1 className="text-2xl font-bold text-orange-600">Simhapuri Fresh</h1>
-          <p className="text-sm text-stone-500 mt-1">Delivery Executive App</p>
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-[var(--radius-md)] bg-[var(--mist)] text-[var(--accent)]">
+            <Truck className="h-7 w-7" aria-hidden />
+          </div>
+          <h1 className="font-display text-2xl font-bold text-[var(--brand)]">Trust Wood</h1>
+          <p className="mt-1 text-sm text-[var(--ink-soft)]">Delivery executive</p>
         </div>
 
-        <form onSubmit={handleLogin} className="rounded-2xl bg-white shadow-sm border border-orange-100 p-6 space-y-4">
-          {error && (
-            <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">{error}</div>
-          )}
+        <form
+          onSubmit={handleLogin}
+          className="space-y-4 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] p-6 shadow-[var(--shadow-1)]"
+        >
+          {error ? (
+            <div className="rounded-[var(--radius-sm)] border border-[var(--danger)]/30 bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-4 py-3 text-sm text-[var(--danger)]">
+              {error}
+            </div>
+          ) : null}
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-stone-500">Store / Tenant</label>
-            <input value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} required
+            <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Store / Tenant</label>
+            <Input
+              value={tenantSlug}
+              onChange={(e) => setTenantSlug(e.target.value)}
+              required
               placeholder="trustwood-enterprise"
-              className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-orange-400" />
+            />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-stone-500">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
+            <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Email</label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
               placeholder="exec@example.com"
-              className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-orange-400" />
+            />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-stone-500">Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
+            <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Password</label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
               placeholder="••••••••"
-              className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-orange-400" />
+            />
           </div>
 
-          <button type="submit" disabled={loading}
-            className="w-full rounded-xl bg-orange-500 py-3 text-sm font-bold text-white hover:bg-orange-600 disabled:opacity-50">
-            {loading ? "Signing in…" : "Sign In"}
-          </button>
+          <Button type="submit" variant="primary" className="w-full" disabled={loading}>
+            {loading ? "Signing in…" : "Sign in"}
+          </Button>
         </form>
       </div>
     </div>

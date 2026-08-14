@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { StatusBadge, WorkspaceHero } from "@erp/ui";
+import { Button, PageScaffold, StatusBadge } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 
 interface Payroll { id: string; period: string; status: string; netSalary: number; employee: { firstName: string; lastName: string } | null; }
@@ -48,17 +48,18 @@ export default function PayrollPage() {
   }
 
   return (
-    <div className="ws-page">
-      <WorkspaceHero
-        eyebrow="HR"
-        title="Payroll"
-        description="Generate and process payroll runs."
-        actions={
-          <button type="button" onClick={() => { setShowForm(true); setMsg(""); }} className="ws-btn ws-btn--primary">
+    <PageScaffold
+      hero={{
+        eyebrow: "HR",
+        title: "Payroll",
+        description: "Generate and process payroll runs.",
+        actions: (
+          <Button type="button" onClick={() => { setShowForm(true); setMsg(""); }}>
             + Create payroll
-          </button>
-        }
-      />
+          </Button>
+        ),
+      }}
+    >
       {msg && (
         <div className="mb-4 rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] px-4 py-2 text-sm text-[var(--success)]">
           {msg}
@@ -103,35 +104,35 @@ export default function PayrollPage() {
               <div>
                 <label className="block text-sm font-medium text-[var(--ink-soft)] mb-1">Employee</label>
                 <select value={form.employeeId} onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]">
                   {employees.map(e => <option key={e.id} value={e.employeeId}>{e.firstName} {e.lastName} ({e.employeeId})</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-[var(--ink-soft)] mb-1">Period (YYYY-MM)</label>
                 <input type="text" placeholder="2026-01" value={form.period} onChange={e => setForm(f => ({ ...f, period: e.target.value }))}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
               </div>
               <div className="flex gap-2">
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-[var(--ink-soft)] mb-1">Allowances (₹)</label>
                   <input type="number" value={form.allowances} onChange={e => setForm(f => ({ ...f, allowances: e.target.value }))}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
                 </div>
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-[var(--ink-soft)] mb-1">Deductions (₹)</label>
                   <input type="number" value={form.deductions} onChange={e => setForm(f => ({ ...f, deductions: e.target.value }))}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
                 </div>
               </div>
               <div className="flex gap-2 pt-2">
                 <button type="submit" className="ws-btn ws-btn--primary flex-1">Generate</button>
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-[var(--mist)] text-[var(--ink-soft)] py-2 rounded-lg text-sm hover:bg-gray-200">Cancel</button>
+                <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-[var(--mist)] text-[var(--ink-soft)] py-2 rounded-lg text-sm hover:bg-[color-mix(in_srgb,var(--mist)_80%,var(--ink-soft))]">Cancel</button>
               </div>
             </form>
           </div>
         </div>
       )}
-    </div>
+    </PageScaffold>
   );
 }

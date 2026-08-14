@@ -12,10 +12,10 @@ import {
   DetailPanel,
   EmptyState,
   Input,
+  PageScaffold,
   QueuePanel,
   StatusBadge,
   WorkspaceBottomBar,
-  WorkspaceHero,
   WorkspaceLayout,
   useToast,
 } from "@erp/ui";
@@ -1344,18 +1344,22 @@ export function SalesDeskWorkspace({
           : `${workOrders.length} order${workOrders.length === 1 ? "" : "s"}`;
 
   return (
-    <div className="ws-page">
-      <WorkspaceHero
-        eyebrow="Trading operations"
-        title="Order Desk"
-        description="Process sales requests, complete your tasks, and move orders through fulfillment."
-        actions={
-          <a href="/admin/dashboard" className="ws-btn">
+    <PageScaffold
+      wide
+      hero={{
+        eyebrow: "Trading operations",
+        title: "Order Desk",
+        description: "Process sales requests, complete your tasks, and move orders through fulfillment.",
+        actions: (
+          <a
+            href="/admin/dashboard"
+            className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border border-[var(--line-strong)] bg-[var(--surface-raised)] px-4 py-2 text-sm font-semibold text-[var(--ink)] shadow-[var(--shadow-1)] transition-[background,transform] duration-[var(--motion-fast)] hover:bg-[var(--surface-sunken)] active:scale-[var(--press-scale)]"
+          >
             ← Dashboard
           </a>
-        }
-      />
-
+        ),
+      }}
+    >
       <StageRail
         className="mb-6"
         stage={deskTabToStage(deskTab)}
@@ -2588,6 +2592,6 @@ export function SalesDeskWorkspace({
       )}
       </>
       )}
-    </div>
+    </PageScaffold>
   );
 }

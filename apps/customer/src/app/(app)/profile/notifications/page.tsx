@@ -38,8 +38,8 @@ export default function ProfileNotificationsPage() {
         {items.map((n) => (
           <li
             key={n.id}
-            className={`rounded-lg border border-[#e8e8e8] px-4 py-3 text-sm ${
-              n.isRead ? "bg-white" : "bg-amber-50/60"
+            className={`rounded-lg border border-[var(--line)] px-4 py-3 text-sm ${
+              n.isRead ? "bg-[var(--surface-raised)]" : "bg-[var(--accent-soft)]/30"
             }`}
           >
             <p className="font-semibold text-[var(--ink)]">{n.title}</p>

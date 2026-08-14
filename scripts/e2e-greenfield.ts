@@ -275,6 +275,17 @@ async function main() {
   });
   record("Platform", "licenses enabled", lic.status === 200, lic.status === 200 ? undefined : `${lic.status}`);
 
+  const grant = await api("POST", `/api/platform/tenants/${tenantId}/billing/grant`, {
+    token: platToken,
+    body: { planCode: "growth_monthly" },
+  });
+  record(
+    "Platform",
+    "Growth billing granted",
+    grant.status === 200,
+    grant.status === 200 ? undefined : `${grant.status} ${grant.json.error ?? ""}`
+  );
+
   const cap = await api("PUT", `/api/platform/tenants/${tenantId}/capabilities`, {
     token: platToken,
     body: { key: "processStudio", enabled: true },

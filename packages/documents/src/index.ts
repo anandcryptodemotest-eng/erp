@@ -17,6 +17,7 @@ export type {
   RenderDocumentResult,
 } from "./types";
 export { TAX_INVOICE_SEED } from "./seed-tax-invoice";
+export { COMMERCIAL_INVOICE_SEED, BILL_OF_SUPPLY_SEED } from "./seed-commercial-invoice";
 export {
   getByPath,
   formatValue,

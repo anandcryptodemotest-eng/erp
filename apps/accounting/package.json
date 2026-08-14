@@ -12,6 +12,7 @@
     "db:push": "prisma db push"
   },
   "dependencies": {
+    "@erp/tax-india": "workspace:*",
     "@erp/auth": "workspace:*",
     "@erp/config": "workspace:*",
     "@erp/documents": "workspace:*",

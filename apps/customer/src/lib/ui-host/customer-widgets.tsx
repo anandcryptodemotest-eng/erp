@@ -74,7 +74,7 @@ const FormFieldsWidget: Widget = {
                       className={`w-full rounded-xl border p-3 text-left ${
                         value === o.value
                           ? "border-[#121a16] bg-[#f3efe6]"
-                          : "border-[var(--line)] bg-white"
+                          : "border-[var(--line)] bg-[var(--surface-raised)]"
                       }`}
                     >
                       <div className="text-sm font-medium text-[var(--ink)]">{o.label}</div>
@@ -141,7 +141,7 @@ const ProductListWidget: Widget = {
     const showPrice = true;
     const items = runtime.context.items ?? [];
     return (
-      <div className="space-y-2 rounded-2xl border border-[var(--line)] bg-white p-3" key="ProductList">
+      <div className="space-y-2 rounded-2xl border border-[var(--line)] bg-[var(--surface-raised)] p-3" key="ProductList">
         {items.map((item) => (
           <div key={item.id} className="flex items-center justify-between gap-3 text-sm">
             <div className="min-w-0 flex-1">
@@ -222,7 +222,7 @@ const TimelineWidget: Widget = {
   render(runtime) {
     const events = runtime.context.timeline ?? [];
     return (
-      <ol className="space-y-3 rounded-2xl border border-[var(--line)] bg-white p-4" key="Timeline">
+      <ol className="space-y-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-raised)] p-4" key="Timeline">
         {events.map((ev, i) => (
           <li key={ev.id} className="flex gap-3 text-sm">
             <span

@@ -1,5 +1,6 @@
 export { Button, type ButtonProps, buttonVariants } from "./primitives/button";
 export { Skeleton } from "./primitives/skeleton";
+export { StatusChip, type StatusChipProps, type StatusChipTone } from "./primitives/status-chip";
 export { ActionGroup, type ActionGroupProps } from "./primitives/action-group";
 
 export { Input, type InputProps } from "./input";
@@ -140,11 +141,13 @@ export {
   TaskPanel,
   WorkspaceBottomBar,
   WorkspaceHero,
+  PageScaffold,
   type WorkspaceLayoutProps,
   type WorkspaceToolbarProps,
   type WorkspaceFilterBarProps,
   type WorkspaceBottomBarProps,
   type WorkspaceHeroProps,
+  type PageScaffoldProps,
 } from "./workspace";
 
 export {

@@ -73,15 +73,15 @@ export default function ShiftPage() {
 
   return (
     <div className="relative p-4 sm:p-6">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-cyan-500/10 via-emerald-500/5 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-[color-mix(in_srgb,var(--brand)_18%,transparent)] via-transparent to-transparent" />
       <div className="relative mx-auto w-full max-w-7xl space-y-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-white">Shift Management</h1>
-            <p className="mt-1 text-sm text-slate-400">Monitor cash movement, control shift lifecycle, and close with confidence.</p>
+            <p className="mt-1 text-sm text-[var(--ink-soft)]">Monitor cash movement, control shift lifecycle, and close with confidence.</p>
           </div>
           {shift && (
-            <div className="rounded-xl border border-emerald-700/50 bg-emerald-900/40 px-3 py-2 text-xs font-semibold text-emerald-300">
+            <div className="rounded-xl border border-[var(--brand)]/50 bg-[color-mix(in_srgb,var(--brand)_30%,transparent)] px-3 py-2 text-xs font-semibold text-[var(--brand-light)]">
               Shift open since {new Date(shift.openedAt).toLocaleTimeString("en-IN")}
             </div>
           )}
@@ -89,7 +89,7 @@ export default function ShiftPage() {
 
         {loading && (
           <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
-            <section className="rounded-3xl border border-slate-700 bg-slate-800/80 p-5 sm:p-6">
+            <section className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-5 sm:p-6">
               <div className="mb-5 flex items-center gap-3">
                 <div className="pos-skeleton h-6 w-28 rounded-full" />
                 <div className="pos-skeleton h-3 w-40 rounded" />
@@ -97,19 +97,19 @@ export default function ShiftPage() {
 
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {[1, 2, 3, 4].map((item) => (
-                  <div key={item} className="rounded-2xl border border-slate-700 bg-slate-700/40 p-3">
+                  <div key={item} className="rounded-2xl border border-[var(--line)] bg-[var(--mist)]/40 p-3">
                     <div className="pos-skeleton h-2.5 w-14 rounded" />
                     <div className="pos-skeleton mt-2 h-5 w-20 rounded" />
                   </div>
                 ))}
               </div>
 
-              <div className="mt-4 rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3">
+              <div className="mt-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-sunken)]/50 px-4 py-3">
                 <div className="pos-skeleton h-2.5 w-20 rounded" />
                 <div className="pos-skeleton mt-2 h-7 w-36 rounded" />
               </div>
 
-              <div className="mt-6 border-t border-slate-700 pt-5">
+              <div className="mt-6 border-t border-[var(--line)] pt-5">
                 <div className="pos-skeleton h-3 w-2/3 rounded" />
                 <div className="mt-3 flex flex-wrap items-end gap-3">
                   <div>
@@ -121,14 +121,14 @@ export default function ShiftPage() {
               </div>
             </section>
 
-            <aside className="rounded-3xl border border-slate-700 bg-slate-800/80 p-5 sm:p-6">
+            <aside className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-5 sm:p-6">
               <div className="mb-4 flex items-center justify-between">
                 <div className="pos-skeleton h-3 w-16 rounded" />
                 <div className="pos-skeleton h-6 w-16 rounded-lg" />
               </div>
               <div className="space-y-2">
                 {[1, 2, 3, 4].map((item) => (
-                  <div key={item} className="rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2.5">
+                  <div key={item} className="rounded-xl border border-[var(--line)] bg-[var(--surface-sunken)]/40 px-3 py-2.5">
                     <div className="flex items-start justify-between gap-2">
                       <div className="w-full">
                         <div className="pos-skeleton h-4 w-20 rounded" />
@@ -142,28 +142,28 @@ export default function ShiftPage() {
             </aside>
           </div>
         )}
-        {msg && <div className="rounded-2xl border border-emerald-700 bg-emerald-900/40 px-4 py-3 text-sm text-emerald-300">{msg}</div>}
+        {msg && <div className="rounded-2xl border border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_30%,transparent)] px-4 py-3 text-sm text-[var(--brand-light)]">{msg}</div>}
         {error && <div className="rounded-2xl border border-red-700 bg-red-900/40 px-4 py-3 text-sm text-red-300">{error}</div>}
 
         {!loading && !shift && (
-          <div className="rounded-3xl border border-slate-700 bg-slate-800/80 p-6 sm:p-8">
+          <div className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-8">
             <h2 className="text-lg font-semibold text-white">No active shift</h2>
-            <p className="mt-1 text-sm text-slate-400">Enter opening cash and start the counter for this cashier.</p>
+            <p className="mt-1 text-sm text-[var(--ink-soft)]">Enter opening cash and start the counter for this cashier.</p>
             <div className="mt-6 flex flex-wrap items-end gap-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-400">Opening Cash (₹)</label>
+                <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Opening Cash (₹)</label>
                 <input
                   type="number"
                   min="0"
                   value={openingBalance}
                   onChange={(e) => setOpeningBalance(e.target.value)}
-                  className="w-56 rounded-xl border border-slate-600 bg-slate-700 px-4 py-2.5 text-white outline-none transition-all duration-200 ease-out focus:border-emerald-500"
+                  className="w-56 rounded-xl border border-[var(--line-strong)] bg-[var(--mist)] px-4 py-2.5 text-white outline-none transition-all duration-200 ease-out focus:border-[var(--brand)]"
                 />
               </div>
               <button
                 onClick={openShift}
                 disabled={opening}
-                className="rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white transition-all duration-200 ease-out hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-50"
+                className="rounded-xl bg-[var(--brand)] px-6 py-2.5 text-sm font-semibold text-white transition-all duration-200 ease-out hover:bg-[var(--brand-mid)] active:scale-[0.98] disabled:opacity-50"
               >
                 {opening ? "Opening..." : "Open Shift"}
               </button>
@@ -173,50 +173,50 @@ export default function ShiftPage() {
 
         {!loading && shift && (
           <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
-            <section className="rounded-3xl border border-slate-700 bg-slate-800/80 p-5 sm:p-6">
+            <section className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-5 sm:p-6">
               <div className="mb-5 flex items-center gap-3">
-                <span className="rounded-full border border-emerald-700 bg-emerald-900/50 px-3 py-1 text-xs font-semibold text-emerald-300">SHIFT OPEN</span>
-                <span className="text-xs text-slate-400">Cashier: {shift.cashierId.slice(0, 8)}...</span>
+                <span className="rounded-full border border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_35%,transparent)] px-3 py-1 text-xs font-semibold text-[var(--brand-light)]">SHIFT OPEN</span>
+                <span className="text-xs text-[var(--ink-soft)]">Cashier: {shift.cashierId.slice(0, 8)}...</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {[
                   { label: "Opening", value: formatINR(shift.openingBalance), tone: "text-white" },
                   { label: "Bills", value: String(shift._count?.bills ?? 0), tone: "text-white" },
-                  { label: "Cash In", value: formatINR(cashIn), tone: "text-emerald-300" },
-                  { label: "Cash Out", value: formatINR(cashOut), tone: "text-rose-300" },
+                  { label: "Cash In", value: formatINR(cashIn), tone: "text-[var(--brand-light)]" },
+                  { label: "Cash Out", value: formatINR(cashOut), tone: "text-[var(--danger)]" },
                 ].map((kpi) => (
-                  <div key={kpi.label} className="rounded-2xl border border-slate-700 bg-slate-700/40 p-3">
-                    <div className="text-xs text-slate-400">{kpi.label}</div>
+                  <div key={kpi.label} className="rounded-2xl border border-[var(--line)] bg-[var(--mist)]/40 p-3">
+                    <div className="text-xs text-[var(--ink-soft)]">{kpi.label}</div>
                     <div className={`mt-1 text-lg font-bold ${kpi.tone}`}>{kpi.value}</div>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-4 rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3">
-                <div className="text-xs text-slate-400">Net Cash Flow</div>
-                <div className={`mt-1 text-2xl font-bold ${netCashFlow >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+              <div className="mt-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-sunken)]/50 px-4 py-3">
+                <div className="text-xs text-[var(--ink-soft)]">Net Cash Flow</div>
+                <div className={`mt-1 text-2xl font-bold ${netCashFlow >= 0 ? "text-[var(--brand-light)]" : "text-[var(--danger)]"}`}>
                   {netCashFlow >= 0 ? "+" : "-"}{formatINR(Math.abs(netCashFlow))}
                 </div>
               </div>
 
-              <div className="mt-6 border-t border-slate-700 pt-5">
-                <p className="text-sm text-slate-400">Count the cash drawer and enter the closing amount to close this shift.</p>
+              <div className="mt-6 border-t border-[var(--line)] pt-5">
+                <p className="text-sm text-[var(--ink-soft)]">Count the cash drawer and enter the closing amount to close this shift.</p>
                 <div className="mt-3 flex flex-wrap items-end gap-3">
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-400">Closing Cash (₹)</label>
+                    <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Closing Cash (₹)</label>
                     <input
                       type="number"
                       min="0"
                       value={closingBalance}
                       onChange={(e) => setClosingBalance(e.target.value)}
-                      className="w-56 rounded-xl border border-slate-600 bg-slate-700 px-4 py-2.5 text-white outline-none transition-all duration-200 ease-out focus:border-rose-400"
+                      className="w-56 rounded-xl border border-[var(--line-strong)] bg-[var(--mist)] px-4 py-2.5 text-white outline-none transition-all duration-200 ease-out focus:border-[var(--danger)]"
                     />
                   </div>
                   <button
                     onClick={closeShift}
                     disabled={closing}
-                    className="rounded-xl border border-rose-700 bg-rose-900/30 px-5 py-2.5 text-sm font-semibold text-rose-300 transition-all duration-200 ease-out hover:bg-rose-900/50 active:scale-[0.98] disabled:opacity-50"
+                    className="rounded-xl border border-[var(--danger)] bg-[color-mix(in_srgb,var(--danger)_25%,transparent)] px-5 py-2.5 text-sm font-semibold text-[var(--danger)] transition-all duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--danger)_35%,transparent)] active:scale-[0.98] disabled:opacity-50"
                   >
                     {closing ? "Closing..." : "Close Shift"}
                   </button>
@@ -224,10 +224,10 @@ export default function ShiftPage() {
               </div>
             </section>
 
-            <aside className="rounded-3xl border border-slate-700 bg-slate-800/80 p-5 sm:p-6">
+            <aside className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-5 sm:p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-300">Cash Log</h3>
-                <span className="rounded-lg border border-slate-600 px-2 py-1 text-xs text-slate-400">{shift.entries?.length ?? 0} entries</span>
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--ink)]">Cash Log</h3>
+                <span className="rounded-lg border border-[var(--line-strong)] px-2 py-1 text-xs text-[var(--ink-soft)]">{shift.entries?.length ?? 0} entries</span>
               </div>
 
               {shift.entries && shift.entries.length > 0 ? (
@@ -235,15 +235,15 @@ export default function ShiftPage() {
                   {shift.entries.map((entry, i) => {
                     const isOut = entry.type === "CASH_OUT" || entry.type === "REFUND";
                     return (
-                      <div key={i} className="rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2.5">
+                      <div key={i} className="rounded-xl border border-[var(--line)] bg-[var(--surface-sunken)]/40 px-3 py-2.5">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${isOut ? "bg-rose-900/50 text-rose-300" : "bg-emerald-900/50 text-emerald-300"}`}>
+                            <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${isOut ? "bg-[color-mix(in_srgb,var(--danger)_35%,transparent)] text-[var(--danger)]" : "bg-[color-mix(in_srgb,var(--brand)_35%,transparent)] text-[var(--brand-light)]"}`}>
                               {entry.type}
                             </span>
-                            <div className="mt-1 text-xs text-slate-400">{entry.notes ?? "No notes"}</div>
+                            <div className="mt-1 text-xs text-[var(--ink-soft)]">{entry.notes ?? "No notes"}</div>
                           </div>
-                          <span className={`text-sm font-bold ${isOut ? "text-rose-400" : "text-emerald-400"}`}>
+                          <span className={`text-sm font-bold ${isOut ? "text-[var(--danger)]" : "text-[var(--brand-light)]"}`}>
                             {isOut ? "-" : "+"}{formatINR(entry.amount)}
                           </span>
                         </div>
@@ -252,7 +252,7 @@ export default function ShiftPage() {
                   })}
                 </div>
               ) : (
-                <div className="rounded-xl border border-slate-700 bg-slate-900/40 px-4 py-6 text-center text-sm text-slate-500">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-sunken)]/40 px-4 py-6 text-center text-sm text-[var(--ink-soft)]">
                   No cash entries yet for this shift.
                 </div>
               )}

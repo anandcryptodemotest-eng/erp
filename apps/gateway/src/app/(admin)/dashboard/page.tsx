@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   DashboardEditor,
-  WorkspaceHero,
+  PageScaffold,
   registerDashboardWidgets,
   roleDefaultConfig,
   useToast,
@@ -135,27 +135,35 @@ export default function DashboardPage() {
   );
 
   if (loading) {
-    return <div className="ws-page text-sm text-[var(--ink-soft)]">Loading dashboard…</div>;
+    return (
+      <PageScaffold>
+        <p className="text-sm text-[var(--ink-soft)]">Loading dashboard…</p>
+      </PageScaffold>
+    );
   }
 
   if (!config) {
-    return <div className="ws-page text-sm text-[var(--danger)]">{error || "Could not load dashboard"}</div>;
+    return (
+      <PageScaffold>
+        <p className="text-sm text-[var(--danger)]">{error || "Could not load dashboard"}</p>
+      </PageScaffold>
+    );
   }
 
   return (
-    <main className="ws-page">
-      <WorkspaceHero
-        eyebrow="Workspace"
-        title="Dashboard"
-        description="What needs your attention right now. Process work on Order Desk."
-        badge={roleLabel ? <span className="ws-chip">{roleLabel}</span> : null}
-        actions={
-          <Link href="/sales-desk" className="ws-btn ws-btn--primary">
+    <PageScaffold
+      hero={{
+        eyebrow: "Workspace",
+        title: "Dashboard",
+        description: "What needs your attention right now. Process work on Order Desk.",
+        badge: roleLabel ? <span className="ws-chip">{roleLabel}</span> : null,
+        actions: (
+          <Link href="/sales-desk" className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-sm)] bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-white shadow-[var(--shadow-1)] transition-[background,transform] duration-[var(--motion-fast)] hover:bg-[var(--brand-dark)] active:scale-[var(--press-scale)]">
             Open Order Desk →
           </Link>
-        }
-      />
-
+        ),
+      }}
+    >
       {error ? (
         <div className="mb-4 rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--warning)_35%,var(--line))] bg-[color-mix(in_srgb,var(--warning)_10%,white)] px-4 py-2 text-sm text-[var(--warning)]">
           {error}
@@ -174,6 +182,6 @@ export default function DashboardPage() {
           saving={saving}
         />
       ) : null}
-    </main>
+    </PageScaffold>
   );
 }

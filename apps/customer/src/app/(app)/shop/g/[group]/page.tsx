@@ -201,11 +201,11 @@ export default function CatalogGroupPage({ params }: { params: Promise<{ group: 
 
   return (
     <div className="pb-24 md:pb-28">
-      <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-[#e8e8e8] bg-white px-3 py-2.5 md:hidden">
+      <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2.5 md:hidden">
         <button
           type="button"
           onClick={() => router.push("/shop")}
-          className="flex h-9 w-9 items-center justify-center rounded-md bg-[#f5f5f5] text-lg font-bold text-[var(--ink)]"
+          className="flex h-9 w-9 items-center justify-center rounded-md bg-[var(--mist)] text-lg font-bold text-[var(--ink)]"
           aria-label="Back to shop"
         >
           ←

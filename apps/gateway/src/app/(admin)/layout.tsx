@@ -11,6 +11,7 @@ import {
   resolveNavModules,
   type NavModuleKey,
 } from "@/lib/nav-access";
+import { BillingStatusBanner } from "./billing-status-banner";
 
 type NavItem = AdminNavItem & {
   keywords: string[];
@@ -96,6 +97,13 @@ const NAV_GROUPS: NavGroup[] = [
         keywords: ["team", "invite", "role", "process owner", "catalog manager", "sales executive"],
         module: "users",
       },
+      {
+        href: "/billing",
+        label: "Sankalp billing",
+        icon: "BL",
+        keywords: ["subscription", "saas", "plan", "invoice", "upgrade"],
+        module: "administration",
+      },
     ],
   },
   {
@@ -142,6 +150,9 @@ const NAV_GROUPS: NavGroup[] = [
 
 const QUICK_ACTIONS: NavItem[] = [
   { href: "/sales-desk", label: "Order Desk", icon: "OD", keywords: ["oms", "review", "order desk", "sales desk"], module: "order_desk" },
+  { href: "/quick-bill", label: "Quick Bill", icon: "QB", keywords: ["walk-in", "bill", "counter", "quick"], module: "order_desk" },
+  { href: "/gstr1-export", label: "GSTR-1 export", icon: "G1", keywords: ["gst", "gstr1", "export", "tax"], module: "invoices" },
+  { href: "/ar", label: "Receivables", icon: "AR", keywords: ["ar", "ageing", "outstanding", "collect", "payment"], module: "invoices" },
   { href: "/orders", label: "Orders", icon: "NO", keywords: ["order"], module: "orders" },
   { href: "/products", label: "Products", icon: "PR", keywords: ["catalog"], module: "products" },
   { href: "/purchase-orders", label: "New PO", icon: "PO", keywords: ["procurement"], module: "purchase_orders" },
@@ -155,10 +166,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [query, setQuery] = useState("");
   const [sessionUser, setSessionUser] = useState<ReturnType<typeof getAdminUser>>(null);
   const [tenantDisplayName, setTenantDisplayName] = useState("TrustWood");
+  const [planFeatures, setPlanFeatures] = useState<string[] | null>(null);
 
   const allowed = useMemo(
-    () => resolveNavModules(sessionUser?.role, sessionUser?.navModules, sessionUser?.capabilities),
-    [sessionUser?.role, sessionUser?.navModules, sessionUser?.capabilities]
+    () => resolveNavModules(sessionUser?.role, sessionUser?.navModules, sessionUser?.capabilities, planFeatures),
+    [sessionUser?.role, sessionUser?.navModules, sessionUser?.capabilities, planFeatures]
   );
 
   useEffect(() => {
@@ -168,18 +180,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
     const user = getAdminUser();
     setSessionUser(user);
-    const mods = resolveNavModules(user?.role, user?.navModules, user?.capabilities);
-    if (mods.size === 0) {
-      clearAuth();
-      router.replace("/login");
-      return;
-    }
-    const mod = pathToModuleKey(pathname);
-    if (mod && !canAccessModule(mods, mod)) {
-      router.replace(defaultHomePath(mods));
-      return;
-    }
-    setReady(true);
+    void api<{ data?: { entitlement?: { features?: string[] } } }>("/api/billing/subscription")
+      .then((r) => {
+        const features = r.data?.entitlement?.features ?? ["dashboard", "organization", "users"];
+        setPlanFeatures(features);
+        const mods = resolveNavModules(user?.role, user?.navModules, user?.capabilities, features);
+        if (mods.size === 0) {
+          clearAuth();
+          router.replace("/login");
+          return;
+        }
+        const mod = pathToModuleKey(pathname);
+        if (mod && !canAccessModule(mods, mod)) {
+          router.replace(defaultHomePath(mods));
+          return;
+        }
+        setReady(true);
+      })
+      .catch(() => {
+        const fallback = ["dashboard", "organization", "users"];
+        setPlanFeatures(fallback);
+        setReady(true);
+      });
   }, [router, pathname]);
 
   useEffect(() => {
@@ -216,8 +238,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [normalizedQuery, allowed]);
 
   const visibleQuickActions = useMemo(
-    () => QUICK_ACTIONS.filter((a) => canAccessModule(allowed, a.module)),
-    [allowed]
+    () =>
+      QUICK_ACTIONS.filter((a) => {
+        if (!canAccessModule(allowed, a.module)) return false;
+        if (a.href === "/quick-bill" && !(planFeatures ?? []).includes("quick_bill") && !(planFeatures ?? []).includes("*")) {
+          return false;
+        }
+        return true;
+      }),
+    [allowed, planFeatures]
   );
 
   if (!ready) return null;
@@ -259,6 +288,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         communication: true,
       }}
     >
+      <BillingStatusBanner />
       {children}
     </AdminShell>
   );

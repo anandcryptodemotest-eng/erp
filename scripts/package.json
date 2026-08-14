@@ -7,6 +7,8 @@
     "e2e:oms": "tsx e2e-oms-journey.ts",
     "e2e:portal": "tsx e2e-portal-oms.ts",
     "e2e:greenfield": "tsx e2e-greenfield.ts",
+    "e2e:gst": "tsx e2e-gst-tenants.ts",
+    "e2e:saas": "tsx e2e-saas-billing.ts",
     "seed:demo": "tsx seed-client-demo.ts",
     "clear:catalog": "tsx clear-demo-catalog.ts"
   },

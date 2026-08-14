@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1e3d32",
+  themeColor: "#0B5E3C",
   width: "device-width",
   initialScale: 1,
 };
@@ -52,9 +52,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${display.variable} ${body.variable}`}
       data-scroll-behavior="smooth"
       data-theme="trustwood"
-      data-density="dense"
+      data-density="comfortable"
     >
-      <body className="min-h-screen antialiased" style={fontVars}>
+      <body className="erp-canvas min-h-screen antialiased" style={fontVars}>
         <TenantBrandingProvider>{children}</TenantBrandingProvider>
         <PwaRegister />
       </body>

@@ -148,7 +148,7 @@ export function ProfileMenu({
       <button
         type="button"
         onClick={toggle}
-        className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-semibold hover:bg-[#f5f5f5] ${
+        className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-semibold hover:bg-[var(--mist)] ${
           active || open ? "text-[var(--forest)]" : "text-[var(--ink-soft)]"
         } ${className ?? ""}`}
         aria-haspopup="menu"
@@ -181,8 +181,8 @@ export function ProfileMenu({
             role="menu"
             className={
               variant === "nav"
-                ? "fixed inset-x-0 bottom-0 z-[70] max-h-[70vh] overflow-y-auto rounded-t-2xl border border-[#e8e8e8] bg-white pb-[env(safe-area-inset-bottom)] shadow-lg"
-                : "absolute right-0 top-full z-[70] mt-1 w-64 overflow-hidden rounded-lg border border-[#e8e8e8] bg-white shadow-lg"
+                ? "fixed inset-x-0 bottom-0 z-[70] max-h-[70vh] overflow-y-auto rounded-t-2xl border border-[var(--line)] bg-[var(--surface-raised)] pb-[env(safe-area-inset-bottom)] shadow-lg"
+                : "absolute right-0 top-full z-[70] mt-1 w-64 overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface-raised)] shadow-lg"
             }
           >
             <div className="border-b border-[#f0f0f0] px-4 py-3">
@@ -195,7 +195,7 @@ export function ProfileMenu({
                   <Link
                     role="menuitem"
                     href={item.href}
-                    className="block px-4 py-3 text-sm font-semibold text-[var(--ink)] hover:bg-[#fafafa]"
+                    className="block px-4 py-3 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--mist)]"
                     onClick={() => setOpen(false)}
                   >
                     {item.label}

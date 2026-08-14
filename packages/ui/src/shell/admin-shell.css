@@ -1,4 +1,4 @@
-/* Shared AdminShell chrome — TrustWood ERP Platform v1.0
+/* Shared AdminShell chrome — Sankalp Design System v2
    Structural layout lives here so hosts work even if Tailwind
    has not yet scanned package class names. */
 
@@ -172,11 +172,10 @@
   height: 100%;
   width: 16rem;
   flex-shrink: 0;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--brand-mid) 55%, #0c1411) 0%, #0c1411 100%);
+  background: var(--brand);
   color: #f5f2ec;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-  transition: width 200ms ease-out;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  transition: width var(--motion-standard) var(--ease-out);
 }
 
 .admin-sidebar.is-collapsed {
@@ -319,33 +318,36 @@
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  border-radius: 0.75rem;
+  border-radius: var(--radius-sm);
   padding: 0.5rem 0.65rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.72);
   text-decoration: none;
-  transition: background 150ms ease, color 150ms ease;
+  transition:
+    background var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
 }
 
 .admin-nav-link:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
 }
 
 .admin-nav-active {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  color: var(--accent-soft);
+  background: color-mix(in srgb, white 14%, var(--brand-dark));
+  color: #fff;
+  font-weight: 600;
 }
 
 .admin-nav-rail {
   position: absolute;
   left: 0;
-  top: 20%;
-  bottom: 20%;
+  top: 18%;
+  bottom: 18%;
   width: 3px;
   border-radius: 0 3px 3px 0;
-  background: var(--accent);
+  background: #fff;
 }
 
 .admin-nav-icon {
@@ -360,7 +362,8 @@
 }
 
 .admin-nav-active .admin-nav-icon {
-  color: var(--accent-soft);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .admin-nav-icon svg {
@@ -585,9 +588,13 @@
   padding: 1rem 1rem 2rem;
 }
 
+.ws-page--wide {
+  max-width: 96rem;
+}
+
 @media (min-width: 768px) {
   .ws-page {
-    padding: 1.75rem 2rem 3rem;
+    padding: 1.5rem 2rem 2.5rem;
   }
 }
 
@@ -597,47 +604,46 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding: 1.25rem 1.35rem;
+  margin-bottom: 1.25rem;
+  padding: 1.15rem 1.25rem;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--surface-raised) 88%, white), var(--surface-raised)),
-    radial-gradient(720px 180px at 100% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 60%);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-1);
 }
 
 .ws-hero__eyebrow {
   margin: 0;
   font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--brand);
 }
 
 .ws-hero__title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.4rem;
+  font-size: var(--text-h3);
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--ink);
-  line-height: 1.15;
+  line-height: var(--leading-h3);
 }
 
 @media (min-width: 768px) {
   .ws-hero__title {
-    font-size: 1.85rem;
+    font-size: var(--text-h2);
+    line-height: var(--leading-h2);
   }
 }
 
 .ws-hero__desc {
-  margin: 0.45rem 0 0;
+  margin: 0.4rem 0 0;
   max-width: 40rem;
-  font-size: 0.9rem;
-  line-height: 1.45;
-  color: color-mix(in srgb, var(--ink-soft) 82%, transparent);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  color: var(--ink-soft);
 }
 
 .ws-hero__actions {
@@ -645,6 +651,56 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* StatusChip — Design System v2 */
+.erp-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+  border-radius: var(--radius-full);
+  padding: 0.15rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.35;
+  border: 1px solid transparent;
+}
+
+.erp-status-chip--success {
+  background: color-mix(in srgb, var(--success) 14%, white);
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 22%, transparent);
+}
+
+.erp-status-chip--warning {
+  background: color-mix(in srgb, var(--warning) 16%, white);
+  color: color-mix(in srgb, var(--warning) 75%, black);
+  border-color: color-mix(in srgb, var(--warning) 24%, transparent);
+}
+
+.erp-status-chip--danger {
+  background: color-mix(in srgb, var(--danger) 12%, white);
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 20%, transparent);
+}
+
+.erp-status-chip--neutral {
+  background: var(--mist);
+  color: var(--ink-soft);
+  border-color: var(--line);
+}
+
+.erp-status-chip--info {
+  background: color-mix(in srgb, var(--info) 12%, white);
+  color: var(--info);
+  border-color: color-mix(in srgb, var(--info) 20%, transparent);
+}
+
+.erp-status-chip--brand {
+  background: color-mix(in srgb, var(--brand) 10%, white);
+  color: var(--brand-dark);
+  border-color: color-mix(in srgb, var(--brand) 18%, transparent);
 }
 
 .ws-btn {

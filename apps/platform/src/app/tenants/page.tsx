@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button, PageScaffold, StatusChip } from "@erp/ui";
 import { Shell } from "@/components/Shell";
 import { api, getAccessToken } from "@/lib/api";
 import type { ProvisionTenantResponse } from "@erp/platform-core";
@@ -70,22 +71,28 @@ export default function TenantsPage() {
     }
   }
 
+  const fieldClass =
+    "rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2 text-sm shadow-[var(--shadow-1)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]";
+
   return (
     <Shell>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-xl font-semibold">Tenants</h2>
-        </div>
-
-        {error && <p className="text-sm text-[var(--bad)]">{error}</p>}
+      <PageScaffold
+        hero={{
+          eyebrow: "Platform",
+          title: "Tenants",
+          description: "Provision Sankalp companies and open tenant admin.",
+        }}
+      >
+        <div className="space-y-6">
+        {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
         {created && (
-          <div className="rounded-xl border border-[var(--ok)]/40 bg-[var(--ok)]/10 p-4 text-sm space-y-1">
-            <p className="font-semibold text-[var(--ok)]">Tenant Ready</p>
+          <div className="space-y-1 rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] p-4 text-sm">
+            <p className="font-semibold text-[var(--success)]">Tenant Ready</p>
             <p>Slug: {created.slug}</p>
             <p>Admin: {created.adminEmail}</p>
             <p>
               Login:{" "}
-              <a className="underline text-[var(--accent)]" href={created.loginUrl} target="_blank" rel="noreferrer">
+              <a className="text-[var(--brand)] underline" href={created.loginUrl} target="_blank" rel="noreferrer">
                 {created.loginUrl}
               </a>
             </p>
@@ -94,22 +101,21 @@ export default function TenantsPage() {
 
         <form
           onSubmit={onCreate}
-          className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+          className="grid gap-3 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] p-4 shadow-[var(--shadow-1)] sm:grid-cols-2 lg:grid-cols-3"
         >
           <input
             required
             placeholder="Name"
-            className="rounded-lg border border-[var(--line)] bg-black/20 px-3 py-2"
+            className={fieldClass}
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
           <input
             required
             placeholder="slug (e.g. acme-corp)"
-            /* Chromium pattern uses /v: hyphen must be first or escaped */
             pattern="[-a-z0-9]+"
             title="Lowercase letters, numbers, and hyphens only"
-            className="rounded-lg border border-[var(--line)] bg-black/20 px-3 py-2"
+            className={fieldClass}
             value={form.slug}
             onChange={(e) =>
               setForm({
@@ -125,7 +131,7 @@ export default function TenantsPage() {
             required
             type="email"
             placeholder="Admin email"
-            className="rounded-lg border border-[var(--line)] bg-black/20 px-3 py-2"
+            className={fieldClass}
             value={form.adminEmail}
             onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
           />
@@ -134,24 +140,24 @@ export default function TenantsPage() {
             type="password"
             minLength={8}
             placeholder="Admin password"
-            className="rounded-lg border border-[var(--line)] bg-black/20 px-3 py-2"
+            className={fieldClass}
             value={form.adminPassword}
             onChange={(e) => setForm({ ...form, adminPassword: e.target.value })}
           />
           <input
             placeholder="Customer domain (optional)"
-            className="rounded-lg border border-[var(--line)] bg-black/20 px-3 py-2"
+            className={fieldClass}
             value={form.customerDomain}
             onChange={(e) => setForm({ ...form, customerDomain: e.target.value })}
           />
           <input
             placeholder="Admin domain (optional)"
-            className="rounded-lg border border-[var(--line)] bg-black/20 px-3 py-2"
+            className={fieldClass}
             value={form.adminDomain}
             onChange={(e) => setForm({ ...form, adminDomain: e.target.value })}
           />
           <select
-            className="rounded-lg border border-[var(--line)] bg-black/20 px-3 py-2"
+            className={fieldClass}
             value={form.plan}
             onChange={(e) => setForm({ ...form, plan: e.target.value })}
           >
@@ -159,18 +165,14 @@ export default function TenantsPage() {
             <option value="growth">growth</option>
             <option value="enterprise">enterprise</option>
           </select>
-          <button
-            type="submit"
-            disabled={busy}
-            className="rounded-lg bg-[var(--accent)] px-4 py-2 font-semibold text-white disabled:opacity-50"
-          >
+          <Button type="submit" disabled={busy}>
             {busy ? "Creating…" : "Create tenant"}
-          </button>
+          </Button>
         </form>
 
-        <div className="overflow-x-auto rounded-xl border border-[var(--line)]">
+        <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] shadow-[var(--shadow-1)]">
           <table className="w-full text-left text-sm">
-            <thead className="bg-[var(--panel)] text-[var(--muted)]">
+            <thead className="bg-[var(--surface-sunken)] text-[var(--ink-soft)]">
               <tr>
                 <th className="px-3 py-2 font-medium">Tenant</th>
                 <th className="px-3 py-2 font-medium">Plan</th>
@@ -188,13 +190,17 @@ export default function TenantsPage() {
               {rows.map((t) => (
                 <tr key={t.id} className="border-t border-[var(--line)]">
                   <td className="px-3 py-2">
-                    <Link className="text-[var(--accent)] hover:underline" href={`/tenants/${t.id}`}>
+                    <Link className="font-medium text-[var(--brand)] hover:underline" href={`/tenants/${t.id}`}>
                       {t.name}
                     </Link>
-                    <div className="text-xs text-[var(--muted)] font-mono">{t.slug}</div>
+                    <div className="font-mono text-xs text-[var(--ink-soft)]">{t.slug}</div>
                   </td>
                   <td className="px-3 py-2">{t.plan}</td>
-                  <td className="px-3 py-2">{t.isActive ? "Active" : "Disabled"}</td>
+                  <td className="px-3 py-2">
+                    <StatusChip tone={t.isActive ? "success" : "neutral"}>
+                      {t.isActive ? "Active" : "Disabled"}
+                    </StatusChip>
+                  </td>
                   <td className="px-3 py-2">{new Date(t.createdAt).toLocaleDateString()}</td>
                   <td className="px-3 py-2">{t.lastLogin ?? "—"}</td>
                   <td className="px-3 py-2">{t.users}</td>
@@ -203,7 +209,7 @@ export default function TenantsPage() {
                   <td className="px-3 py-2">{t.apiUsage ?? "—"}</td>
                   <td className="px-3 py-2">
                     <Link
-                      className="rounded-lg border border-[var(--line)] px-3 py-1.5 text-xs font-semibold hover:bg-white/5"
+                      className="inline-flex rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-1.5 text-xs font-semibold hover:bg-[var(--mist)]"
                       href={`/tenants/${t.id}`}
                     >
                       Edit
@@ -214,7 +220,8 @@ export default function TenantsPage() {
             </tbody>
           </table>
         </div>
-      </div>
+        </div>
+      </PageScaffold>
     </Shell>
   );
 }

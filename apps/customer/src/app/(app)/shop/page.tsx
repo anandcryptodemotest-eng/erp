@@ -100,7 +100,7 @@ function ShopContent() {
           ))}
         </div>
       ) : groups.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-[#e8e8e8] bg-[#fafafa] px-4 py-14 text-center text-[var(--ink-soft)]">
+        <div className="rounded-lg border border-dashed border-[var(--line)] bg-[var(--mist)] px-4 py-14 text-center text-[var(--ink-soft)]">
           <p className="font-bold text-[var(--ink)]">No products yet</p>
           <p className="mt-1 text-sm">
             Check back soon, or browse{" "}

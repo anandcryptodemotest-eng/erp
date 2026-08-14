@@ -1,5 +1,7 @@
 import { serviceClient } from "@erp/config";
+import { TaxRegime, TaxTreatment, validateGstin } from "@erp/tax-india";
 import { z } from "zod";
+import { fetchTenantTaxProfile } from "@/lib/fetch-tenant-tax-profile";
 
 export const lineItemInputSchema = z
   .array(
@@ -23,11 +25,13 @@ export type ResolvedLine = {
   unitPrice: number;
   total: number;
   taxRate: number;
+  taxTreatment: string;
+  customSnapshot?: Record<string, unknown>;
 };
 
 export function normalizeLineItems(
   items: z.infer<typeof lineItemInputSchema>
-): Omit<ResolvedLine, "taxRate">[] {
+): Omit<ResolvedLine, "taxRate" | "taxTreatment" | "customSnapshot">[] {
   return items.map((item) => {
     const quantity = item.quantity ?? item.qty;
     const productName = item.productName ?? item.name;
@@ -53,23 +57,51 @@ export function normalizeLineItems(
 
 /**
  * Apply product GST only when taxRate is explicitly set on the product.
- * Unconfigured → 0% (do not invent rates from env / category suggestions).
+ * Snapshots HSN + taxTreatment — never recalculate from live product at invoice time.
  */
 export async function applyInventoryTaxRates(
-  items: Omit<ResolvedLine, "taxRate">[],
+  items: Omit<ResolvedLine, "taxRate" | "taxTreatment" | "customSnapshot">[],
   opts: { tenantId: string; userId: string }
 ): Promise<ResolvedLine[]> {
+  const profile = await fetchTenantTaxProfile(opts.tenantId);
+  const gstOff = profile.regime === TaxRegime.None;
+
   const out: ResolvedLine[] = [];
   for (const line of items) {
-    const res = await serviceClient.call<{ data?: { taxRate?: number | null } }>(
-      "inventory",
-      `/api/products/${line.productId}`,
-      { method: "GET", tenantId: opts.tenantId, userId: opts.userId }
-    );
-    const rate = res.data?.data?.taxRate;
+    const res = await serviceClient.call<{
+      data?: {
+        taxRate?: number | null;
+        hsnCode?: string | null;
+        sku?: string | null;
+        taxTreatment?: string | null;
+      };
+    }>("inventory", `/api/products/${line.productId}`, {
+      method: "GET",
+      tenantId: opts.tenantId,
+      userId: opts.userId,
+    });
+    const product = res.data?.data;
+    const rate =
+      gstOff || typeof product?.taxRate !== "number" || !Number.isFinite(product.taxRate)
+        ? 0
+        : product.taxRate;
+    const taxTreatment =
+      product?.taxTreatment === TaxTreatment.Exempt
+        ? TaxTreatment.Exempt
+        : product?.taxTreatment === TaxTreatment.ZeroRated
+          ? TaxTreatment.ZeroRated
+          : TaxTreatment.Taxable;
+
     out.push({
       ...line,
-      taxRate: typeof rate === "number" && Number.isFinite(rate) && rate >= 0 ? rate : 0,
+      taxRate: rate,
+      taxTreatment: gstOff ? TaxTreatment.Taxable : taxTreatment,
+      customSnapshot: {
+        hsnCode: product?.hsnCode ?? undefined,
+        sku: product?.sku ?? undefined,
+        taxTreatment: gstOff ? TaxTreatment.Taxable : taxTreatment,
+        taxRateSnapshot: rate,
+      },
     });
   }
   return out;
@@ -84,9 +116,24 @@ export function computeTotals(
   const subtotal = items.reduce((sum, i) => sum + i.total, 0);
   const discountedSubtotal = Math.max(0, subtotal - couponDiscount);
   const tax = items.reduce((sum, i) => {
+    if (i.taxTreatment === TaxTreatment.Exempt || i.taxTreatment === TaxTreatment.ZeroRated) {
+      return sum;
+    }
     const lineShare = subtotal > 0 ? (i.total / subtotal) * discountedSubtotal : i.total;
-    return sum + lineShare * i.taxRate;
+    const rate = i.taxRate > 1 ? i.taxRate / 100 : i.taxRate;
+    return sum + lineShare * rate;
   }, 0);
   const total = discountedSubtotal + tax + deliveryFee;
   return { subtotal, tax, total };
+}
+
+export function validateCustomerTaxId(
+  taxId: string | null | undefined,
+  regime: string
+): { ok: true } | { ok: false; error: string } {
+  if (!taxId?.trim()) return { ok: true };
+  if (regime !== TaxRegime.InGst) return { ok: true };
+  const check = validateGstin(taxId);
+  if (!check.valid) return { ok: false, error: check.error ?? "Invalid GSTIN" };
+  return { ok: true };
 }

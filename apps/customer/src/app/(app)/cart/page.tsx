@@ -94,7 +94,7 @@ export default function CartPage() {
       </p>
 
       {items.length === 0 && (
-        <div className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] px-6 py-12 text-center shadow-[var(--shadow-sm)]">
+        <div className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] px-6 py-12 text-center shadow-[var(--shadow-1)]">
           <p className="text-lg font-bold text-[var(--ink)]">Cart is empty</p>
           <p className="mt-1 text-sm text-[var(--ink-soft)]">Browse products and add configurations.</p>
           <Link href="/shop" className="mt-5 inline-block">
@@ -114,10 +114,10 @@ export default function CartPage() {
               return (
                 <div
                   key={`${item.productId}-${item.variantId}`}
-                  className="overflow-hidden rounded-lg border border-[#e8e8e8] bg-white"
+                  className="overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface-raised)]"
                 >
                   <div className="flex gap-3 p-3">
-                    <div className="h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-md bg-[#f5f5f5]">
+                    <div className="h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-md bg-[var(--mist)]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={item.imageUrl || productImageUrl({ id: item.productId, name: item.name }, i)}
@@ -171,7 +171,7 @@ export default function CartPage() {
                       ) : null}
                     </div>
                   </div>
-                  <details className="border-t border-[#f0f0f0] bg-[#fafafa]">
+                  <details className="border-t border-[#f0f0f0] bg-[var(--mist)]">
                     <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-[var(--forest)]">
                       Line breakup
                     </summary>
@@ -193,7 +193,7 @@ export default function CartPage() {
                           </span>
                         </div>
                       ))}
-                      <div className="flex justify-between gap-2 border-t border-[#e8e8e8] pt-1 text-xs font-bold text-[var(--ink)]">
+                      <div className="flex justify-between gap-2 border-t border-[var(--line)] pt-1 text-xs font-bold text-[var(--ink)]">
                         <span>Line total</span>
                         <span className="tabular-nums">₹{amount.toLocaleString("en-IN")}</span>
                       </div>

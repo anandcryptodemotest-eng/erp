@@ -20,6 +20,7 @@ export type PlatformTokenClaims = {
 /** Tenant operational capabilities (not TenantSetting / branding). */
 export const CapabilityKey = {
   ProcessStudio: "processStudio",
+  IndiaGst: "indiaGst",
   AI: "ai",
   AdvancedReports: "advancedReports",
   ApiAccess: "apiAccess",

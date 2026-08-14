@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, getTenantId } from "@/lib/admin-api";
-import { Button, Input, WorkspaceHero } from "@erp/ui";
+import { Button, Input, PageScaffold } from "@erp/ui";
 
 const OMS_ROLES = [
   "ADMIN",
@@ -136,21 +136,21 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="ws-page max-w-5xl space-y-6">
-      <div>
-        <WorkspaceHero
-          eyebrow="Administration"
-          title="Users & roles"
-          description="Create team members and assign permission sets. Prefer Process Owner and Catalog Manager over giving everyone Admin."
-        />
-        <p className="text-xs text-[var(--ink-soft)] font-mono">Tenant: {tenantId || "—"}</p>
-      </div>
-
+    <PageScaffold
+      className="max-w-5xl space-y-6"
+      hero={{
+        eyebrow: "Administration",
+        title: "Users & roles",
+        description:
+          "Create team members and assign permission sets. Prefer Process Owner and Catalog Manager over giving everyone Admin.",
+      }}
+      ahead={<p className="text-xs text-[var(--ink-soft)] font-mono">Tenant: {tenantId || "—"}</p>}
+    >
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>
+        <div className="rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,white)] px-4 py-3 text-sm text-[var(--danger)]">{error}</div>
       )}
       {message && (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        <div className="rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] px-4 py-3 text-sm text-[var(--success)]">
           {message}
         </div>
       )}
@@ -285,6 +285,6 @@ export default function AdminUsersPage() {
           </li>
         </ol>
       </div>
-    </div>
+    </PageScaffold>
   );
 }

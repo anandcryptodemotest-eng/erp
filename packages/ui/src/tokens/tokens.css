@@ -1,9 +1,11 @@
 /**
- * Platform UI Foundation v1.0
+ * Sankalp Design System v2 — Platform UI Foundation
  * Foundation-first → Brand themes → Density modes
  *
  *   html[data-theme="trustwood|platform|pos|delivery"]
  *   html[data-density="comfortable|dense|compact|compact-touch"]
+ *
+ * Apps must NOT define design tokens. Consume these variables only.
  */
 
 /* ─── FOUNDATION (structure — theme-agnostic) ─── */
@@ -28,24 +30,41 @@
   --text-2xl: 1.5rem;
   --text-3xl: 1.875rem;
   --text-4xl: 2.25rem;
+  --text-h1: 2.5rem;
+  --leading-h1: 3rem;
+  --text-h2: 1.5rem;
+  --leading-h2: 2rem;
+  --text-h3: 1.125rem;
+  --leading-h3: 1.5rem;
+  --text-body: 0.875rem;
+  --leading-body: 1.25rem;
   --leading-tight: 1.25;
   --leading-normal: 1.5;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
-  /* Radius */
-  --radius-sm: 0.5rem;
-  --radius: 1.25rem;
-  --radius-lg: 1.75rem;
+  /* Radius — v2 contract: 4 / 8 / 12 / 16 / 24 / full */
+  --radius-xs: 0.25rem; /* 4 */
+  --radius-sm: 0.5rem; /* 8 */
+  --radius-md: 0.75rem; /* 12 */
+  --radius: 0.75rem;
+  --radius-lg: 1rem; /* 16 */
+  --radius-xl: 1.5rem; /* 24 */
   --radius-full: 999px;
   --border-width: 1px;
 
-  /* Elevation (alpha tinted by theme via --shadow-color) */
-  --shadow-color: 18, 26, 22;
-  --shadow-sm: 0 2px 8px rgba(var(--shadow-color), 0.06);
-  --shadow: 0 18px 40px rgba(var(--shadow-color), 0.12);
-  --shadow-lg: 0 24px 56px rgba(var(--shadow-color), 0.16);
+  /* Elevation Level 0–4 */
+  --shadow-color: 15, 23, 42;
+  --shadow-0: none;
+  --shadow-1: 0 1px 2px rgba(var(--shadow-color), 0.06);
+  --shadow-2: 0 4px 12px rgba(var(--shadow-color), 0.08);
+  --shadow-3: 0 12px 28px rgba(var(--shadow-color), 0.12);
+  --shadow-4: 0 24px 48px rgba(var(--shadow-color), 0.18);
+  /* Legacy aliases */
+  --shadow-sm: var(--shadow-1);
+  --shadow: var(--shadow-2);
+  --shadow-lg: var(--shadow-3);
 
   /* Opacity */
   --opacity-muted: 0.6;
@@ -86,42 +105,49 @@
   --motion-slow: 320ms;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --press-scale: 0.97;
+
+  /* Focus ring */
+  --focus-ring: 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--brand);
 
   /* Type families (apps may override with next/font variables) */
   --font-display: "Fraunces", Georgia, serif;
   --font-body: "Outfit", system-ui, sans-serif;
 
-  /* Semantic color aliases — defaults = trustwood; themes override */
-  --ink: #121a16;
-  --ink-soft: #2a3830;
-  --ink-inverse: #faf8f5;
-  --accent: #c8922a;
-  --accent-soft: #e8c56a;
-  --brand: #1e3d32;
-  --brand-mid: #2d5a4a;
-  --surface: #faf8f5;
+  /* Semantic color aliases — defaults = Sankalp v2 (trustwood) */
+  --ink: #374151;
+  --ink-soft: #6b7280;
+  --ink-inverse: #ffffff;
+  --accent: #f5b33d;
+  --accent-soft: #fcd34d;
+  --brand: #0b5e3c;
+  --brand-dark: #084031;
+  --brand-mid: #0b5e3c;
+  --brand-light: #b6f3bc;
+  --surface: #ffffff;
   --surface-raised: #ffffff;
-  --canvas: #f0ebe3;
-  --mist: #e7ece9;
-  --line: rgba(18, 26, 22, 0.1);
-  --danger: #b42318;
-  --success: #1e7a4a;
-  --warning: #b45309;
-  --info: #1d4ed8;
+  --surface-sunken: #f8faf9;
+  --canvas: #f3f6f4;
+  --mist: #e8eee9;
+  --line: #e5e7eb;
+  --line-strong: #d1d5db;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --info: #0ea5e9;
 
   /* Legacy aliases (commerce + existing apps) */
   --forest: var(--brand);
-  --forest-mid: var(--brand-mid);
+  --forest-mid: var(--brand-dark);
   --amber: var(--accent);
   --amber-soft: var(--accent-soft);
   --linen: var(--canvas);
   --paper: var(--surface);
 
-  /* Shared admin / host page backdrop (TrustWood ERP Platform v1.0) */
+  /* Soft brand-tinted canvas — not linen/cream wash, not heavy gradients */
   --page-bg:
-    radial-gradient(1200px 600px at 10% -10%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, color-mix(in srgb, var(--brand-mid) 16%, transparent), transparent 50%),
-    linear-gradient(180deg, var(--mist) 0%, var(--canvas) 45%, var(--canvas) 100%);
+    radial-gradient(900px 420px at 0% -5%, color-mix(in srgb, var(--brand) 6%, transparent), transparent 55%),
+    linear-gradient(180deg, var(--canvas) 0%, var(--surface-sunken) 100%);
 }
 
 /** Use on html/body for admin hosts — one canvas, theme-driven colors */
@@ -133,93 +159,179 @@
   -webkit-font-smoothing: antialiased;
 }
 
-/* ─── BRAND THEMES (color / gradient only) ─── */
+.erp-page-enter {
+  animation: erp-page-enter var(--motion-standard) var(--ease-out) both;
+}
+
+@keyframes erp-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-standard: 0ms;
+    --motion-slow: 0ms;
+    --press-scale: 1;
+  }
+
+  .erp-page-enter {
+    animation: none;
+  }
+
+  .erp-skeleton {
+    animation: none !important;
+  }
+}
+
+.erp-skeleton {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--mist) 0%,
+    color-mix(in srgb, var(--mist) 55%, white) 50%,
+    var(--mist) 100%
+  );
+  background-size: 200% 100%;
+  animation: erp-skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes erp-skeleton-pulse {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+/* Interactive helpers (use with shared controls) */
+.erp-lift {
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.erp-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-2);
+}
+
+.erp-press:active {
+  transform: scale(var(--press-scale));
+}
+
+/* ─── BRAND THEMES ─── */
 [data-theme="trustwood"] {
-  --ink: #121a16;
-  --ink-soft: #2a3830;
-  --ink-inverse: #faf8f5;
-  --accent: #c8922a;
-  --accent-soft: #e8c56a;
-  --brand: #1e3d32;
-  --brand-mid: #2d5a4a;
-  --surface: #faf8f5;
+  --ink: #374151;
+  --ink-soft: #6b7280;
+  --ink-inverse: #ffffff;
+  --accent: #f5b33d;
+  --accent-soft: #fcd34d;
+  --brand: #0b5e3c;
+  --brand-dark: #084031;
+  --brand-mid: #0b5e3c;
+  --brand-light: #b6f3bc;
+  --surface: #ffffff;
   --surface-raised: #ffffff;
-  --canvas: #f0ebe3;
-  --mist: #e7ece9;
-  --line: rgba(18, 26, 22, 0.1);
-  --danger: #b42318;
-  --success: #1e7a4a;
-  --warning: #b45309;
-  --info: #1d4ed8;
-  --shadow-color: 18, 26, 22;
+  --surface-sunken: #f8faf9;
+  --canvas: #f3f6f4;
+  --mist: #e8eee9;
+  --line: #e5e7eb;
+  --line-strong: #d1d5db;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --info: #0ea5e9;
+  --shadow-color: 15, 23, 42;
   --font-display: "Fraunces", Georgia, serif;
   --font-body: "Outfit", system-ui, sans-serif;
 }
 
-/* Deprecated for admin hosts (TrustWood ERP Platform v1.0).
-   Platform Admin uses trustwood. Kept for any legacy data-theme="platform" pages. */
+/* Deprecated alias — maps to trustwood v2 */
 [data-theme="platform"] {
-  --ink: #121a16;
-  --ink-soft: #2a3830;
-  --ink-inverse: #faf8f5;
-  --accent: #c8922a;
-  --accent-soft: #e8c56a;
-  --brand: #1e3d32;
-  --brand-mid: #2d5a4a;
-  --surface: #faf8f5;
+  --ink: #374151;
+  --ink-soft: #6b7280;
+  --ink-inverse: #ffffff;
+  --accent: #f5b33d;
+  --accent-soft: #fcd34d;
+  --brand: #0b5e3c;
+  --brand-dark: #084031;
+  --brand-mid: #0b5e3c;
+  --brand-light: #b6f3bc;
+  --surface: #ffffff;
   --surface-raised: #ffffff;
-  --canvas: #f0ebe3;
-  --mist: #e7ece9;
-  --line: rgba(18, 26, 22, 0.1);
-  --danger: #b42318;
-  --success: #1e7a4a;
-  --warning: #b45309;
-  --info: #1d4ed8;
-  --shadow-color: 18, 26, 22;
+  --surface-sunken: #f8faf9;
+  --canvas: #f3f6f4;
+  --mist: #e8eee9;
+  --line: #e5e7eb;
+  --line-strong: #d1d5db;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --info: #0ea5e9;
+  --shadow-color: 15, 23, 42;
   --font-display: "Fraunces", Georgia, serif;
   --font-body: "Outfit", system-ui, sans-serif;
 }
 
 [data-theme="pos"] {
-  --ink: #f1f5f9;
+  --ink: #f8fafc;
   --ink-soft: #94a3b8;
-  --ink-inverse: #0f172a;
-  --accent: #c8922a;
-  --accent-soft: #e8c56a;
-  --brand: #1e3d32;
-  --brand-mid: #2d5a4a;
+  --ink-inverse: #0b5e3c;
+  --accent: #f5b33d;
+  --accent-soft: #fcd34d;
+  --brand: #0b5e3c;
+  --brand-dark: #084031;
+  --brand-mid: #127a50;
+  --brand-light: #b6f3bc;
   --surface: #1e293b;
   --surface-raised: #334155;
+  --surface-sunken: #0f172a;
   --canvas: #0f172a;
   --mist: #334155;
-  --line: rgba(241, 245, 249, 0.12);
+  --line: rgba(248, 250, 252, 0.12);
+  --line-strong: rgba(248, 250, 252, 0.2);
   --danger: #f87171;
-  --success: #34d399;
+  --success: #4ade80;
   --warning: #fbbf24;
-  --info: #60a5fa;
+  --info: #38bdf8;
   --shadow-color: 0, 0, 0;
   --font-display: "Outfit", system-ui, sans-serif;
   --font-body: "Outfit", system-ui, sans-serif;
+  --page-bg: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
 }
 
+/* Field apps: orange accent only — neutral white surfaces (no cream canvas) */
 [data-theme="delivery"] {
-  --ink: #1c1917;
-  --ink-soft: #57534e;
-  --ink-inverse: #fffbeb;
+  --ink: #374151;
+  --ink-soft: #6b7280;
+  --ink-inverse: #ffffff;
   --accent: #ea580c;
   --accent-soft: #fb923c;
-  --brand: #1e3d32;
-  --brand-mid: #2d5a4a;
-  --surface: #fffbeb;
+  --brand: #0b5e3c;
+  --brand-dark: #084031;
+  --brand-mid: #0b5e3c;
+  --brand-light: #b6f3bc;
+  --surface: #ffffff;
   --surface-raised: #ffffff;
-  --canvas: #fff7ed;
-  --mist: #ffedd5;
-  --line: rgba(28, 25, 23, 0.12);
-  --danger: #b42318;
-  --success: #1e7a4a;
-  --warning: #b45309;
-  --info: #1d4ed8;
-  --shadow-color: 28, 25, 23;
+  --surface-sunken: #f8faf9;
+  --canvas: #f3f6f4;
+  --mist: #e8eee9;
+  --line: #e5e7eb;
+  --line-strong: #d1d5db;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --info: #0ea5e9;
+  --shadow-color: 15, 23, 42;
   --font-display: "Outfit", system-ui, sans-serif;
   --font-body: "Outfit", system-ui, sans-serif;
 }
@@ -241,8 +353,8 @@
   --gap-section: var(--space-6);
   --pad-surface: var(--space-3);
   --text-ui: var(--text-sm);
-  --radius: 0.75rem;
-  --radius-lg: 1rem;
+  --radius: 0.5rem;
+  --radius-lg: 0.75rem;
 }
 
 [data-density="compact"],

@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api, getTenantId } from "@/lib/admin-api";
-import { Button, Input, WorkspaceHero } from "@erp/ui";
+import { Button, Input, PageScaffold, StatusChip } from "@erp/ui";
 import { WhatsAppIntegrationPanel } from "./whatsapp-integration-panel";
 import { PorterLogisticsPanel } from "./porter-logistics-panel";
+import { TaxInvoicingPanel } from "./tax-invoicing-panel";
+import { BillingCheckoutPanel } from "./billing-checkout-panel";
 
 type Section =
   | "general"
@@ -15,6 +17,8 @@ type Section =
   | "branches"
   | "security"
   | "portal"
+  | "tax"
+  | "billing"
   | "integrations";
 
 const SECTIONS: { id: Section; label: string; description: string }[] = [
@@ -25,6 +29,8 @@ const SECTIONS: { id: Section; label: string; description: string }[] = [
   { id: "branches", label: "Branches", description: "Locations and defaults" },
   { id: "security", label: "Security", description: "Organisation security settings" },
   { id: "portal", label: "Portal", description: "Customer portal slug and name" },
+  { id: "tax", label: "Tax & Invoicing", description: "GST regime, seller GSTIN, e-invoice mode" },
+  { id: "billing", label: "Sankalp billing", description: "Sankalp SaaS subscription (Razorpay)" },
   { id: "integrations", label: "Integrations", description: "External connectors" },
 ];
 
@@ -249,27 +255,28 @@ export default function AdministrationPage() {
   }
 
   return (
-    <div className="ws-page space-y-6">
-      <div>
-        <WorkspaceHero
-          eyebrow="Tenant"
-          title="Administration"
-          description="Organisation identity, portal, and branches. Licenses and Process Studio are managed separately."
-        />
-        {tenant && (
+    <PageScaffold
+      className="space-y-6"
+      hero={{
+        eyebrow: "Tenant",
+        title: "Administration",
+        description: "Organisation identity, portal, and branches. Licenses and Process Studio are managed separately.",
+      }}
+      ahead={
+        tenant ? (
           <p className="text-xs text-[var(--ink-soft)]">
             {tenant.name} · <span className="font-mono">{tenant.slug}</span> · your role {tenant.role}
           </p>
-        )}
-      </div>
-
+        ) : null
+      }
+    >
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+        <div className="rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,white)] px-4 py-2.5 text-sm text-[var(--danger)]">
           {error}
         </div>
       )}
       {message && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
+        <div className="rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] px-4 py-2.5 text-sm text-[var(--success)]">
           {message}
         </div>
       )}
@@ -373,12 +380,8 @@ export default function AdministrationPage() {
                         <div className="text-sm font-medium text-[var(--ink)]">{m.name}</div>
                         <div className="text-xs text-[var(--ink-soft)]">{m.description}</div>
                       </div>
-                      <span
-                        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
-                          on ? "bg-emerald-50 text-emerald-700" : "bg-[var(--mist)] text-[var(--ink-soft)]"
-                        }`}
-                      >
-                        {on ? "Active" : "Off"}
+                      <span className="shrink-0">
+                        <StatusChip tone={on ? "success" : "neutral"}>{on ? "Active" : "Off"}</StatusChip>
                       </span>
                     </li>
                   );
@@ -491,6 +494,9 @@ export default function AdministrationPage() {
             </div>
           )}
 
+          {section === "tax" && <TaxInvoicingPanel />}
+          {section === "billing" && <BillingCheckoutPanel />}
+
           {section === "integrations" && (
             <div className="space-y-6">
               <WhatsAppIntegrationPanel />
@@ -499,6 +505,6 @@ export default function AdministrationPage() {
           )}
         </div>
       </div>
-    </div>
+    </PageScaffold>
   );
 }

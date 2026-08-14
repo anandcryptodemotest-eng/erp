@@ -31,6 +31,7 @@ const NAV_GROUPS = [
     items: [
       { href: "/", label: "Dashboard", icon: <LayoutDashboard /> },
       { href: "/tenants", label: "Tenants", icon: <Building2 /> },
+      { href: "/billing", label: "Billing", icon: <Settings /> },
       { href: "/process", label: "Process Studio", icon: <GitBranch /> },
       { href: "/services", label: "Services", icon: <Activity /> },
     ],

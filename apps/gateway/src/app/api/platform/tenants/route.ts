@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requirePlatformAuth, clientMeta } from "@/lib/platform-auth";
 import { writePlatformAudit } from "@/lib/platform-audit";
 import { hashPassword } from "@/lib/identity/password";
+import { attachFreeSubscription } from "@/lib/billing-core";
 
 const createSchema = z.object({
   name: z.string().min(2),
@@ -175,6 +176,8 @@ export async function POST(request: Request) {
 
       return { tenant, adminEmail: body.adminEmail.toLowerCase() };
     });
+
+    await attachFreeSubscription(result.tenant.id);
 
     const payload: ProvisionTenantResponse = {
       tenantId: result.tenant.id,

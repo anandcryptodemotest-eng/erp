@@ -3,13 +3,7 @@
 import type { HTMLAttributes } from "react";
 import { cn } from "../utils";
 
-/** @maturity beta */
+/** @maturity stable — Design System v2 skeleton (no layout shift: reserve space with width/height) */
 export function Skeleton({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn("animate-pulse rounded-[var(--radius-sm)] bg-[var(--mist)]", className)}
-      aria-hidden
-      {...props}
-    />
-  );
+  return <div className={cn("erp-skeleton", className)} aria-hidden {...props} />;
 }

@@ -1,7 +1,7 @@
 # ERP — Requirements & Dependencies
 
 > **Living document.** Update this file whenever a new host tool, runtime, service dependency, or npm package becomes required for local or production use.
-> **Last updated:** 2026-08-09 (invoice PDF volume `erp-files` + `FILE_STORE_ROOT`; Fast2SMS client unchanged)
+> **Last updated:** 2026-08-13 (`razorpay` on gateway for Sankalp SaaS Subscriptions)
 
 ---
 
@@ -169,7 +169,8 @@ corepack enable && corepack prepare pnpm@9.15.0 --activate
 
 | Date | Package / change | Version | Added to | Why |
 |------|------------------|---------|----------|-----|
-| 2026-07-28 | Removed `scripts/seed.ts`, `scripts/reset-and-seed-oms.ts` | — | scripts | Admin will create products manually; cleared inventory seed data |
+| 2026-08-13 | `razorpay` | ^2.9.8 | `apps/gateway` | Sankalp SaaS Subscriptions /v1 (DEMO apply path + LIVE SDK). KEY_SECRET stays server-side. Not used for dealer AR invoices. |
+| 2026-08-13 | `@erp/tax-india` deps | workspace:* | `apps/gateway`, `apps/sales`, `apps/accounting` | Tenant tax profile, invoice generation, settings validation |
 | 2026-07-28 | Auto SKU `CAT-BRAND-####` via `/api/products/suggest-sku` | — | inventory + admin UI | SKU from category + brand codes; manual override allowed |
 | 2026-07-28 | Local product image upload `/api/uploads/product-image` | — | gateway + nginx `/uploads/` | JPG/PNG/WebP ≤2MB; store under `/home/erp/data/uploads` |
 | 2026-07-28 | Auto-create Main Warehouse on stock receive | — | admin products | Fixes stock/receive 500 after catalog wipe |
@@ -214,6 +215,10 @@ Copy from `.env.example`. Critical keys:
 | `TAX_RATE` | Order tax fraction (e.g. `0.10`) |
 | `OTEL_SDK_DISABLED` | Default **true** in Compose. Set `false` only with `docker compose --profile obs up -d` |
 | `FILE_STORE_ROOT` | Accounting invoice PDF directory (Compose: `/var/lib/erp-files`) |
+| `META_WHATSAPP_VERIFY_TOKEN` | Meta App Dashboard webhook verify token (`GET /api/meta/whatsapp/webhook`) |
+| `RAZORPAY_KEY_ID` | Sankalp Razorpay Key ID (test `rzp_test_…`). Also returned to Checkout from create-order. |
+| `RAZORPAY_KEY_SECRET` | Sankalp Razorpay Key Secret — **server only**, never `NEXT_PUBLIC_` |
+| `RAZORPAY_WEBHOOK_SECRET` | Dashboard webhook secret for `POST /api/webhooks/razorpay` (raw-body HMAC) |
 | `*_DATABASE_URL` | Per-service Postgres URLs |
 | `GATEWAY_SERVICE_URL` | Customer UI → gateway (see `apps/customer/.env.example`) |
 | `NEXT_PUBLIC_TENANT_SLUG` / `NEXT_PUBLIC_TENANT_NAME` | Customer portal tenant branding |

@@ -2,12 +2,20 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
-import { Button } from "@erp/ui";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  BottomNav,
+  Button,
+  Home,
+  Inbox,
+  Package,
+  ScrollText,
+  Search,
+  ShoppingCart,
+} from "@erp/ui";
 import { isAuthenticated } from "@/lib/api-client";
 import { cartCount, subscribeCart } from "@/lib/cart-store";
 import { isAppChrome, usePresentationMode } from "@/lib/platform";
-import { IconCart, IconHome, IconMessages, IconOrders, IconShop } from "@/components/nav-icons";
 import { ProfileMenu } from "@/components/profile/ProfileMenu";
 import { useTenantDisplayName } from "@/components/TenantBrandingProvider";
 
@@ -16,8 +24,8 @@ function requiresAuth(pathname: string): boolean {
     pathname.startsWith("/checkout") ||
     pathname.startsWith("/orders") ||
     pathname.startsWith("/account") ||
-    pathname.startsWith("/profile")
-    || pathname.startsWith("/inbox")
+    pathname.startsWith("/profile") ||
+    pathname.startsWith("/inbox")
   );
 }
 
@@ -34,10 +42,7 @@ function SearchField({ className }: { className?: string }) {
 
   return (
     <form onSubmit={onSubmit} className={`portal-search ${className ?? ""}`} role="search">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-        <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      </svg>
+      <Search className="h-4 w-4 shrink-0" aria-hidden />
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
@@ -48,68 +53,44 @@ function SearchField({ className }: { className?: string }) {
   );
 }
 
-function MainBottomNav({
-  pathname,
-  count,
-}: {
-  pathname: string;
-  count: number;
-}) {
-  const items = [
-    { href: "/", label: "Home", icon: <IconHome className="nav-icon h-[var(--icon-md)] w-[var(--icon-md)]" /> },
-    { href: "/shop", label: "Shop", icon: <IconShop className="nav-icon h-[var(--icon-md)] w-[var(--icon-md)]" /> },
-    {
-      href: "/cart",
-      label: "Cart",
-      icon: <IconCart className="nav-icon h-[var(--icon-md)] w-[var(--icon-md)]" />,
-      badge: count,
-    },
-    {
-      href: "/orders",
-      label: "Orders",
-      icon: <IconOrders className="nav-icon h-[var(--icon-md)] w-[var(--icon-md)]" />,
-    },
-    {
-      href: "/inbox",
-      label: "Messages",
-      icon: <IconMessages className="nav-icon h-[var(--icon-md)] w-[var(--icon-md)]" />,
-    },
-  ] as const;
+function MainBottomNav({ pathname, count }: { pathname: string; count: number }) {
+  const items = useMemo(
+    () => [
+      { href: "/", label: "Home", icon: <Home className="h-[var(--icon-md)] w-[var(--icon-md)]" /> },
+      { href: "/shop", label: "Shop", icon: <Package className="h-[var(--icon-md)] w-[var(--icon-md)]" /> },
+      {
+        href: "/cart",
+        label: "Cart",
+        icon: <ShoppingCart className="h-[var(--icon-md)] w-[var(--icon-md)]" />,
+        badge: count,
+      },
+      {
+        href: "/orders",
+        label: "Orders",
+        icon: <ScrollText className="h-[var(--icon-md)] w-[var(--icon-md)]" />,
+      },
+      {
+        href: "/inbox",
+        label: "Messages",
+        icon: <Inbox className="h-[var(--icon-md)] w-[var(--icon-md)]" />,
+      },
+    ],
+    [count]
+  );
 
   return (
-    <nav
-      className="sticky bottom-0 z-[var(--z-nav)] border-t border-[var(--line)] bg-[color-mix(in_srgb,var(--paper)_88%,white)] backdrop-blur-md"
+    <div
+      className="sticky bottom-0 z-[var(--z-nav)] flex border-t border-[var(--line)] bg-[color-mix(in_srgb,var(--surface-raised)_92%,transparent)] backdrop-blur-md"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      aria-label="Main"
     >
-      <div className="flex px-1">
-        {items.map((item) => {
-          const active =
-            pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`relative flex min-h-[var(--touch-min)] flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-semibold transition-colors ${
-                active ? "text-[var(--forest)]" : "text-[var(--ink-soft)]"
-              }`}
-              aria-current={active ? "page" : undefined}
-            >
-              <span className="relative">
-                {item.icon}
-                {"badge" in item && item.badge != null && item.badge > 0 ? (
-                  <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--amber)] px-1 text-[9px] font-bold text-[var(--ink)]">
-                    {item.badge > 99 ? "99+" : item.badge}
-                  </span>
-                ) : null}
-              </span>
-              {item.label}
-            </Link>
-          );
-        })}
-        <ProfileMenu variant="nav" />
-      </div>
-    </nav>
+      <BottomNav
+        className="!static flex-1 !border-0 !bg-transparent !pb-0"
+        items={items}
+        pathname={pathname}
+        linkComponent={Link}
+      />
+      <ProfileMenu variant="nav" />
+    </div>
   );
 }
 
@@ -147,41 +128,40 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
   }
 
   const hideBottomOnDesktopWeb = mode === "web" && !appChrome;
-  const isPdp =
-    pathname.startsWith("/shop/g/") || pathname.startsWith("/shop/p/");
+  const isPdp = pathname.startsWith("/shop/g/") || pathname.startsWith("/shop/p/");
   const showMobileTop = !isPdp;
 
   return (
     <div className="portal-shell" data-presentation={mode}>
       <div className="portal-frame relative flex flex-col">
         {mode === "web" && !appChrome ? (
-          <header className="sticky top-0 z-30 hidden border-b border-[#e8e8e8] bg-white px-4 py-2.5 md:flex md:items-center md:gap-4">
-            <Link href="/" className="shrink-0 text-lg font-bold tracking-tight text-[var(--forest)]">
+          <header className="sticky top-0 z-30 hidden border-b border-[var(--line)] bg-[var(--surface-raised)] px-4 py-2.5 shadow-[var(--shadow-1)] md:flex md:items-center md:gap-4">
+            <Link href="/" className="shrink-0 text-lg font-bold tracking-tight text-[var(--brand)]">
               {orgName}
             </Link>
             <SearchField className="max-w-xl" />
             <nav className="ml-auto flex items-center gap-1 text-sm font-semibold text-[var(--ink-soft)]">
-              <Link href="/dashboard" className="rounded-md px-3 py-2 hover:bg-[#f5f5f5] hover:text-[var(--ink)]">
+              <Link href="/dashboard" className="rounded-[var(--radius-sm)] px-3 py-2 hover:bg-[var(--mist)] hover:text-[var(--ink)]">
                 Dashboard
               </Link>
-              <Link href="/shop" className="rounded-md px-3 py-2 hover:bg-[#f5f5f5] hover:text-[var(--ink)]">
+              <Link href="/shop" className="rounded-[var(--radius-sm)] px-3 py-2 hover:bg-[var(--mist)] hover:text-[var(--ink)]">
                 Shop
               </Link>
-              <Link href="/orders" className="rounded-md px-3 py-2 hover:bg-[#f5f5f5] hover:text-[var(--ink)]">
+              <Link href="/orders" className="rounded-[var(--radius-sm)] px-3 py-2 hover:bg-[var(--mist)] hover:text-[var(--ink)]">
                 Orders
               </Link>
-              <Link href="/inbox" className="rounded-md px-3 py-2 hover:bg-[#f5f5f5] hover:text-[var(--ink)]">
+              <Link href="/inbox" className="rounded-[var(--radius-sm)] px-3 py-2 hover:bg-[var(--mist)] hover:text-[var(--ink)]">
                 Messages
               </Link>
               <Link href="/cart" className="relative ml-1">
-                <Button variant="primary" size="sm" className="!rounded-md">
+                <Button variant="primary" size="sm">
                   Cart{count ? ` (${count})` : ""}
                 </Button>
               </Link>
               {authed ? (
                 <ProfileMenu variant="header" />
               ) : (
-                <Link href="/login" className="rounded-md px-3 py-2 hover:bg-[#f5f5f5] hover:text-[var(--ink)]">
+                <Link href="/login" className="rounded-[var(--radius-sm)] px-3 py-2 hover:bg-[var(--mist)] hover:text-[var(--ink)]">
                   Sign in
                 </Link>
               )}
@@ -190,19 +170,19 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
         ) : null}
 
         {showMobileTop ? (
-          <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-[#e8e8e8] bg-white px-3 py-2 md:hidden">
-            <Link href="/" className="shrink-0 max-w-[9rem] truncate text-sm font-bold text-[var(--forest)]">
+          <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2 shadow-[var(--shadow-1)] md:hidden">
+            <Link href="/" className="max-w-[9rem] shrink-0 truncate text-sm font-bold text-[var(--brand)]">
               {orgName}
             </Link>
             <SearchField />
             <Link
               href="/cart"
-              className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#f1f3f2] text-[var(--ink)]"
+              className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--mist)] text-[var(--ink)]"
               aria-label={`Cart${count ? `, ${count} items` : ""}`}
             >
-              <IconCart className="h-5 w-5" />
+              <ShoppingCart className="h-5 w-5" />
               {count > 0 ? (
-                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--amber)] px-1 text-[10px] font-bold text-white">
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-bold text-[var(--ink)]">
                   {count > 99 ? "99+" : count}
                 </span>
               ) : null}
@@ -210,9 +190,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
           </header>
         ) : null}
 
-        <main
-          className={`flex-1 overflow-y-auto ${!isPdp && hideBottomOnDesktopWeb ? "md:pb-4" : "pb-2"}`}
-        >
+        <main className={`flex-1 overflow-y-auto ${!isPdp && hideBottomOnDesktopWeb ? "md:pb-4" : "pb-2"}`}>
           {children}
         </main>
 

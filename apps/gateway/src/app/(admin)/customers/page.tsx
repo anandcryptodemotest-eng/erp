@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api, getAdminUser } from "@/lib/admin-api";
-import { StatusBadge, WorkspaceHero } from "@erp/ui";
+import { Button, PageScaffold, Skeleton, StatusBadge } from "@erp/ui";
 
 interface Customer {
   id: string;
@@ -100,40 +100,45 @@ export default function CustomersPage() {
   });
 
   return (
-    <div className="ws-page mx-auto max-w-7xl space-y-6">
-      <WorkspaceHero
-        eyebrow="Trading operations"
-        title={isSalesLookup ? "Customer lookup" : "Customers"}
-        description={
-          isSalesLookup
-            ? "Find buyers and recent orders while reviewing sales requests."
-            : "Customer master data for trading and portal accounts."
-        }
-        actions={
-          <button type="button" onClick={() => setShowForm(true)} className="ws-btn ws-btn--primary">
+    <PageScaffold
+      hero={{
+        eyebrow: "Trading operations",
+        title: isSalesLookup ? "Customer lookup" : "Customers",
+        description: isSalesLookup
+          ? "Find buyers and recent orders while reviewing sales requests."
+          : "Customer master data for trading and portal accounts.",
+        actions: (
+          <Button type="button" onClick={() => setShowForm(true)}>
             + New customer
-          </button>
-        }
-      />
-
+          </Button>
+        ),
+      }}
+    >
+      <div className="space-y-6">
       {msg && (
-        <div className="p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">{msg}</div>
+        <div className="rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] px-4 py-2 text-sm text-[var(--success)]">
+          {msg}
+        </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-3">
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search name, phone or email…"
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2 text-sm shadow-[var(--shadow-1)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
           />
           {loading ? (
-            <p className="text-[var(--ink-soft)]">Loading…</p>
+            <div className="space-y-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
           ) : (
-            <div className="bg-white rounded-xl border overflow-hidden">
+            <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] shadow-[var(--shadow-1)]">
               <table className="w-full text-sm">
-                <thead className="bg-[var(--mist)] border-b">
+                <thead className="border-b border-[var(--line)] bg-[var(--surface-sunken)]">
                   <tr>
                     {["Name", "Phone", "Email", "Credit", "Portal"].map((h) => (
                       <th key={h} className="px-4 py-3 text-left font-medium text-[var(--ink-soft)]">
@@ -142,17 +147,17 @@ export default function CustomersPage() {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y divide-[var(--line)]">
                   {filtered.map((c) => (
                     <tr
                       key={c.id}
-                      className={`hover:bg-[var(--mist)] cursor-pointer ${selected?.id === c.id ? "bg-amber-50/60" : ""}`}
+                      className={`cursor-pointer hover:bg-[var(--mist)] ${selected?.id === c.id ? "bg-[color-mix(in_srgb,var(--brand)_6%,white)]" : ""}`}
                       onClick={() => openCustomer(c.id)}
                     >
                       <td className="px-4 py-3 font-medium">
                         {c.name}
                         {c.isBlocked && (
-                          <span className="ml-2 text-[10px] font-bold uppercase text-red-600">Blocked</span>
+                          <span className="ml-2 text-[10px] font-bold uppercase text-[var(--danger)]">Blocked</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-[var(--ink-soft)]">{c.phone ?? "—"}</td>
@@ -244,9 +249,9 @@ export default function CustomersPage() {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-96">
-            <h2 className="font-bold text-[var(--ink)] mb-4">New Customer</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-96 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] p-6 shadow-[var(--shadow-4)]">
+            <h2 className="mb-4 font-display text-lg font-semibold text-[var(--ink)]">New Customer</h2>
             <form onSubmit={create} className="space-y-3">
               {(
                 [
@@ -256,28 +261,29 @@ export default function CustomersPage() {
                 ] as const
               ).map(([label, type, key]) => (
                 <div key={key}>
-                  <label className="block text-sm font-medium text-[var(--ink-soft)] mb-1">{label}</label>
+                  <label className="mb-1 block text-sm font-medium text-[var(--ink-soft)]">{label}</label>
                   <input
                     type={type}
                     required={key === "name"}
                     value={form[key]}
                     onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                    className="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
+                    className="w-full rounded-[var(--radius-sm)] border border-[var(--line)] px-3 py-2 text-sm focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
                   />
                 </div>
               ))}
               <div className="flex gap-2 pt-2">
-                <button type="submit" className="ws-btn ws-btn--primary flex-1">
+                <Button type="submit" className="flex-1">
                   Create
-                </button>
-                <button type="button" onClick={() => setShowForm(false)} className="ws-btn flex-1">
+                </Button>
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowForm(false)}>
                   Cancel
-                </button>
+                </Button>
               </div>
             </form>
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </PageScaffold>
   );
 }

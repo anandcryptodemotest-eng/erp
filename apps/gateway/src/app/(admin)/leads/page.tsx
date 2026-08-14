@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { StatusBadge, WorkspaceHero } from "@erp/ui";
+import { Button, PageScaffold, StatusBadge, StatusChip } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 import LeadToCashGuide from "@/components/LeadToCashGuide";
 import LeadToCashUnderstanding from "@/components/LeadToCashUnderstanding";
@@ -33,12 +33,12 @@ interface CustomerLite {
 
 type LeadStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "DISQUALIFIED" | "CONVERTED";
 
-const STATUS_COLORS: Record<string, string> = {
-  NEW: "bg-blue-100 text-[var(--brand)]",
-  CONTACTED: "bg-yellow-100 text-yellow-800",
-  QUALIFIED: "bg-green-100 text-green-700",
-  DISQUALIFIED: "bg-red-100 text-red-600",
-  CONVERTED: "bg-[var(--mist)] text-[var(--brand)]",
+const STATUS_TONES: Record<string, "info" | "warning" | "success" | "danger" | "brand"> = {
+  NEW: "info",
+  CONTACTED: "warning",
+  QUALIFIED: "success",
+  DISQUALIFIED: "danger",
+  CONVERTED: "brand",
 };
 
 const LIFECYCLE: Array<{ status: LeadStatus; label: string; hint: string }> = [
@@ -226,17 +226,18 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className="ws-page">
-      <WorkspaceHero
-        eyebrow="CRM"
-        title="Leads"
-        description={`${total} leads. Dealer trading starts on Order Desk, not here.`}
-        actions={
-          <button type="button" onClick={() => setShowForm(true)} className="ws-btn ws-btn--primary">
+    <PageScaffold
+      hero={{
+        eyebrow: "CRM",
+        title: "Leads",
+        description: `${total} leads. Dealer trading starts on Order Desk, not here.`,
+        actions: (
+          <Button type="button" onClick={() => setShowForm(true)}>
             + New lead
-          </button>
-        }
-      />
+          </Button>
+        ),
+      }}
+    >
       <details className="mb-6 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] px-4 py-3 text-sm">
         <summary className="cursor-pointer font-semibold text-[var(--ink)]">How this works</summary>
         <div className="mt-3 space-y-3">
@@ -246,7 +247,7 @@ export default function LeadsPage() {
       </details>
 
       {msg && (
-        <div className={`mb-4 px-4 py-2.5 rounded-lg text-sm font-medium ${msgType === "ok" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+        <div className={`mb-4 px-4 py-2.5 rounded-lg text-sm font-medium ${msgType === "ok" ? "border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] text-[var(--success)]" : "border border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,white)] text-[var(--danger)]"}`}>
           {msg}
         </div>
       )}
@@ -259,12 +260,12 @@ export default function LeadsPage() {
               key={step.status}
               onClick={() => setStatusFilter(active ? "" : step.status)}
               className={`rounded-lg border p-3 text-left transition ${
-                active ? "border-emerald-300 bg-emerald-50" : "border-[var(--line)] bg-white hover:bg-[var(--mist)]"
+                active ? "border-[color-mix(in_srgb,var(--success)_45%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)]" : "border-[var(--line)] bg-white hover:bg-[var(--mist)]"
               }`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-[var(--ink)]">{step.label}</span>
-                <span className={`px-2 py-0.5 rounded-full text-xs ${STATUS_COLORS[step.status]}`}>{statusCounts[step.status] ?? 0}</span>
+                <StatusChip tone={STATUS_TONES[step.status]}>{statusCounts[step.status] ?? 0}</StatusChip>
               </div>
               <p className="mt-1 text-xs text-[var(--ink-soft)]">{step.hint}</p>
             </button>
@@ -276,7 +277,7 @@ export default function LeadsPage() {
       <div className="flex gap-2 mb-4">
         {["", "NEW", "CONTACTED", "QUALIFIED", "CONVERTED", "DISQUALIFIED"].map(s => (
           <button key={s} onClick={() => setStatusFilter(s)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${statusFilter === s ? "bg-[var(--brand)] text-white border-gray-800" : "bg-white text-[var(--ink-soft)] border-[var(--line)] hover:border-gray-400"}`}>
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${statusFilter === s ? "bg-[var(--brand)] text-white border-[var(--brand)]" : "bg-white text-[var(--ink-soft)] border-[var(--line)] hover:border-[var(--line-strong)]"}`}>
             {s || "All"}
           </button>
         ))}
@@ -290,34 +291,34 @@ export default function LeadsPage() {
             <div>
               <label className="block text-xs text-[var(--ink-soft)] mb-1">Name *</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="Contact name"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
             </div>
             <div>
               <label className="block text-xs text-[var(--ink-soft)] mb-1">Company</label>
               <input value={company} onChange={e => setCompany(e.target.value)} placeholder="Company name"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
             </div>
             <div>
               <label className="block text-xs text-[var(--ink-soft)] mb-1">Email</label>
               <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="email@example.com"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
             </div>
             <div>
               <label className="block text-xs text-[var(--ink-soft)] mb-1">Phone</label>
               <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 9XXXXXXXXX"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
             </div>
             <div>
               <label className="block text-xs text-[var(--ink-soft)] mb-1">Source</label>
               <select value={source} onChange={e => setSource(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]">
                 {SOURCES.map(s => <option key={s}>{s}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-xs text-[var(--ink-soft)] mb-1">Notes</label>
               <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional notes"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
             </div>
           </div>
           <div className="flex gap-2 justify-end">
@@ -427,17 +428,17 @@ export default function LeadsPage() {
 
             {/* Convert to opportunity */}
             {selected.status === "QUALIFIED" && (
-              <div className="border rounded-xl p-4 bg-green-50">
-                <h3 className="text-sm font-semibold text-green-800 mb-3">Convert to Opportunity</h3>
+              <div className="border rounded-xl p-4 bg-[color-mix(in_srgb,var(--success)_10%,white)]">
+                <h3 className="text-sm font-semibold text-[var(--success)] mb-3">Convert to Opportunity</h3>
                 <div className="space-y-2">
                   <input value={convertTitle} onChange={e => setConvertTitle(e.target.value)}
                     placeholder="Opportunity title *"
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
                   <input value={convertValue} onChange={e => setConvertValue(e.target.value)}
                     type="number" placeholder="Expected value (₹)"
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
 
-                  <label className="flex items-center gap-2 rounded-lg border border-green-200 bg-white px-3 py-2 text-xs text-[var(--ink-soft)]">
+                  <label className="flex items-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-white px-3 py-2 text-xs text-[var(--ink-soft)]">
                     <input
                       type="checkbox"
                       checked={createOrLinkCustomer}
@@ -453,19 +454,19 @@ export default function LeadsPage() {
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
                         placeholder="Customer/Company name *"
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
                       />
                       <input
                         value={customerEmail}
                         onChange={(e) => setCustomerEmail(e.target.value)}
                         placeholder="Email (optional)"
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
                       />
                       <input
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
                         placeholder="Phone (optional)"
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
                       />
                       {findMatchingCustomer() && (
                         <p className="text-xs text-[var(--brand)] bg-[var(--mist)] border border-[var(--line)] rounded px-2 py-1">
@@ -508,6 +509,6 @@ export default function LeadsPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageScaffold>
   );
 }

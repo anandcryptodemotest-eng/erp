@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ActionGroup, Button, SquarePen, Trash2, WorkspaceHero } from "@erp/ui";
+import { ActionGroup, Button, PageScaffold, SquarePen, Trash2 } from "@erp/ui";
 import { api, getAdminUser } from "@/lib/admin-api";
 import { fetchPricingQuote, type QuoteSuccess } from "@/lib/pricing-quote";
 import dynamic from "next/dynamic";
@@ -1338,57 +1338,45 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="ws-page mx-auto max-w-[1400px]">
-      <WorkspaceHero
-        eyebrow="Catalog"
-        title={isCatalogAdmin ? "Products" : "Product lookup"}
-        description={
-          isCatalogAdmin
-            ? "Catalog, categories, brands and attributes — configured in one place."
-            : "Search SKU, size, thickness and stock while reviewing sales requests."
-        }
-        actions={
+    <PageScaffold
+      wide
+      hero={{
+        eyebrow: "Catalog",
+        title: isCatalogAdmin ? "Products" : "Product lookup",
+        description: isCatalogAdmin
+          ? "Catalog, categories, brands and attributes — configured in one place."
+          : "Search SKU, size, thickness and stock while reviewing sales requests.",
+        actions:
           tab === "catalog" && isCatalogAdmin ? (
-          <div className="flex gap-2 flex-wrap items-center">
-            <div className="flex gap-1">
-              <input
-                ref={barcodeRef}
-                value={barcodeInput}
-                onChange={(e) => setBarcodeInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && lookupBarcode()}
-                placeholder="Scan barcode…"
-                className="border border-[var(--line)] rounded-lg px-3 py-2 text-sm w-44 focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:border-transparent"
-              />
-              <button
-                type="button"
-                onClick={() => lookupBarcode()}
-                disabled={barcodeLooking}
-                className="ws-btn ws-btn--primary"
-              >
-                {barcodeLooking ? "…" : "Find"}
-              </button>
-              <button type="button" onClick={() => setShowScanner(true)} className="ws-btn">
-                Camera
-              </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex gap-1">
+                <input
+                  ref={barcodeRef}
+                  value={barcodeInput}
+                  onChange={(e) => setBarcodeInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && lookupBarcode()}
+                  placeholder="Scan barcode…"
+                  className="w-44 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2 text-sm shadow-[var(--shadow-1)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]"
+                />
+                <Button type="button" onClick={() => lookupBarcode()} disabled={barcodeLooking}>
+                  {barcodeLooking ? "…" : "Find"}
+                </Button>
+                <Button type="button" variant="secondary" onClick={() => setShowScanner(true)}>
+                  Camera
+                </Button>
+              </div>
+              <input ref={csvRef} type="file" accept=".csv" onChange={handleCsvFile} className="hidden" />
+              <Button type="button" variant="secondary" onClick={() => csvRef.current?.click()} disabled={importing}>
+                {importing ? "Importing…" : "Import CSV"}
+              </Button>
+              <Button type="button" onClick={() => setShowCreateEditor(true)}>
+                + New product
+              </Button>
             </div>
-            <input ref={csvRef} type="file" accept=".csv" onChange={handleCsvFile} className="hidden" />
-            <button
-              type="button"
-              onClick={() => csvRef.current?.click()}
-              disabled={importing}
-              className="ws-btn"
-            >
-              {importing ? "Importing…" : "Import CSV"}
-            </button>
-            <button type="button" onClick={() => setShowCreateEditor(true)} className="ws-btn ws-btn--primary">
-              + New product
-            </button>
-          </div>
-          ) : null
-        }
-      />
-
-      <div className="mb-6 inline-flex gap-1 rounded-lg bg-[var(--mist)] p-1">
+          ) : null,
+      }}
+    >
+      <div className="mb-6 inline-flex gap-1 rounded-[var(--radius-sm)] bg-[var(--mist)] p-1">
         {(
           (
             isCatalogAdmin
@@ -1404,8 +1392,10 @@ export default function ProductsPage() {
             key={key}
             type="button"
             onClick={() => setTab(key)}
-            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              tab === key ? "bg-[var(--surface-raised)] shadow text-[var(--ink)]" : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
+            className={`rounded-[var(--radius-xs)] px-4 py-2 text-sm font-medium transition-colors ${
+              tab === key
+                ? "bg-[var(--surface-raised)] text-[var(--ink)] shadow-[var(--shadow-1)]"
+                : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
             }`}
           >
             {label}
@@ -1556,7 +1546,7 @@ export default function ProductsPage() {
 
       {tab === "fields" && (
         <div className="space-y-6">
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <div className="rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--warning)_35%,var(--line))] bg-[color-mix(in_srgb,var(--warning)_12%,white)] p-4 text-sm text-[color-mix(in_srgb,var(--warning)_75%,black)]">
             <strong>How this works:</strong> apply an industry pack, or add fields straight from{" "}
             <strong>New Product</strong> once a category is picked. Size-type lists can differ per category — use{" "}
             <strong>Edit lists</strong> / <strong>Edit values</strong> (for NUMBER fields like Thickness) below.
@@ -2668,7 +2658,7 @@ export default function ProductsPage() {
               <button
                 type="button"
                 onClick={() => setEditOptionsField(null)}
-                className="flex-1 bg-[var(--mist)] py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                className="flex-1 rounded-[var(--radius-sm)] bg-[var(--mist)] py-2 text-sm font-medium transition-colors hover:bg-[var(--line)]"
               >
                 Cancel
               </button>
@@ -2676,6 +2666,6 @@ export default function ProductsPage() {
           </form>
         </div>
       )}
-    </div>
+    </PageScaffold>
   );
 }

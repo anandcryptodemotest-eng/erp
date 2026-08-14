@@ -290,14 +290,21 @@ async function main() {
     bad("1", "blockboard images", `${blockA.image} vs ${blockB.image}`);
   }
 
-  // Adhesive — simple product
-  const prods = await api("GET", "/api/products?limit=100", {
-    token: sales.token,
-    tenantId: sales.tenantId,
-  });
-  const adhesive = ((prods.json.data as { id: string; sku: string; name: string; sellPrice: number }[]) ?? []).find(
-    (p) => p.sku === "TW-ADH-1L"
-  );
+  // Adhesive — simple product (lookup by SKU; fallback until inventory sku filter is deployed)
+  let adhesive: { id: string; sku: string; name: string; sellPrice: number } | undefined;
+  for (const path of [
+    "/api/products?sku=TW-ADH-1L&limit=5",
+    "/api/products?search=Adhesive&limit=20",
+  ]) {
+    const prods = await api("GET", path, {
+      token: sales.token,
+      tenantId: sales.tenantId,
+    });
+    adhesive = ((prods.json.data as { id: string; sku: string; name: string; sellPrice: number }[]) ?? []).find(
+      (p) => p.sku === "TW-ADH-1L"
+    );
+    if (adhesive) break;
+  }
   if (adhesive) ok("1", "simple Adhesive SKU found");
   else bad("1", "simple Adhesive missing");
 

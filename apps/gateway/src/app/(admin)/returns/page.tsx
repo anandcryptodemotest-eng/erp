@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { StatusBadge, WorkspaceHero } from "@erp/ui";
+import { Button, PageScaffold, StatusBadge } from "@erp/ui";
 import { api } from "@/lib/admin-api";
 
 interface SalesReturn {
@@ -193,17 +193,18 @@ export default function ReturnsPage() {
   }
 
   return (
-    <div className="ws-page">
-      <WorkspaceHero
-        eyebrow="Trading operations"
-        title="Sales returns"
-        description={`${total} returns. Process dealer orders on Order Desk.`}
-        actions={
-          <button type="button" onClick={openForm} className="ws-btn ws-btn--primary">
+    <PageScaffold
+      hero={{
+        eyebrow: "Trading operations",
+        title: "Sales returns",
+        description: `${total} returns. Process dealer orders on Order Desk.`,
+        actions: (
+          <Button type="button" onClick={openForm}>
             + New return
-          </button>
-        }
-      />
+          </Button>
+        ),
+      }}
+    >
 
       {msg && (
         <div className={`mb-4 px-4 py-2.5 rounded-lg text-sm font-medium ${msgType === "ok" ? "border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] text-[var(--success)]" : "border border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,white)] text-[var(--danger)]"}`}>
@@ -215,7 +216,7 @@ export default function ReturnsPage() {
       <div className="flex gap-2 mb-4">
         {["", "PENDING", "APPROVED", "COMPLETED", "REJECTED"].map(s => (
           <button key={s} onClick={() => setStatusFilter(s)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${statusFilter === s ? "bg-[var(--brand)] text-white border-gray-800" : "bg-white text-[var(--ink-soft)] border-[var(--line)] hover:border-gray-400"}`}>
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${statusFilter === s ? "bg-[var(--brand)] text-white border-[var(--brand)]" : "bg-white text-[var(--ink-soft)] border-[var(--line)] hover:border-[var(--line-strong)]"}`}>
             {s || "All"}
           </button>
         ))}
@@ -229,13 +230,13 @@ export default function ReturnsPage() {
           <div className="mb-3">
             <label className="block text-xs text-[var(--ink-soft)] mb-1">Select Shipped/Invoiced Order *</label>
             <select value={selectedOrderId} onChange={e => setSelectedOrderId(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]">
               {orders.map(o => (
                 <option key={o.id} value={o.id}>{o.orderNumber} — {o.customer?.name} ({o.status})</option>
               ))}
             </select>
             {orders.length === 0 && (
-              <p className="text-xs text-orange-600 mt-1">No shipped or invoiced orders found. Ship an order first.</p>
+              <p className="text-xs text-[var(--warning)] mt-1">No shipped or invoiced orders found. Ship an order first.</p>
             )}
           </div>
 
@@ -261,7 +262,7 @@ export default function ReturnsPage() {
                           type="number" min="0" max={item.shippedQty}
                           value={returnQtys[item.id] ?? "0"}
                           onChange={e => setReturnQtys(q => ({ ...q, [item.id]: e.target.value }))}
-                          className="w-20 border rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-green-500" />
+                          className="w-20 border rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
                       </td>
                     </tr>
                   ))}
@@ -276,12 +277,12 @@ export default function ReturnsPage() {
             <div>
               <label className="block text-xs text-[var(--ink-soft)] mb-1">Reason</label>
               <input value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. Damaged, Wrong item"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
             </div>
             <div>
               <label className="block text-xs text-[var(--ink-soft)] mb-1">Notes</label>
               <input value={formNotes} onChange={e => setFormNotes(e.target.value)} placeholder="Optional notes"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />
             </div>
           </div>
 
@@ -349,7 +350,7 @@ export default function ReturnsPage() {
               <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Customer</span><span className="font-medium">{selected.customer?.name ?? "—"}</span></div>
               <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Order</span><span className="font-medium">{selected.order?.orderNumber ?? "—"}</span></div>
               <div className="flex justify-between"><span className="text-[var(--ink-soft)]">Reason</span><span>{selected.reason ?? "—"}</span></div>
-              <div className="flex justify-between font-semibold"><span className="text-[var(--ink-soft)]">Total</span><span className="text-green-700">₹{Number(selected.total).toLocaleString()}</span></div>
+              <div className="flex justify-between font-semibold"><span className="text-[var(--ink-soft)]">Total</span><span className="text-[var(--success)]">₹{Number(selected.total).toLocaleString()}</span></div>
             </div>
 
             {selected.items && selected.items.length > 0 && (
@@ -386,7 +387,7 @@ export default function ReturnsPage() {
                   {actioning ? "Processing..." : "Approve Return"}
                 </button>
                 <button onClick={() => doAction("reject")} disabled={actioning}
-                  className="w-full border border-red-300 text-red-600 py-2.5 rounded-lg text-sm font-medium hover:bg-red-50 disabled:opacity-50">
+                  className="w-full border border-[color-mix(in_srgb,var(--danger)_45%,var(--line))] text-[var(--danger)] py-2.5 rounded-lg text-sm font-medium hover:bg-[color-mix(in_srgb,var(--danger)_10%,white)] disabled:opacity-50">
                   {actioning ? "Processing..." : "Reject Return"}
                 </button>
               </div>
@@ -397,7 +398,7 @@ export default function ReturnsPage() {
                 <div>
                   <label className="block text-xs text-[var(--ink-soft)] mb-1">Restock to Warehouse</label>
                   <select value={completeWarehouse} onChange={e => setCompleteWarehouse(e.target.value)}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]">
                     {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                   </select>
                 </div>
@@ -410,6 +411,6 @@ export default function ReturnsPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageScaffold>
   );
 }

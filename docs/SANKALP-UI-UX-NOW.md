@@ -1,16 +1,17 @@
 # Sankalp ERP — UI / UX now (current flow only)
 
-**Status:** Execute this for look-and-feel + existing journeys  
-**Date:** 09 August 2026  
-**Related:** `docs/TRADING-JOURNEY.md`, `docs/guides/design-system.md`, `docs/guides/themes.md`, `docs/adr/0014-erp-ui-framework-classification.md`, `docs/adr/0015-trustwood-erp-platform-v1.md`, `docs/architecture/host-experience-principle.md`
+**Status:** Execute look-and-feel on existing journeys under **Design System v2**  
+**Date:** 13 August 2026  
+**Canonical design contract:** [`docs/guides/design-system.md`](guides/design-system.md) (`@erp/ui` sole SoT — tokens, AdminShell, PageScaffold, StatusChip, BottomNav)  
+**Related:** `docs/TRADING-JOURNEY.md`, `docs/guides/themes.md`, `docs/adr/0014-erp-ui-framework-classification.md`, `docs/adr/0015-trustwood-erp-platform-v1.md` (v2 addendum), `docs/architecture/host-experience-principle.md`
 
 **Later (do not use this file for):** `docs/SANKALP-ERP-COMPETITIVE-ROADMAP.md`, `docs/SANKALP-UI-UX-ROADMAP.md`
 
-This document improves **what already ships**: TrustWood chrome, Dashboard, Order Desk, dealer PWA, and supporting list pages.
+This document improves **what already ships**: TrustWood chrome, Dashboard, Order Desk, dealer PWA, and supporting list pages — using **v2 scaffolds only** (no app-local tokens or status colors).
 
 It does **not** add GST, AR workbench, Razorpay/UPI, WhatsApp, credit block, Tally export, warehouse admin, or any new commercial flow.
 
-**Do not** invent a second design system. Tokens, AdminShell, `.ws-*`, Lucide, and ADR 0014 (Studio / Workspace / Form / Modal) stay.
+**Do not** invent a second design system. Consume `@erp/ui`; ADR 0014 (Studio / Workspace / Form / Modal) stays.
 
 ---
 

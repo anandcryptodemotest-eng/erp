@@ -81,7 +81,7 @@ export default function HomePage() {
         ].map((s) => (
           <div
             key={s.label}
-            className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] px-3 py-3 text-center shadow-[var(--shadow-sm)]"
+            className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] px-3 py-3 text-center shadow-[var(--shadow-1)]"
           >
             <div className="text-2xl font-bold text-[var(--accent)]">{s.value}</div>
             <div className="text-xs text-[var(--ink-soft)]">{s.label}</div>

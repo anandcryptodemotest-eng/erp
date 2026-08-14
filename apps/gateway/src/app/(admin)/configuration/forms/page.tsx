@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/admin-api";
-import { PageHeader, StatusBadge } from "@erp/ui";
+import { Button, PageScaffold, StatusBadge } from "@erp/ui";
 import type { FormDefinition } from "@erp/workflow";
 
 type FormRow = {
@@ -121,26 +121,23 @@ export default function FormsCatalogPage() {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-8">
-      <div>
-        <div className="mb-1 text-xs text-[var(--ink-soft)]">
-          <Link href="/configuration" className="hover:underline">
-            Configuration
-          </Link>
-          <span className="mx-1">/</span>
-          Forms
-        </div>
-        <PageHeader title="Form catalog" />
-        <p className="-mt-4 mb-6 text-sm text-[var(--ink-soft)]">
-          Independently versioned FORM assets. Workflows reference them with{" "}
-          <code className="rounded bg-[var(--mist)] px-1 text-xs">assetRef</code>. Published versions are immutable —
-          clone to draft to edit. Catalog starts empty — build your own, or restore starter forms if you want a
-          reference.
-        </p>
+    <PageScaffold
+      className="space-y-6"
+      hero={{
+        title: "Form catalog",
+        description:
+          "Independently versioned FORM assets. Workflows reference them with assetRef. Published versions are immutable — clone to draft to edit. Catalog starts empty — build your own, or restore starter forms if you want a reference.",
+      }}
+    >
+      <div className="mb-4 text-xs text-[var(--ink-soft)]">
+        <Link href="/configuration" className="hover:underline">
+          Configuration
+        </Link>
+        <span className="mx-1">/</span>
+        Forms
       </div>
-
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>
+        <div className="rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,white)] px-4 py-3 text-sm text-[var(--danger)]">{error}</div>
       )}
 
       <div className="flex flex-wrap items-end gap-2 rounded-xl border border-[var(--line)] bg-white p-4">
@@ -153,23 +150,22 @@ export default function FormsCatalogPage() {
             onChange={(e) => setNewId(e.target.value)}
           />
         </label>
-        <button
+        <Button
           type="button"
           disabled={busy === "create"}
           onClick={() => void createForm()}
-          className="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-50"
         >
           Create draft
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="secondary"
           disabled={busy === "seed"}
           onClick={() => void restoreStarters()}
-          className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--ink-soft)] hover:bg-[var(--mist)] disabled:opacity-50"
           title="Loads published SO_STANDARD starter forms only if missing for each form id"
         >
           Restore starter forms
-        </button>
+        </Button>
       </div>
 
       {!loading && latestByForm.length === 0 && (
@@ -180,22 +176,21 @@ export default function FormsCatalogPage() {
             the OMS task screen will look. When you are ready, I can review your form layout and fields.
           </p>
           <div className="flex flex-wrap justify-center gap-2 pt-1">
-            <button
+            <Button
               type="button"
               disabled={busy === "create"}
               onClick={() => void createForm(newId.trim() || "my-first-task")}
-              className="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-50"
             >
               Start with a blank form
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="secondary"
               disabled={busy === "seed"}
               onClick={() => void restoreStarters()}
-              className="rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm font-medium text-[var(--ink-soft)] hover:bg-[var(--mist)] disabled:opacity-50"
             >
               Restore starter forms
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -236,7 +231,7 @@ export default function FormsCatalogPage() {
                   <td className="px-4 py-3 text-right space-x-2">
                     <Link
                       href={`/configuration/forms/${row.id}`}
-                      className="text-emerald-700 hover:underline"
+                      className="text-[var(--brand)] hover:underline"
                     >
                       Open
                     </Link>
@@ -256,6 +251,6 @@ export default function FormsCatalogPage() {
         </table>
       </div>
       )}
-    </div>
+    </PageScaffold>
   );
 }

@@ -97,7 +97,7 @@ export default function HomePage() {
             </p>
           </div>
           <Link href="/shop" className="shrink-0">
-            <Button variant="secondary" size="sm" className="!rounded-md !bg-white !text-[var(--forest)]">
+            <Button variant="secondary" size="sm" className="!rounded-md !bg-[var(--surface-raised)] !text-[var(--forest)]">
               Shop now
             </Button>
           </Link>

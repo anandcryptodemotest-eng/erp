@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/admin-api";
-import { PageHeader, StatusBadge } from "@erp/ui";
+import { Button, PageScaffold, StatusBadge } from "@erp/ui";
 import type { DocumentDefinition } from "@erp/documents";
 
 type DocRow = {
@@ -105,41 +105,33 @@ export default function DocumentsCatalogPage() {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-8">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <PageHeader title="Documents" />
-          <p className="-mt-4 text-sm text-[var(--ink-soft)]">
-            Print templates. Published versions are immutable — Clone to draft to edit. New draft
-            creates a blank template.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className="rounded-lg border px-3 py-2 text-xs font-semibold"
-            disabled={busy != null}
-            onClick={() => void seed()}
-          >
-            {busy === "seed" ? "Seeding…" : "Seed Tax Invoice"}
-          </button>
-          <button
-            type="button"
-            className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-semibold text-white"
-            disabled={busy != null}
-            onClick={() => void createDraft()}
-          >
-            New draft
-          </button>
-        </div>
-      </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+    <PageScaffold
+      className="space-y-6"
+      hero={{
+        title: "Documents",
+        description:
+          "Print templates. Published versions are immutable — Clone to draft to edit. New draft creates a blank template.",
+        actions: (
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" disabled={busy != null} onClick={() => void seed()}>
+              {busy === "seed" ? "Seeding…" : "Seed Tax Invoice"}
+            </Button>
+            <Button type="button" disabled={busy != null} onClick={() => void createDraft()}>
+              New draft
+            </Button>
+          </div>
+        ),
+      }}
+    >
+      {error && (
+        <p className="text-sm text-[var(--danger)]">{error}</p>
+      )}
       {loading ? (
         <p className="text-sm text-[var(--ink-soft)]">Loading…</p>
       ) : (
         <div className="overflow-hidden rounded-xl border bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="border-b bg-stone-50 text-xs uppercase text-[var(--ink-soft)]">
+            <thead className="border-b bg-[var(--mist)] text-xs uppercase text-[var(--ink-soft)]">
               <tr>
                 <th className="px-3 py-2">Document</th>
                 <th className="px-3 py-2">Type</th>
@@ -164,14 +156,14 @@ export default function DocumentsCatalogPage() {
                     <div className="flex flex-wrap justify-end gap-3">
                       <Link
                         href={`/configuration/documents/${row.id}`}
-                        className="text-xs font-semibold text-emerald-800 underline"
+                        className="text-xs font-semibold text-[var(--brand)] underline"
                       >
                         {row.lifecycle === "DRAFT" ? "Edit" : "Open / Preview"}
                       </Link>
                       {row.lifecycle !== "DRAFT" && (
                         <button
                           type="button"
-                          className="text-xs font-semibold text-emerald-800 underline disabled:opacity-50"
+                          className="text-xs font-semibold text-[var(--brand)] underline disabled:opacity-50"
                           disabled={busy != null}
                           onClick={() => void cloneToDraft(row)}
                         >
@@ -193,6 +185,6 @@ export default function DocumentsCatalogPage() {
           </table>
         </div>
       )}
-    </div>
+    </PageScaffold>
   );
 }

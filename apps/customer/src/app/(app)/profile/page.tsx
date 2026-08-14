@@ -82,7 +82,7 @@ export default function ProfileHubPage() {
     return (
       <Container layout="wide" className="space-y-4 py-8">
         <ProfileHeader name="Guest" />
-        <div className="rounded-lg border border-[#e8e8e8] bg-white px-4 py-6 text-center">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-raised)] px-4 py-6 text-center">
           <p className="text-sm text-[var(--ink-soft)]">Sign in to manage orders and addresses.</p>
           <div className="mt-4 flex justify-center gap-2">
             <Button

@@ -22,6 +22,7 @@ export async function GET(request: Request, { params }: Ctx) {
     include: {
       licenses: true,
       settings: true,
+      billingSubscription: { include: { plan: { select: { code: true, name: true } } } },
       _count: { select: { users: true } },
     },
   });

@@ -182,11 +182,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ sku: s
 
   return (
     <div className="pb-24 md:pb-28">
-      <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-[#e8e8e8] bg-white px-3 py-2.5 md:hidden">
+      <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2.5 md:hidden">
         <button
           type="button"
           onClick={() => router.back()}
-          className="flex h-9 w-9 items-center justify-center rounded-md bg-[#f5f5f5] text-lg font-bold text-[var(--ink)]"
+          className="flex h-9 w-9 items-center justify-center rounded-md bg-[var(--mist)] text-lg font-bold text-[var(--ink)]"
           aria-label="Back"
         >
           ←
@@ -262,7 +262,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ sku: s
                       <input
                         value={selected[def.key] ?? ""}
                         onChange={(e) => setSelected((s) => ({ ...s, [def.key]: e.target.value }))}
-                        className="min-h-9 w-full rounded-md border border-[var(--line)] bg-white px-3 text-sm text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forest)]"
+                        className="min-h-9 w-full rounded-md border border-[var(--line)] bg-[var(--surface-raised)] px-3 text-sm text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forest)]"
                         placeholder={def.label}
                       />
                     </div>
@@ -275,7 +275,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ sku: s
           </div>
         </div>
 
-        <section className="mt-6 rounded-lg border border-[#e8e8e8] bg-[#fafafa] p-4">
+        <section className="mt-6 rounded-lg border border-[var(--line)] bg-[var(--mist)] p-4">
           <h2 className="text-sm font-bold text-[var(--ink)]">Documents & specifications</h2>
           <p className="mt-1 text-xs text-[var(--ink-soft)]">
             Datasheets, installation guides, warranty and certifications appear here when attached.

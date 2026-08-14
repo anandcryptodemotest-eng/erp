@@ -267,7 +267,7 @@ function LoginForm() {
           backgroundPosition: "center",
         }}
       />
-      <div className="relative w-full max-w-md overflow-hidden rounded-[var(--radius)] border border-white/15 bg-[color-mix(in_srgb,var(--paper)_94%,white)] shadow-[var(--shadow)]">
+      <div className="relative w-full max-w-md overflow-hidden rounded-[var(--radius-md)] border border-white/15 bg-[color-mix(in_srgb,var(--paper)_94%,white)] shadow-[var(--shadow)]">
         <div className="bg-[var(--ink)] px-6 py-7 text-white">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--amber-soft)]">
             Customer portal
@@ -330,7 +330,7 @@ function LoginForm() {
             </div>
           ) : null}
           {googleError ? (
-            <div className="mb-4 rounded-[var(--radius)] bg-red-50 px-4 py-2.5 text-sm text-[var(--danger)]">
+            <div className="mb-4 rounded-[var(--radius-md)] bg-red-50 px-4 py-2.5 text-sm text-[var(--danger)]">
               {googleError}
             </div>
           ) : null}
@@ -400,7 +400,7 @@ function LoginForm() {
               </>
             )}
             {error ? (
-              <div className="rounded-[var(--radius)] bg-red-50 px-4 py-2.5 text-sm text-[var(--danger)]">
+              <div className="rounded-[var(--radius-md)] bg-red-50 px-4 py-2.5 text-sm text-[var(--danger)]">
                 {error}
               </div>
             ) : null}
@@ -462,7 +462,7 @@ function Field({
         required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="min-h-[var(--touch-min)] rounded-[var(--radius)] border-[var(--line)] focus-visible:ring-[var(--forest)]"
+        className="min-h-[var(--touch-min)] rounded-[var(--radius-md)] border-[var(--line)] focus-visible:ring-[var(--forest)]"
       />
     </div>
   );

@@ -14,6 +14,7 @@ const BASE = process.env.BASE_URL ?? "http://localhost:3010/admin";
 const TENANT = process.env.TENANT_SLUG ?? "trustwood-enterprise";
 
 const ADMIN = { email: "admin@simhapurifresh.com", password: "Admin@123" };
+const PLATFORM = { email: "platform@erp.local", password: "Platform@123" };
 
 const DEMO_USERS = [
   { email: "sales@trustwood.test", password: "Sales@123", name: "Sales Executive", role: "SALES_EXECUTIVE" },
@@ -200,6 +201,165 @@ async function receiveStock(
   else warn("stock/receive", `${recv.status} ${recv.json.error ?? ""}`);
 }
 
+async function findProductBySku(auth: Auth, sku: string) {
+  const paths = [
+    `/api/products?sku=${encodeURIComponent(sku)}&limit=5&includeInactive=true`,
+    `/api/products?search=${encodeURIComponent("Adhesive")}&limit=20&includeInactive=true`,
+    `/api/products?limit=200&includeInactive=true`,
+  ];
+  for (const path of paths) {
+    const res = await api("GET", path, auth);
+    const hit = (
+      (res.json.data as { id: string; sku: string; isActive?: boolean }[] | undefined) ?? []
+    ).find((p) => p.sku === sku);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
+async function ensureTrustwoodTenant() {
+  const probe = await api("POST", "/api/auth", {
+    body: { action: "login", email: ADMIN.email, password: ADMIN.password, tenantSlug: TENANT },
+  });
+  if (probe.status === 200) {
+    log("Trustwood tenant ready", TENANT);
+    return;
+  }
+
+  const plat = await api("POST", "/api/platform/auth", {
+    body: { email: PLATFORM.email, password: PLATFORM.password },
+  });
+  if (plat.status !== 200 || !plat.json.data) {
+    throw new Error(
+      `Platform login failed (${plat.status}). Run pnpm seed:platform against a migrated gateway DB first.`
+    );
+  }
+  const platToken = (plat.json.data as { accessToken: string }).accessToken;
+
+  const created = await api("POST", "/api/platform/tenants", {
+    token: platToken,
+    body: {
+      name: "Trustwood Enterprise",
+      slug: TENANT,
+      plan: "starter",
+      adminEmail: ADMIN.email,
+      adminName: "Admin",
+      adminPassword: ADMIN.password,
+    },
+  });
+  if (created.status === 409) {
+    log("Trustwood tenant exists", TENANT);
+    return;
+  }
+  if (created.status !== 200 && created.status !== 201) {
+    throw new Error(`Create tenant failed: ${created.status} ${created.json.error ?? ""}`);
+  }
+
+  const tenantId = (created.json.data as { tenantId?: string }).tenantId;
+  log("Created Trustwood tenant", tenantId ?? TENANT);
+
+  await api("PUT", `/api/platform/licenses/${tenantId}`, {
+    token: platToken,
+    body: {
+      modules: [
+        { moduleId: "core", plan: "basic", isActive: true },
+        { moduleId: "sales", plan: "basic", isActive: true },
+        { moduleId: "inventory", plan: "basic", isActive: true },
+        { moduleId: "accounting", plan: "basic", isActive: true },
+        { moduleId: "procurement", plan: "basic", isActive: true },
+        { moduleId: "delivery", plan: "basic", isActive: true },
+        { moduleId: "hr", plan: "basic", isActive: true },
+      ],
+    },
+  });
+  log("Trustwood licenses enabled");
+}
+
+/** DEMO grant so portal/OMS E2E is not blocked by the Free plan (no `oms` feature). */
+async function ensureGrowthPlan(tenantId: string) {
+  const plat = await api("POST", "/api/platform/auth", {
+    body: { email: PLATFORM.email, password: PLATFORM.password },
+  });
+  if (plat.status !== 200 || !plat.json.data) {
+    warn("Growth grant skipped", `platform login ${plat.status} ${plat.json.error ?? ""}`);
+    return;
+  }
+  const platToken = (plat.json.data as { accessToken: string }).accessToken;
+  const grant = await api("POST", `/api/platform/tenants/${tenantId}/billing/grant`, {
+    token: platToken,
+    body: { planCode: "growth_monthly" },
+  });
+  if (grant.status === 200) log("Trustwood Growth plan granted");
+  else warn("Growth grant", `${grant.status} ${grant.json.error ?? ""}`);
+}
+
+async function ensureSimpleAdhesive(
+  auth: Auth,
+  adhesiveId: string | undefined,
+  twBrand: string | undefined
+): Promise<{ id: string; sku: string } | null> {
+  if (!adhesiveId || !twBrand) {
+    warn("Adhesive prerequisites", `category=${!!adhesiveId} brand=${!!twBrand}`);
+    return null;
+  }
+
+  let existing = await findProductBySku(auth, "TW-ADH-1L");
+  if (existing?.isActive === false) {
+    const patched = await api("PATCH", `/api/products/${existing.id}`, {
+      ...auth,
+      body: { isActive: true },
+    });
+    if (patched.status === 200) {
+      log("Reactivated Adhesive", "TW-ADH-1L");
+      existing = { ...existing, isActive: true };
+    } else {
+      warn("Reactivate Adhesive", `${patched.status} ${patched.json.error ?? ""}`);
+    }
+  }
+  if (existing) {
+    log("Adhesive exists", "TW-ADH-1L");
+    return existing;
+  }
+
+  const created = await api("POST", "/api/products", {
+    ...auth,
+    body: {
+      sku: "TW-ADH-1L",
+      name: "Trustwood Adhesive 1L",
+      categoryId: adhesiveId,
+      brandId: twBrand,
+      unit: "pcs",
+      pricingBasis: "PER_EACH",
+      sellPrice: 350,
+      costPrice: 220,
+      imageUrls: [MEDIA.warehouse],
+      reorderLevel: 10,
+    },
+  });
+  if (created.status === 409) {
+    const conflict = await findProductBySku(auth, "TW-ADH-1L");
+    if (conflict) {
+      if (conflict.isActive === false) {
+        await api("PATCH", `/api/products/${conflict.id}`, {
+          ...auth,
+          body: { isActive: true },
+        });
+        log("Reactivated Adhesive after 409", "TW-ADH-1L");
+      } else {
+        log("Adhesive exists (409)", "TW-ADH-1L");
+      }
+      return conflict;
+    }
+  }
+  const id = (created.json.data as { id: string } | undefined)?.id;
+  if (id) {
+    log("Created Adhesive", "TW-ADH-1L");
+    return { id, sku: "TW-ADH-1L" };
+  }
+  warn("Adhesive", `${created.status} ${created.json.error ?? ""}`);
+  return null;
+}
+
 async function reactivateDemoSkus(auth: Auth, warehouseId: string) {
   const list = await api("GET", "/api/products?limit=100&includeInactive=true", auth);
   const rows =
@@ -301,6 +461,8 @@ async function seedBuyer(auth: Auth) {
 async function main() {
   console.log(`\n=== Trustwood demo seed @ ${BASE} tenant=${TENANT} ===\n`);
 
+  await ensureTrustwoodTenant();
+
   const login = await api("POST", "/api/auth", {
     body: { action: "login", email: ADMIN.email, password: ADMIN.password, tenantSlug: TENANT },
   });
@@ -318,6 +480,8 @@ async function main() {
     role: data.user.role ?? "ADMIN",
   };
   log("Admin logged in", `${auth.tenantId} role=${auth.role}`);
+
+  await ensureGrowthPlan(auth.tenantId);
 
   const adminRefresh = await api("POST", `/api/tenants/${auth.tenantId}/users`, {
     ...auth,
@@ -563,41 +727,9 @@ async function main() {
     for (const p of r.ids) stockItems.push({ productId: p.id, quantity: 25 });
   }
 
-  // --- Simple Adhesive (no axes) ---
-  if (adhesiveId && twBrand) {
-    const list = await api("GET", "/api/products?search=TW-ADH-1L&limit=5", auth);
-    const existing = ((list.json.data as { id: string; sku: string }[]) ?? []).find(
-      (p) => p.sku === "TW-ADH-1L"
-    );
-    if (existing) {
-      log("Adhesive exists", "TW-ADH-1L");
-      stockItems.push({ productId: existing.id, quantity: 100 });
-    } else {
-      const created = await api("POST", "/api/products", {
-        ...auth,
-        body: {
-          sku: "TW-ADH-1L",
-          name: "Trustwood Adhesive 1L",
-          categoryId: adhesiveId,
-          brandId: twBrand,
-          unit: "pcs",
-          pricingBasis: "PER_EACH",
-          sellPrice: 350,
-          costPrice: 220,
-          imageUrls: [MEDIA.warehouse],
-          reorderLevel: 10,
-        },
-      });
-      const id = (created.json.data as { id: string } | undefined)?.id;
-      if (id) {
-        log("Created Adhesive", "TW-ADH-1L");
-        productsCreated++;
-        stockItems.push({ productId: id, quantity: 100 });
-      } else {
-        warn("Adhesive", `${created.status} ${created.json.error ?? ""}`);
-      }
-    }
-  }
+  // --- Simple Adhesive (no axes) — search/reactivate/create ---
+  const adhesive = await ensureSimpleAdhesive(auth, adhesiveId, twBrand);
+  if (adhesive) stockItems.push({ productId: adhesive.id, quantity: 100 });
 
   // Warehouse + stock
   let warehouseId: string | undefined;
@@ -637,6 +769,12 @@ async function main() {
   }
 
   await seedBuyer(auth);
+
+  const adhesiveCheck = await findProductBySku(auth, "TW-ADH-1L");
+  if (!adhesiveCheck?.id) {
+    throw new Error("TW-ADH-1L missing after seed — portal E2E requires this SKU");
+  }
+  log("Verified Adhesive", "TW-ADH-1L");
 
   // Workflow
   await api("POST", "/api/workflow-forms", { ...auth, body: { action: "seed" } });

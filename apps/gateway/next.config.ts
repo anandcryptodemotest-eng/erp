@@ -27,6 +27,7 @@ const nextConfig: NextConfig = {
     "gaxios",
     "https-proxy-agent",
     "@node-rs/argon2",
+    "razorpay",
   ],
   // Served publicly only via nginx at https://host/admin (apps bind to 127.0.0.1).
   basePath: "/admin",
@@ -44,7 +45,7 @@ const nextConfig: NextConfig = {
     },
   },
   allowedDevOrigins: ["150.242.201.102", "localhost", "127.0.0.1"],
-  transpilePackages: ["@erp/logger", "@erp/ui", "@erp/types", "@erp/auth", "@erp/config", "@erp/workflow", "@erp/ui-runtime", "@erp/extensions", "@erp/pricing", "@erp/process-designer", "@erp/process-forms", "@erp/document-designer", "@erp/documents", "@erp/admin-ui-host"],
+  transpilePackages: ["@erp/logger", "@erp/ui", "@erp/types", "@erp/auth", "@erp/config", "@erp/workflow", "@erp/ui-runtime", "@erp/extensions", "@erp/pricing", "@erp/process-designer", "@erp/process-forms", "@erp/document-designer", "@erp/documents", "@erp/admin-ui-host", "@erp/tax-india", "@erp/platform-core"],
   async rewrites() {
     return {
       // Local-dev parity for nginx's public `/api/*` → gateway `/admin/api/*` rewrite.
@@ -81,6 +82,8 @@ const nextConfig: NextConfig = {
       { source: "/api/order-documents",        destination: `${SALES_URL}/api/order-documents` },
       { source: "/api/sales-requests/:path*", destination: `${SALES_URL}/api/sales-requests/:path*` },
       { source: "/api/sales-requests",        destination: `${SALES_URL}/api/sales-requests` },
+      { source: "/api/quick-bills/:path*",   destination: `${SALES_URL}/api/quick-bills/:path*` },
+      { source: "/api/quick-bills",          destination: `${SALES_URL}/api/quick-bills` },
       { source: "/api/order-workflows/:path*", destination: `${SALES_URL}/api/order-workflows/:path*` },
       { source: "/api/order-workflows",        destination: `${SALES_URL}/api/order-workflows` },
       { source: "/api/workflow-templates/:path*", destination: `${SALES_URL}/api/workflow-templates/:path*` },
@@ -133,6 +136,8 @@ const nextConfig: NextConfig = {
       { source: "/api/journals",             destination: `${ACCOUNTING_URL}/api/journals` },
       { source: "/api/invoices/:path*",      destination: `${ACCOUNTING_URL}/api/invoices/:path*` },
       { source: "/api/invoices",             destination: `${ACCOUNTING_URL}/api/invoices` },
+      { source: "/api/ar/:path*",            destination: `${ACCOUNTING_URL}/api/ar/:path*` },
+      { source: "/api/ar",                   destination: `${ACCOUNTING_URL}/api/ar` },
       { source: "/api/credit-notes/:path*",  destination: `${ACCOUNTING_URL}/api/credit-notes/:path*` },
       { source: "/api/credit-notes",         destination: `${ACCOUNTING_URL}/api/credit-notes` },
       { source: "/api/debit-notes/:path*",   destination: `${ACCOUNTING_URL}/api/debit-notes/:path*` },

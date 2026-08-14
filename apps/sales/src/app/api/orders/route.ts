@@ -10,6 +10,8 @@ import {
   normalizeLineItems,
 } from "@/lib/order-lines";
 import { z } from "zod";
+import type { Prisma } from "@/generated/prisma";
+import { assertSaasEntitlement } from "@/lib/assert-saas-entitlement";
 
 const log = createLogger({ service: "sales" });
 
@@ -99,6 +101,9 @@ export async function POST(request: Request) {
     );
   }
 
+  const entitlementBlock = await assertSaasEntitlement(tenantId, "oms");
+  if (entitlementBlock) return entitlementBlock;
+
   try {
     const body = await request.json();
     if (body.submitForReview) {
@@ -168,7 +173,9 @@ export async function POST(request: Request) {
             quantity: i.quantity,
             unitPrice: i.unitPrice,
             taxRate: i.taxRate,
+            taxTreatment: i.taxTreatment,
             total: i.total,
+            customSnapshot: i.customSnapshot as Prisma.InputJsonValue | undefined,
           })),
         },
       },

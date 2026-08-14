@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { WorkspaceHero } from "@erp/ui";
+import { buttonVariants, PageScaffold, StatusChip } from "@erp/ui";
 
 const STUDIO_ITEMS: {
   href: string;
@@ -55,39 +55,40 @@ const STUDIO_ITEMS: {
 
 export default function ProcessStudioPage() {
   return (
-    <div className="ws-page space-y-6">
-      <div>
-        <WorkspaceHero
-          eyebrow="Process owner"
-          title="Process Studio"
-          description="Workflows, forms, and process assets. Organisation settings live under Administration."
-          actions={
-            <Link href="/administration" className="ws-btn">
-              Administration
-            </Link>
-          }
-        />
-        <p className="mb-2 text-sm text-[var(--ink-soft)]">
-          Owned by the <strong className="font-semibold text-[var(--ink)]">Process Owner</strong>.
-        </p>
-        <p className="text-xs text-[var(--ink-soft)]">
-          Lifecycle: Draft → Validate → Publish → Snapshot → Execute. Runtime never sees drafts.
-        </p>
-      </div>
-
+    <PageScaffold
+      className="space-y-6"
+      hero={{
+        eyebrow: "Process owner",
+        title: "Process Studio",
+        description: "Workflows, forms, and process assets. Organisation settings live under Administration.",
+        actions: (
+          <Link href="/administration" className={buttonVariants({ variant: "secondary" })}>
+            Administration
+          </Link>
+        ),
+      }}
+      ahead={
+        <>
+          <p className="mb-2 text-sm text-[var(--ink-soft)]">
+            Owned by the <strong className="font-semibold text-[var(--ink)]">Process Owner</strong>.
+          </p>
+          <p className="text-xs text-[var(--ink-soft)]">
+            Lifecycle: Draft → Validate → Publish → Snapshot → Execute. Runtime never sees drafts.
+          </p>
+        </>
+      }
+    >
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {STUDIO_ITEMS.map((item) =>
           item.status === "live" ? (
             <Link
               key={item.title}
               href={item.href}
-              className="rounded-xl border border-emerald-200 bg-white p-4 shadow-sm transition hover:border-emerald-400 hover:shadow"
+              className="rounded-xl border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-white p-4 shadow-sm transition hover:border-[color-mix(in_srgb,var(--success)_55%,var(--line))] hover:shadow"
             >
               <div className="flex items-center justify-between gap-2">
                 <h2 className="text-sm font-semibold text-[var(--ink)]">{item.title}</h2>
-                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-                  Live
-                </span>
+                <StatusChip tone="success">Live</StatusChip>
               </div>
               <p className="mt-1 text-xs text-[var(--ink-soft)]">{item.description}</p>
             </Link>
@@ -98,15 +99,13 @@ export default function ProcessStudioPage() {
             >
               <div className="flex items-center justify-between gap-2">
                 <h2 className="text-sm font-semibold text-[var(--ink-soft)]">{item.title}</h2>
-                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
-                  Coming soon
-                </span>
+                <StatusChip tone="neutral">Coming soon</StatusChip>
               </div>
               <p className="mt-1 text-xs text-[var(--ink-soft)]">{item.description}</p>
             </div>
           )
         )}
       </div>
-    </div>
+    </PageScaffold>
   );
 }

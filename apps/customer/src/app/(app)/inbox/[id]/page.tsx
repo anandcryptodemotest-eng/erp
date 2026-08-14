@@ -180,7 +180,7 @@ export default function InboxThreadPage() {
       ) : null}
 
       {!loading && error && messages.length === 0 ? (
-        <div className="rounded-[var(--radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-[var(--danger)]">
+        <div className="rounded-[var(--radius-md)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-[var(--danger)]">
           {error}
         </div>
       ) : null}
@@ -192,7 +192,7 @@ export default function InboxThreadPage() {
             const audio = message.attachments?.find((attachment) => attachment.mimeType.startsWith("audio/"));
             return (
             <div key={message.id} className={`flex ${fromCustomer ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[85%] rounded-[var(--radius)] border px-4 py-3 shadow-[var(--shadow-sm)] ${fromCustomer ? "border-[var(--forest)] bg-[var(--forest)] text-white" : "border-[var(--line)] bg-white text-[var(--ink)]"}`}>
+              <div className={`max-w-[85%] rounded-[var(--radius-md)] border px-4 py-3 shadow-[var(--shadow-1)] ${fromCustomer ? "border-[var(--forest)] bg-[var(--forest)] text-white" : "border-[var(--line)] bg-[var(--surface-raised)] text-[var(--ink)]"}`}>
                 {audio?.assetRef?.url ? (
                   <audio controls src={audio.assetRef.url} className="max-w-full" aria-label="Voice message" />
                 ) : (
@@ -210,7 +210,7 @@ export default function InboxThreadPage() {
 
       <form onSubmit={sendMessage} className="sticky bottom-20 mt-6 flex gap-2 border-t border-[var(--line)] bg-[var(--paper)] py-3">
         {voiceAttachment ? (
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-[var(--radius)] border border-[var(--line)] bg-white px-3 text-sm text-[var(--ink)]">
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] px-3 text-sm text-[var(--ink)]">
             <audio controls src={voiceAttachment.url} className="min-w-0 flex-1" aria-label="Voice note preview" />
             <button type="button" onClick={() => setVoiceAttachment(null)} className="text-xs font-semibold text-[var(--danger)]">
               Remove
@@ -222,7 +222,7 @@ export default function InboxThreadPage() {
           onChange={(event) => setText(event.target.value)}
           placeholder="Write a message…"
           aria-label="Message"
-          className="min-h-[var(--touch-min)] min-w-0 flex-1 rounded-[var(--radius)] border border-[var(--line)] bg-white px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--forest-mid)]"
+          className="min-h-[var(--touch-min)] min-w-0 flex-1 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--forest-mid)]"
           maxLength={4000}
         />
         )}
@@ -231,7 +231,7 @@ export default function InboxThreadPage() {
           onClick={recording ? stopRecording : startRecording}
           disabled={sending || uploadingVoice || Boolean(voiceAttachment)}
           aria-label={recording ? "Stop recording" : "Record voice message"}
-          className={`min-h-[var(--touch-min)] rounded-[var(--radius)] px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 ${recording ? "bg-[var(--danger)]" : "bg-[var(--ink)]"}`}
+          className={`min-h-[var(--touch-min)] rounded-[var(--radius-md)] px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 ${recording ? "bg-[var(--danger)]" : "bg-[var(--ink)]"}`}
         >
           {recording ? "Stop" : uploadingVoice ? "Uploading" : "Mic"}
         </button>
@@ -239,7 +239,7 @@ export default function InboxThreadPage() {
           type="submit"
           disabled={sending || uploadingVoice || (!text.trim() && !voiceAttachment)}
           onClick={voiceAttachment ? (event) => { event.preventDefault(); void sendVoiceMessage(); } : undefined}
-          className="min-h-[var(--touch-min)] rounded-[var(--radius)] bg-[var(--forest)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-h-[var(--touch-min)] rounded-[var(--radius-md)] bg-[var(--forest)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           {sending ? "Sending" : "Send"}
         </button>

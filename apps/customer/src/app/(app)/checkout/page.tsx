@@ -290,7 +290,7 @@ export default function CheckoutPage() {
 
       <section className="mb-5">
         <h2 className="mb-2 text-sm font-semibold text-[var(--ink)]">Items</h2>
-        <div className="space-y-2 rounded-[var(--radius)] border border-[var(--line)] bg-white p-3 shadow-[var(--shadow-sm)]">
+        <div className="space-y-2 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] p-3 shadow-[var(--shadow-1)]">
           {items.map((i, idx) => (
             <div key={`${i.productId}-${i.variantId ?? ""}`} className="flex items-center gap-3 text-sm">
               <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[var(--radius-sm)] bg-[var(--mist)]">
@@ -350,7 +350,7 @@ export default function CheckoutPage() {
                 className={`min-h-[var(--touch-min)] w-full rounded-lg border p-3 text-left transition-colors ${
                   selectedAddr === a.id
                     ? "border-[var(--forest)] bg-[#f5f8f6]"
-                    : "border-[#e8e8e8] bg-white"
+                    : "border-[var(--line)] bg-[var(--surface-raised)]"
                 }`}
               >
                 <span className="text-sm font-semibold text-[var(--ink)]">{a.label}</span>
@@ -369,7 +369,7 @@ export default function CheckoutPage() {
         ) : null}
 
         {(showNewAddr || addresses.length === 0) && profile ? (
-          <div className="mb-2 space-y-2 rounded-lg border border-[#e8e8e8] bg-white p-4">
+          <div className="mb-2 space-y-2 rounded-lg border border-[var(--line)] bg-[var(--surface-raised)] p-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-[var(--ink)]">
                 {addresses.length === 0 ? "Add delivery address" : "New address"}
@@ -401,7 +401,7 @@ export default function CheckoutPage() {
       </section>
 
       {error ? (
-        <div className="mb-3 rounded-[var(--radius)] border border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_8%,white)] px-4 py-2.5 text-sm text-[var(--danger)]">
+        <div className="mb-3 rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_8%,white)] px-4 py-2.5 text-sm text-[var(--danger)]">
           {error}
         </div>
       ) : null}
