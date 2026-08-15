@@ -41,7 +41,7 @@ export function LogoImageControls({
 
   return (
     <div className="erp-doc-designer__section">
-      <h3>Logo image</h3>
+      <h3>Image</h3>
 
       {src ? (
         <div style={{ marginBottom: 8 }}>
@@ -61,7 +61,7 @@ export function LogoImageControls({
         </div>
       ) : (
         <p style={{ fontSize: 11, color: "#78716c", marginBottom: 8 }}>
-          No template image yet. Upload one, or bind to Seller → Logo URL for runtime.
+          No template image yet. Upload one, or bind a URL path from the document payload.
         </p>
       )}
 

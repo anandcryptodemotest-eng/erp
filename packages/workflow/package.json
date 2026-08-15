@@ -16,7 +16,9 @@
     "./variables": "./src/variables/index.ts",
     "./adapters": "./src/adapters/index.ts",
     "./engine": "./src/engine/index.ts",
-    "./simulation": "./src/simulation/index.ts"
+    "./simulation": "./src/simulation/index.ts",
+    "./work-items": "./src/work-items/index.ts",
+    "./starter-hash": "./src/forms/starter-hash.ts"
   },
   "scripts": {
     "build": "tsc",

@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BillSummary,
-  Button,
   Chip,
   ChipGroup,
   Container,
@@ -16,10 +15,12 @@ import {
 import { api } from "@/lib/api-client";
 import { addToCart } from "@/lib/cart-store";
 import { productGalleryUrls } from "@/lib/media";
+import { PdpAtcActions } from "@/components/PdpAtcActions";
 import { PdpCartButton } from "@/components/PdpCartButton";
 import {
   billRowsFromQuote,
   cartBillLinesFromQuote,
+  formatPortalPrice,
   measureFromQuote,
   quoteFormula,
   type QuoteLike,
@@ -65,7 +66,6 @@ export default function CatalogGroupPage({ params }: { params: Promise<{ group: 
   const [quote, setQuote] = useState<QuoteLike | null>(null);
   const [qty, setQty] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [added, setAdded] = useState(false);
 
   useEffect(() => {
     params.then((p) => setGroupCode(decodeURIComponent(p.group)));
@@ -167,25 +167,27 @@ export default function CatalogGroupPage({ params }: { params: Promise<{ group: 
 
   function add() {
     if (!canAdd || !resolved?.product || unitPrice == null) return;
-    addToCart({
-      productId: resolved.product.id,
-      sku: resolved.product.sku,
-      name: resolved.product.name,
-      price: unitPrice,
-      qty,
-      imageUrl: primaryImage || undefined,
-      selectedAttributes: selected,
-      pricingBasis: quote?.basis ?? resolved.product.pricingBasis,
-      rateAmount: quote?.rate?.amount,
-      rateUom: quote?.rate?.per,
-      measureQuantity: measure?.quantity,
-      measureUom: measure?.uom,
-      resolvedQuantity: quote?.resolvedQuantity ?? (measure ? measure.quantity * qty : undefined),
-      lineTotal: lineTotal ?? unitPrice * qty,
-      billLines: quote ? cartBillLinesFromQuote(quote, qty) : undefined,
-    });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
+    try {
+      addToCart({
+        productId: resolved.product.id,
+        sku: resolved.product.sku,
+        name: resolved.product.name,
+        price: unitPrice,
+        qty,
+        imageUrl: primaryImage || undefined,
+        selectedAttributes: selected,
+        pricingBasis: quote?.basis ?? resolved.product.pricingBasis,
+        rateAmount: quote?.rate?.amount,
+        rateUom: quote?.rate?.per,
+        measureQuantity: measure?.quantity,
+        measureUom: measure?.uom,
+        resolvedQuantity: quote?.resolvedQuantity ?? (measure ? measure.quantity * qty : undefined),
+        lineTotal: lineTotal ?? unitPrice * qty,
+        billLines: quote ? cartBillLinesFromQuote(quote, qty) : undefined,
+      });
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   if (loading) {
@@ -200,31 +202,30 @@ export default function CatalogGroupPage({ params }: { params: Promise<{ group: 
   }
 
   return (
-    <div className="pb-24 md:pb-28">
-      <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2.5 md:hidden">
+    <div className="pb-24 md:pb-28" data-pdp>
+      <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2.5">
         <button
           type="button"
           onClick={() => router.push("/shop")}
-          className="flex h-9 w-9 items-center justify-center rounded-md bg-[var(--mist)] text-lg font-bold text-[var(--ink)]"
+          className="flex h-9 w-9 items-center justify-center rounded-md bg-[var(--mist)] text-lg font-bold text-[var(--ink)] md:hidden"
           aria-label="Back to shop"
         >
           ←
         </button>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold text-[var(--ink)]">{group.groupName}</p>
-        </div>
-        <PdpCartButton />
-      </div>
-
-      <Container layout="wide" className="py-3 md:py-6">
         <button
           type="button"
           onClick={() => router.push("/shop")}
-          className="mb-3 hidden text-sm font-semibold text-[var(--ink-soft)] hover:text-[var(--ink)] md:inline"
+          className="hidden text-sm font-semibold text-[var(--ink-soft)] hover:text-[var(--ink)] md:inline"
         >
           ← Shop
         </button>
+        <div className="min-w-0 flex-1 md:hidden">
+          <p className="truncate text-sm font-bold text-[var(--ink)]">{group.groupName}</p>
+        </div>
+        <PdpCartButton className="ml-auto" />
+      </div>
 
+      <Container layout="wide" className="py-3 md:py-6">
         <div className="grid gap-3 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)] md:items-start md:gap-6 lg:grid-cols-[minmax(0,240px)_minmax(0,1fr)]">
           <div className="mx-auto w-full max-w-[220px] md:sticky md:top-16 md:mx-0 md:max-w-none">
             <ProductGallery images={galleryImages} alt={group.groupName} size="compact" />
@@ -256,7 +257,19 @@ export default function CatalogGroupPage({ params }: { params: Promise<{ group: 
                   ) : null}
                 </div>
               ) : (
-                <PriceDisplay amount={unitPrice} size="lg" />
+                <PriceDisplay
+                  amount={
+                    unitPrice != null && unitPrice > 0
+                      ? unitPrice
+                      : formatPortalPrice({
+                          baseRate: rateAmount,
+                          pricingBasis: group.pricingBasis,
+                          pricingUom: group.pricingUom,
+                          sellPrice: unitPrice,
+                        }).label
+                  }
+                  size="lg"
+                />
               )}
             </div>
 
@@ -323,37 +336,13 @@ export default function CatalogGroupPage({ params }: { params: Promise<{ group: 
               <p className="text-xs text-[var(--ink-soft)]">Configure options to add</p>
             )}
           </div>
-          {added ? (
-            <>
-              <Button
-                variant="outline"
-                size="md"
-                className="!rounded-md"
-                disabled={!canAdd}
-                onClick={add}
-              >
-                Add more
-              </Button>
-              <Button
-                variant="primary"
-                size="md"
-                className="!min-w-[8rem] !rounded-md flex-1 sm:flex-none"
-                onClick={() => router.push("/cart")}
-              >
-                Go to cart
-              </Button>
-            </>
-          ) : (
-            <Button
-              variant="primary"
-              size="md"
-              className="!min-w-[9rem] !rounded-md flex-1 sm:flex-none"
-              disabled={!canAdd}
-              onClick={add}
-            >
-              Add to Cart
-            </Button>
-          )}
+          <PdpAtcActions
+            canAdd={canAdd}
+            onAdd={add}
+            disabledLabel={
+              missingLabels.length > 0 ? `Select ${missingLabels[0]}` : "Configure options"
+            }
+          />
         </div>
       </div>
     </div>

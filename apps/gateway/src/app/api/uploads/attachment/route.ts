@@ -6,7 +6,8 @@ import { verifyToken, extractToken } from "@erp/auth";
 
 export const runtime = "nodejs";
 
-const UPLOAD_ROOT = process.env.UPLOAD_ROOT || "/home/erp/data/uploads";
+/** Docker-writable default; override with UPLOAD_ROOT (Compose: /var/lib/erp-uploads). */
+const UPLOAD_ROOT = process.env.UPLOAD_ROOT || "/var/lib/erp-uploads";
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 const ALLOWED = new Set([
   "image/jpeg",
@@ -18,6 +19,18 @@ const ALLOWED = new Set([
   "audio/ogg",
   "audio/mpeg",
 ]);
+
+const EXT_MIME: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  pdf: "application/pdf",
+  txt: "text/plain",
+  webm: "audio/webm",
+  ogg: "audio/ogg",
+  mp3: "audio/mpeg",
+};
 
 function extFor(mime: string, originalName: string): string {
   if (mime === "image/png") return "png";
@@ -32,62 +45,77 @@ function extFor(mime: string, originalName: string): string {
   return fromName && fromName.length <= 5 ? fromName : "bin";
 }
 
+function resolveMime(file: File): string | null {
+  if (file.type && ALLOWED.has(file.type)) return file.type;
+  const ext = (file.name.split(".").pop() || "").toLowerCase();
+  const guessed = EXT_MIME[ext];
+  return guessed && ALLOWED.has(guessed) ? guessed : null;
+}
+
 /**
  * POST /api/uploads/attachment
  * multipart field: file
  * Returns: { data: { id, url, name, mimeType, size } }
  */
 export async function POST(request: Request) {
-  const token = extractToken(request.headers.get("authorization"));
-  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const auth = await verifyToken(token);
-  if (!auth) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-
-  const tenantId = request.headers.get("x-tenant-id") || auth.tenantId;
-  if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
-
-  let form: FormData;
   try {
-    form = await request.formData();
-  } catch {
-    return NextResponse.json({ error: "Expected multipart form data" }, { status: 400 });
-  }
+    const token = extractToken(request.headers.get("authorization"));
+    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const file = form.get("file");
-  if (!file || !(file instanceof File)) {
-    return NextResponse.json({ error: "file is required" }, { status: 400 });
-  }
-  if (!ALLOWED.has(file.type)) {
+    const auth = await verifyToken(token);
+    if (!auth) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+
+    const tenantId = request.headers.get("x-tenant-id") || auth.tenantId;
+    if (!tenantId) return NextResponse.json({ error: "Tenant required" }, { status: 400 });
+
+    let form: FormData;
+    try {
+      form = await request.formData();
+    } catch {
+      return NextResponse.json({ error: "Expected multipart form data" }, { status: 400 });
+    }
+
+    const file = form.get("file");
+    if (!file || !(file instanceof File)) {
+      return NextResponse.json({ error: "file is required" }, { status: 400 });
+    }
+
+    const mime = resolveMime(file);
+    if (!mime) {
+      return NextResponse.json(
+        { error: "Allowed types: JPG, PNG, WebP, PDF, plain text, or audio" },
+        { status: 400 }
+      );
+    }
+    if (file.size <= 0 || file.size > MAX_BYTES) {
+      return NextResponse.json({ error: "File must be between 1 byte and 5 MB" }, { status: 400 });
+    }
+
+    const buf = Buffer.from(await file.arrayBuffer());
+    const dir = path.join(UPLOAD_ROOT, "attachments", tenantId);
+    await mkdir(dir, { recursive: true, mode: 0o755 });
+
+    const id = `${Date.now()}-${randomBytes(4).toString("hex")}`;
+    const name = `${id}.${extFor(mime, file.name)}`;
+    const abs = path.join(dir, name);
+    await writeFile(abs, buf, { mode: 0o644 });
+
+    const url = `/uploads/attachments/${tenantId}/${name}`;
     return NextResponse.json(
-      { error: "Allowed types: JPG, PNG, WebP, PDF, plain text, or audio" },
-      { status: 400 }
-    );
-  }
-  if (file.size <= 0 || file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "File must be between 1 byte and 5 MB" }, { status: 400 });
-  }
-
-  const buf = Buffer.from(await file.arrayBuffer());
-  const dir = path.join(UPLOAD_ROOT, "attachments", tenantId);
-  await mkdir(dir, { recursive: true, mode: 0o755 });
-
-  const id = `${Date.now()}-${randomBytes(4).toString("hex")}`;
-  const name = `${id}.${extFor(file.type, file.name)}`;
-  const abs = path.join(dir, name);
-  await writeFile(abs, buf, { mode: 0o644 });
-
-  const url = `/uploads/attachments/${tenantId}/${name}`;
-  return NextResponse.json(
-    {
-      data: {
-        id,
-        url,
-        name: file.name,
-        mimeType: file.type,
-        size: file.size,
+      {
+        data: {
+          id,
+          url,
+          name: file.name,
+          mimeType: mime,
+          size: file.size,
+        },
       },
-    },
-    { status: 201 }
-  );
+      { status: 201 }
+    );
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Upload failed";
+    console.error("attachment_upload_failed", message);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

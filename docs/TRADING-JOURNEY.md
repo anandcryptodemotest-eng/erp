@@ -1,8 +1,16 @@
-# Trading journey — SREQ → SO (screen-by-screen)
+# Trading journey — Capture → Order → Fulfil
+
+Three capture channels converge on one **CONFIRMED Sales Order** and **SO_STANDARD**:
+
+- Dealer portal: **SREQ** → convert **SO**
+- Walk-in fulfilment: Sales Desk **New walk-in order** → **SO** (`sourceKind: WALK_IN`)
+- CRM: Lead → Opportunity → Quote → convert **SO** (`sourceKind: QUOTE`)
+
+Pay-and-take walk-in stays on **Quick Bill** (no SO_STANDARD). See [sales-channels.md](guides/sales-channels.md).
 
 Customer mobile **Sales Request (SREQ)** → Sales converts to **Sales Order (SO)** → parallel prep tasks → dispatch → deliver → invoice → payment → close.
 
-Admin nav defaults to this journey (CRM hidden). Workflow template: `workflow.oms_trading` **v3**.
+Admin nav defaults to this journey (CRM available when granted). Workflow template: `workflow.oms_trading` / **SO_STANDARD**.
 
 > **SREQ** = Sales Request. **SR** in returns UI = Sales Return (different document).
 
@@ -31,6 +39,7 @@ Admin nav defaults to this journey (CRM hidden). Workflow template: `workflow.om
 |---|--------|-----------|--------|
 | 1 | Inbox (open SREQs) | Opens customer requests | Queue of `OPEN` SREQs |
 | 2 | Convert | Confirms commercial intent | Creates **SO-#####** at `CONFIRMED`; SREQ → `CONVERTED`; SO status visible on SREQ |
+| 2b | New walk-in order | Existing or walk-in customer + lines | CONFIRMED SO (`WALK_IN`); SO_STANDARD starts; My Work shows `sales_review` READY |
 | 3 | My Work (parallel prep) | Role queues work independently | Tasks: sales review, inventory, pricing, warehouse (+ procurement if shortage) |
 | 4 | Prep gate | All required prep complete | SO → `READY_FOR_DISPATCH` |
 | 5 | Dispatch | Assign vehicle / driver | → `DISPATCHED` |

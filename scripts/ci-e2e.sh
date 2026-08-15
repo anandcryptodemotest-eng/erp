@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # CI E2E gate — postgres + docker stack + seed + API marathon suites.
-# Suites: greenfield, gst, portal, saas. Fail the job if any suite fails.
+# Suites: greenfield, gst, portal, saas, capture. Fail the job if any suite fails.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -77,8 +77,11 @@ push_schema "@erp/hr" "erp_hr"
 push_schema "@erp/procurement" "erp_procurement"
 push_schema "@erp/delivery" "erp_delivery"
 
-log "Building application images (serial)"
-docker compose build "${SERVICES[@]}"
+log "Building application images (truly serial — one service at a time)"
+for svc in "${SERVICES[@]}"; do
+  log "docker compose build ${svc}"
+  docker compose build "${svc}"
+done
 
 log "Starting application stack"
 docker compose up -d --wait --wait-timeout 300 "${SERVICES[@]}"
@@ -108,5 +111,8 @@ pnpm e2e:portal
 
 log "Running e2e:saas"
 pnpm e2e:saas
+
+log "Running e2e:capture"
+pnpm e2e:capture
 
 log "All E2E suites passed"

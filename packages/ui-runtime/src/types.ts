@@ -113,6 +113,9 @@ export interface AttachmentItem {
 export interface HostApis {
   uploadFile?: (file: File) => Promise<AttachmentItem>;
   addComment?: (body: string) => void | Promise<void>;
+  updateComment?: (id: string, body: string) => void | Promise<void>;
+  deleteComment?: (id: string) => void | Promise<void>;
+  deleteAttachment?: (id: string) => void | Promise<void>;
   /** Domain command bridge — widgets never call REST (ADR 0009). */
   invokeDomainCommand?: (args: {
     command: string;
@@ -146,7 +149,14 @@ export type TaskDocumentMeta = {
 export interface UIContext {
   entity: { type: string; id: string; data: Record<string, unknown> };
   order?: Record<string, unknown> | null;
-  customer?: { id?: string; name?: string | null } | null;
+  customer?: {
+    id?: string;
+    name?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    creditLimit?: number | null;
+    isBlocked?: boolean | null;
+  } | null;
   items?: LineItemLike[];
   workflow?: { template?: string; version?: number; variables?: Record<string, unknown> };
   task?: { id?: string; stepKey?: string; action?: string; status?: string };

@@ -8,6 +8,7 @@ import { WhatsAppIntegrationPanel } from "./whatsapp-integration-panel";
 import { PorterLogisticsPanel } from "./porter-logistics-panel";
 import { TaxInvoicingPanel } from "./tax-invoicing-panel";
 import { BillingCheckoutPanel } from "./billing-checkout-panel";
+import { NotificationsPanel } from "./notifications-panel";
 
 type Section =
   | "general"
@@ -31,7 +32,7 @@ const SECTIONS: { id: Section; label: string; description: string }[] = [
   { id: "portal", label: "Portal", description: "Customer portal slug and name" },
   { id: "tax", label: "Tax & Invoicing", description: "GST regime, seller GSTIN, e-invoice mode" },
   { id: "billing", label: "Sankalp billing", description: "Sankalp SaaS subscription (Razorpay)" },
-  { id: "integrations", label: "Integrations", description: "External connectors" },
+  { id: "integrations", label: "Integrations", description: "WhatsApp, notifications, logistics" },
 ];
 
 type TenantDetail = {
@@ -500,6 +501,7 @@ export default function AdministrationPage() {
           {section === "integrations" && (
             <div className="space-y-6">
               <WhatsAppIntegrationPanel />
+              <NotificationsPanel />
               <PorterLogisticsPanel />
             </div>
           )}

@@ -71,7 +71,20 @@ export async function api<T = any>(
       ...(options.headers ?? {}),
     },
   });
-  const json = await res.json();
+  const raw = await res.text();
+  let json: any = {};
+  if (raw) {
+    try {
+      json = JSON.parse(raw);
+    } catch {
+      if (!res.ok) {
+        throw Object.assign(new Error(`HTTP ${res.status}: ${raw.slice(0, 200) || "empty response"}`), {
+          status: res.status,
+        });
+      }
+      throw new Error(`Invalid JSON from ${path}`);
+    }
+  }
   if (!res.ok) {
     const err = new Error(json.error ?? `HTTP ${res.status}`) as Error & {
       issues?: unknown;
@@ -117,4 +130,41 @@ export async function openAuthenticatedDocument(path: string, fileName = "docume
   // Keep blob URL briefly so a new tab can load it; revoke after.
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
   return url;
+}
+
+/** POST a document endpoint that returns a PDF/binary and trigger a download. */
+export async function downloadAuthenticatedDocument(
+  path: string,
+  fileName: string,
+  options: RequestInit = {}
+) {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken()}`,
+      "x-tenant-id": getTenantId(),
+      ...(options.headers ?? {}),
+    },
+  });
+  if (!res.ok) {
+    let msg = `Download failed (${res.status})`;
+    try {
+      const j = (await res.json()) as { error?: string };
+      if (j.error) msg = j.error;
+    } catch {
+      /* binary error body */
+    }
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }

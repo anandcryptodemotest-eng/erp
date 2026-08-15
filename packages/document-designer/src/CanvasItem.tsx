@@ -2,6 +2,7 @@
 
 import { useCallback, useRef } from "react";
 import type { PlacedItem } from "@erp/documents";
+import { SAMPLE_DOCUMENT_PAYLOAD, formatValue, getByPath } from "@erp/documents";
 import { snap } from "./snap";
 import type { DesignerCommand, GridSize, ResizeHandle } from "./types";
 
@@ -9,8 +10,20 @@ const HANDLES: ResizeHandle[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 
 function itemPreview(item: PlacedItem): string {
   if (item.type === "Text") return String(item.properties?.text ?? "Text");
-  if (item.type === "Field") return `{${item.binding?.path || "field"}}`;
-  if (item.type === "Table") return "Table";
+  if (item.type === "Field") {
+    const path = item.binding?.path;
+    const sample = path
+      ? formatValue(
+          getByPath(SAMPLE_DOCUMENT_PAYLOAD, path),
+          item.binding?.formatter,
+          item.binding?.fallback ?? ""
+        )
+      : "";
+    if (sample) return sample;
+    if (item.name && item.name !== "Field") return item.name;
+    return path ? `{${path}}` : "Field";
+  }
+  if (item.type === "Table") return item.name && item.name !== "Table" ? item.name : "Table";
   if (item.type === "Logo") {
     const src = typeof item.properties?.src === "string" ? item.properties.src : "";
     return src ? "" : "Logo";
@@ -20,6 +33,7 @@ function itemPreview(item: PlacedItem): string {
     return src ? "" : "Image";
   }
   if (item.type === "QR") return "QR";
+  if (item.type === "Widget") return item.name ?? item.widgetId ?? "Widget";
   if (item.type === "Line") return "";
   if (item.type === "Box") return "";
   if (item.type === "Container") return item.name ?? "Container";
@@ -148,7 +162,7 @@ export function CanvasItemView({
     <div
       className={`erp-doc-designer__item${isSelected ? " erp-doc-designer__item--selected" : ""}${
         item.type === "Container" ? " erp-doc-designer__item--container" : ""
-      }`}
+      }${item.type === "Widget" ? " erp-doc-designer__item--widget" : ""}`}
       data-id={item.id}
       style={{
         left,
@@ -179,7 +193,12 @@ export function CanvasItemView({
       {isSelected && (
         <span className="erp-doc-designer__item-label">{item.name ?? item.id}</span>
       )}
-      {(item.type === "Logo" || item.type === "Image") &&
+      {item.type === "Widget" ? (
+        <div className="erp-doc-designer__widget-chrome">
+          <div>{item.name ?? "Widget"}</div>
+          <div style={{ color: "#a8a29e", fontSize: 9 }}>{item.widgetId}</div>
+        </div>
+      ) : (item.type === "Logo" || item.type === "Image") &&
       typeof item.properties?.src === "string" &&
       item.properties.src ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -189,13 +208,17 @@ export function CanvasItemView({
           draggable={false}
           style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }}
         />
+      ) : item.type === "Table" ? (
+        <CanvasTablePreview item={item} />
       ) : item.type !== "Container" ? (
         <div
           style={{
-            padding: 2,
+            padding: "0 2px",
             overflow: "hidden",
             whiteSpace: "nowrap",
             textOverflow: "ellipsis",
+            lineHeight: 1.15,
+            height: "100%",
           }}
         >
           {itemPreview(item)}
@@ -239,5 +262,47 @@ export function CanvasItemView({
         </>
       )}
     </div>
+  );
+}
+
+function CanvasTablePreview({ item }: { item: PlacedItem }) {
+  const columns =
+    (item.properties?.columns as { key: string; label: string; width?: number; formatter?: string }[]) ?? [];
+  const path = item.binding?.path;
+  const rows = (
+    path ? (getByPath(SAMPLE_DOCUMENT_PAYLOAD, path) as Record<string, unknown>[] | undefined) : undefined
+  ) ?? [];
+  if (columns.length === 0) {
+    return <div style={{ padding: "0 2px", fontSize: 10, color: "#78716c" }}>{item.name ?? "Table"}</div>;
+  }
+  return (
+    <table className="erp-doc-designer__canvas-table">
+      <thead>
+        <tr>
+          {columns.map((c) => (
+            <th
+              key={c.key}
+              style={{
+                width: c.width,
+                textAlign: c.formatter === "currency" ? "right" : "left",
+              }}
+            >
+              {c.label}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {(Array.isArray(rows) ? rows : []).map((row, i) => (
+          <tr key={i}>
+            {columns.map((c) => (
+              <td key={c.key} style={{ textAlign: c.formatter === "currency" ? "right" : "left" }}>
+                {formatValue(row[c.key], c.formatter)}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

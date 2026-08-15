@@ -2,7 +2,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Button,
   Chip,
   ChipGroup,
   Container,
@@ -15,6 +14,8 @@ import {
 import { api } from "@/lib/api-client";
 import { addToCart } from "@/lib/cart-store";
 import { productGalleryUrls, productImageUrl } from "@/lib/media";
+import { formatPortalPrice } from "@/lib/pricing-display";
+import { PdpAtcActions } from "@/components/PdpAtcActions";
 import { PdpCartButton } from "@/components/PdpCartButton";
 
 interface AttrDef {
@@ -41,7 +42,10 @@ interface Product {
   id: string;
   name: string;
   sku: string;
-  sellPrice: number;
+  sellPrice?: number | null;
+  baseRate?: number | null;
+  pricingBasis?: string | null;
+  pricingUom?: string | null;
   imageUrls?: string[] | null;
   unit?: string;
   description?: string | null;
@@ -52,6 +56,7 @@ interface Product {
   variants?: Variant[];
   attributeDefinitions?: AttrDef[];
   customAttributes?: Record<string, unknown> | null;
+  taxRate?: number | null;
 }
 
 function optionList(options: unknown): string[] {
@@ -63,12 +68,26 @@ function optionList(options: unknown): string[] {
   return [];
 }
 
+function specLines(product: Product, selected: Record<string, string>): string[] {
+  const lines: string[] = [];
+  const attrs = { ...(product.customAttributes ?? {}), ...selected };
+  const thickness = attrs.thickness_mm ?? attrs.thickness;
+  const size = attrs.size;
+  const grade = attrs.grade;
+  const finish = attrs.finish;
+  const bits = [grade, finish, thickness != null && thickness !== "" ? `${thickness}mm` : null]
+    .filter(Boolean)
+    .map(String);
+  if (bits.length) lines.push(bits.join(" · "));
+  if (size) lines.push(String(size).replace(/x/gi, " × "));
+  return lines;
+}
+
 export default function ProductDetailPage({ params }: { params: Promise<{ sku: string }> }) {
   const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
   const [id, setId] = useState("");
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
@@ -81,14 +100,41 @@ export default function ProductDetailPage({ params }: { params: Promise<{ sku: s
     if (!id) return;
     api<{ data: Product }>("inventory", `/api/portal/products/${id}`).then((r) => {
       if (!r.error) {
-        const p = r.data?.data; if (!p) { setLoading(false); return; }
+        const p = r.data?.data;
+        if (!p) {
+          setLoading(false);
+          return;
+        }
         setProduct(p);
         try {
           const key = "customer_recent_viewed";
-          const prev = JSON.parse(localStorage.getItem(key) ?? "[]") as Array<{id:string;name:string;sellPrice?:number;imageUrls?:string[]}>;
-          const next = [{ id: p.id, name: p.name, sellPrice: p.sellPrice, imageUrls: p.imageUrls ?? undefined }, ...prev.filter((x) => x.id !== p.id)].slice(0, 8);
+          const prev = JSON.parse(localStorage.getItem(key) ?? "[]") as Array<{
+            id: string;
+            name: string;
+            sellPrice?: number | null;
+            baseRate?: number | null;
+            pricingBasis?: string | null;
+            pricingUom?: string | null;
+            unit?: string;
+            imageUrls?: string[];
+          }>;
+          const next = [
+            {
+              id: p.id,
+              name: p.name,
+              sellPrice: p.sellPrice,
+              baseRate: p.baseRate,
+              pricingBasis: p.pricingBasis,
+              pricingUom: p.pricingUom,
+              unit: p.unit,
+              imageUrls: p.imageUrls ?? undefined,
+            },
+            ...prev.filter((x) => x.id !== p.id),
+          ].slice(0, 8);
           localStorage.setItem(key, JSON.stringify(next));
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
         const init: Record<string, string> = {};
         for (const def of p.attributeDefinitions ?? []) {
           const opts = optionList(def.options);
@@ -115,7 +161,18 @@ export default function ProductDetailPage({ params }: { params: Promise<{ sku: s
     );
   }, [product, selected]);
 
-  const unitPrice = matchedVariant?.sellPrice ?? product?.sellPrice ?? 0;
+  const catalogPrice = useMemo(() => {
+    if (!product) return formatPortalPrice({});
+    return formatPortalPrice({
+      sellPrice: matchedVariant?.sellPrice ?? product.sellPrice,
+      baseRate: product.baseRate,
+      pricingBasis: product.pricingBasis,
+      pricingUom: product.pricingUom,
+      unit: product.unit,
+    });
+  }, [product, matchedVariant]);
+
+  const unitPrice = catalogPrice.amount;
   const available =
     product?.stocks?.reduce((s, w) => s + (w.quantity ?? 0), 0) ?? 99;
 
@@ -125,8 +182,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ sku: s
 
   const galleryImages = useMemo(() => {
     if (!product) return [];
-    return productGalleryUrls(product);
+    return productGalleryUrls({
+      ...product,
+      categoryName: product.category?.name,
+    });
   }, [product]);
+
+  const foldSpecs = product ? specLines(product, selected) : [];
 
   function handleAddToCart() {
     if (!product) return;
@@ -136,6 +198,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ sku: s
         setError(`Please select ${def.label}`);
         return;
       }
+    }
+    if (unitPrice == null || unitPrice <= 0) {
+      setError("Price on request — contact dealer to order this item");
+      return;
     }
     const attrLabel = Object.entries(selected)
       .filter(([, v]) => v)
@@ -152,8 +218,6 @@ export default function ProductDetailPage({ params }: { params: Promise<{ sku: s
         imageUrl: productImageUrl(product),
         selectedAttributes: { ...selected },
       });
-      setAdded(true);
-      setTimeout(() => setAdded(false), 1600);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not add to cart");
     }
@@ -178,34 +242,35 @@ export default function ProductDetailPage({ params }: { params: Promise<{ sku: s
     );
   }
 
-  const lineTotal = Number(unitPrice) * qty;
+  const lineTotal = unitPrice != null ? unitPrice * qty : null;
+  const canAdd = available > 0 && unitPrice != null && unitPrice > 0;
 
   return (
-    <div className="pb-24 md:pb-28">
-      <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2.5 md:hidden">
+    <div className="pb-24 md:pb-28" data-pdp>
+      <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2.5">
         <button
           type="button"
           onClick={() => router.back()}
-          className="flex h-9 w-9 items-center justify-center rounded-md bg-[var(--mist)] text-lg font-bold text-[var(--ink)]"
+          className="flex h-9 w-9 items-center justify-center rounded-md bg-[var(--mist)] text-lg font-bold text-[var(--ink)] md:hidden"
           aria-label="Back"
         >
           ←
         </button>
-        <p className="min-w-0 flex-1 truncate text-sm font-bold text-[var(--ink)]">{product.name}</p>
-        <PdpCartButton />
-      </div>
-
-      <Container layout="wide" className="py-3 md:py-6">
         <button
           type="button"
           onClick={() => router.back()}
-          className="mb-3 hidden text-sm font-semibold text-[var(--ink-soft)] hover:text-[var(--ink)] md:inline"
+          className="hidden text-sm font-semibold text-[var(--ink-soft)] hover:text-[var(--ink)] md:inline"
         >
           ← Back
         </button>
+        <p className="min-w-0 flex-1 truncate text-sm font-bold text-[var(--ink)] md:hidden">{product.name}</p>
+        <PdpCartButton className="ml-auto" />
+      </div>
 
-        <div className="grid gap-3 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)] md:items-start md:gap-6 lg:grid-cols-[minmax(0,240px)_minmax(0,1fr)]">
-          <div className="mx-auto w-full max-w-[220px] md:sticky md:top-16 md:mx-0 md:max-w-none">
+      <Container layout="wide" className="py-3 md:py-6">
+        {/* Above the fold: what / spec / price / availability / buy path */}
+        <div className="grid gap-3 md:grid-cols-[minmax(0,240px)_minmax(0,1fr)] md:items-start md:gap-6">
+          <div className="mx-auto w-full max-w-[240px] md:sticky md:top-16 md:mx-0 md:max-w-none">
             <ProductGallery images={galleryImages} alt={product.name} size="compact" />
           </div>
 
@@ -215,32 +280,27 @@ export default function ProductDetailPage({ params }: { params: Promise<{ sku: s
                 {product.brand.name}
               </p>
             )}
-            <h1 className="mt-1 text-xl font-bold leading-tight text-[var(--ink)] md:text-2xl">
+            <h1 className="mt-0.5 text-xl font-bold leading-tight text-[var(--ink)] md:text-2xl">
               {product.name}
             </h1>
-            <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-[var(--ink-soft)]">
-              {product.unit ? <span>{product.unit}</span> : null}
-              {product.category ? <span>· {product.category.name}</span> : null}
-              <span className="font-mono">SKU {product.sku}</span>
-            </div>
+            {foldSpecs.length > 0 ? (
+              <p className="mt-1 text-sm font-medium text-[var(--ink-soft)]">{foldSpecs.join(" · ")}</p>
+            ) : null}
+            <p className="mt-1 font-mono text-xs text-[var(--ink-soft)]">SKU {product.sku}</p>
 
             <div className="mt-3 flex flex-wrap items-baseline gap-2">
-              <PriceDisplay amount={Number(unitPrice)} size="lg" />
-              {product.unit && (
+              <PriceDisplay amount={catalogPrice.label} size="lg" />
+              {catalogPrice.kind === "fixed" && product.unit ? (
                 <span className="text-sm text-[var(--ink-soft)]">/ {product.unit}</span>
-              )}
+              ) : null}
             </div>
 
-            <div className="mt-1.5">
+            <div className="mt-2">
               <StockBadge available={available} />
             </div>
 
-            {product.description && (
-              <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">{product.description}</p>
-            )}
-
             {selectableDefs.length > 0 && (
-              <div className="mt-5 space-y-4">
+              <div className="mt-4 space-y-3">
                 {selectableDefs.map((def) => {
                   const opts = optionList(def.options);
                   const label = `${def.label}${def.unit ? ` (${def.unit})` : ""}${def.isRequired ? " *" : ""}`;
@@ -276,55 +336,57 @@ export default function ProductDetailPage({ params }: { params: Promise<{ sku: s
         </div>
 
         <section className="mt-6 rounded-lg border border-[var(--line)] bg-[var(--mist)] p-4">
-          <h2 className="text-sm font-bold text-[var(--ink)]">Documents & specifications</h2>
-          <p className="mt-1 text-xs text-[var(--ink-soft)]">
-            Datasheets, installation guides, warranty and certifications appear here when attached.
-          </p>
+          <h2 className="text-sm font-bold text-[var(--ink)]">Specifications</h2>
+          <ul className="mt-2 space-y-1.5 text-sm text-[var(--ink-soft)]">
+            {product.category ? (
+              <li>
+                <span className="font-medium text-[var(--ink)]">Category:</span> {product.category.name}
+              </li>
+            ) : null}
+            {product.unit ? (
+              <li>
+                <span className="font-medium text-[var(--ink)]">Unit:</span> {product.unit}
+              </li>
+            ) : null}
+            {product.pricingBasis ? (
+              <li>
+                <span className="font-medium text-[var(--ink)]">Pricing:</span> {product.pricingBasis}
+                {product.pricingUom ? ` (${product.pricingUom})` : ""}
+              </li>
+            ) : null}
+            {product.taxRate != null ? (
+              <li>
+                <span className="font-medium text-[var(--ink)]">GST:</span> {product.taxRate}%
+              </li>
+            ) : null}
+            {Object.entries(product.customAttributes ?? {}).map(([k, v]) => (
+              <li key={k}>
+                <span className="font-medium text-[var(--ink)]">{k}:</span> {String(v)}
+              </li>
+            ))}
+            {product.description ? <li className="pt-1 leading-relaxed">{product.description}</li> : null}
+            {!product.description && Object.keys(product.customAttributes ?? {}).length === 0 ? (
+              <li>Datasheets and certifications appear here when attached.</li>
+            ) : null}
+          </ul>
         </section>
       </Container>
 
       <div className="atc-bar anim-slide-up">
         <div className="mx-auto flex w-full max-w-[var(--layout-wide)] flex-wrap items-center gap-3">
-          <QuantityStepper
-            value={qty}
-            onChange={setQty}
-            max={available || 99}
-          />
+          <QuantityStepper value={qty} onChange={setQty} max={available || 99} />
           <div className="min-w-0 flex-1 text-sm">
             <span className="text-[var(--ink-soft)]">Total </span>
-            <PriceDisplay amount={lineTotal} size="sm" />
+            <PriceDisplay
+              amount={lineTotal != null ? lineTotal : "Price on request"}
+              size="sm"
+            />
           </div>
-          {added ? (
-            <>
-              <Button
-                variant="outline"
-                size="md"
-                className="!rounded-md"
-                onClick={handleAddToCart}
-                disabled={available === 0}
-              >
-                Add more
-              </Button>
-              <Button
-                variant="primary"
-                size="md"
-                className="!min-w-[8rem] !rounded-md flex-1 sm:flex-none"
-                onClick={() => router.push("/cart")}
-              >
-                Go to cart
-              </Button>
-            </>
-          ) : (
-            <Button
-              variant="primary"
-              size="md"
-              className="!min-w-[9rem] !rounded-md flex-1 sm:flex-none"
-              onClick={handleAddToCart}
-              disabled={available === 0}
-            >
-              {available === 0 ? "Out of stock" : "Add to Cart"}
-            </Button>
-          )}
+          <PdpAtcActions
+            canAdd={canAdd}
+            onAdd={handleAddToCart}
+            disabledLabel={available <= 0 ? "Out of stock" : "Price on request"}
+          />
         </div>
       </div>
     </div>

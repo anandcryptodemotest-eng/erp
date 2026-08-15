@@ -16,7 +16,7 @@ export async function notifyPortalCustomer(opts: {
     process.env.GATEWAY_SERVICE_URL ?? process.env.CORE_SERVICE_URL ?? "http://localhost:3010";
   const serviceSecret = getServiceSecret();
   try {
-    await fetch(`${gateway}/api/notifications/push`, {
+    await fetch(`${gateway}/api/notifications/send`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -25,10 +25,12 @@ export async function notifyPortalCustomer(opts: {
         "x-user-id": opts.portalUserId,
       },
       body: JSON.stringify({
-        userId: opts.portalUserId,
+        version: 1,
         type: opts.type,
         title: opts.title,
         body: opts.body,
+        channels: ["IN_APP"],
+        recipients: [{ userId: opts.portalUserId }],
         metadata: opts.metadata,
       }),
     });

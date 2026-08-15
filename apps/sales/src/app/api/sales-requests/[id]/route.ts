@@ -90,6 +90,17 @@ async function loadRequest(tenantId: string, id: string) {
           },
         },
       },
+      documents: {
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          type: true,
+          fileName: true,
+          fileUrl: true,
+          mimeType: true,
+          createdAt: true,
+        },
+      },
     },
   });
 }

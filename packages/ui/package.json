@@ -6,7 +6,8 @@
   "types": "./src/index.ts",
   "scripts": {
     "build": "tsc",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "test": "tsx --test 'src/**/*.test.ts'"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -35,6 +36,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
+    "./ops-attention": "./src/dashboard/ops-attention.ts",
     "./tokens.css": "./src/tokens/tokens.css",
     "./admin-shell.css": "./src/shell/admin-shell.css"
   }

@@ -39,6 +39,7 @@ export async function GET(request: Request) {
       where,
       include: {
         lead: { select: { id: true, name: true } },
+        customer: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: "desc" },
       skip,

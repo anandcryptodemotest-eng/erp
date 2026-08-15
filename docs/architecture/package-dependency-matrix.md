@@ -28,6 +28,8 @@ Legend:
 | `@erp/admin-ui-host` | Forbidden | Allowed | Limited: UI runtime/registry | Forbidden | Limited: composition only; no domain persistence/rules | Proposed |
 | `@erp/process-designer` | Forbidden | Allowed | Limited: workflow contracts | Forbidden | Forbidden | Proposed |
 | `@erp/process-forms` | Forbidden | Allowed | Limited: workflow contracts | Forbidden | Forbidden | Proposed |
+| `@erp/notifications` | Forbidden | Forbidden | Limited: HTTP command types | Forbidden | Allowed: channel/command types only; no Prisma | Accepted |
+| `@erp/communication` | Forbidden | Limited: SSE client | Forbidden | Forbidden | Forbidden (chat rows live in Gateway) | Accepted |
 
 ## Current observations
 

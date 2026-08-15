@@ -22,13 +22,36 @@ function charWidth(code: number, bold: boolean): number {
 
 /** Approximate rendered width of `text` at `fontSize` using Helvetica metrics. */
 export function textWidth(text: string, fontSize: number, bold = false): number {
+  const safe = pdfSafeText(text);
   let total = 0;
-  for (let i = 0; i < text.length; i++) total += charWidth(text.charCodeAt(i), bold);
+  for (let i = 0; i < safe.length; i++) total += charWidth(safe.charCodeAt(i), bold);
   return (total / 1000) * fontSize;
 }
 
+/**
+ * Helvetica (WinAnsi) cannot paint ₹ / Unicode. Map to ASCII so glyphs do not
+ * overlap digits. Full Unicode fonts are BL-025.
+ */
+export function pdfSafeText(s: string): string {
+  let out = "";
+  for (const ch of s) {
+    if (ch === "₹") {
+      out += "Rs.";
+      continue;
+    }
+    const c = ch.charCodeAt(0);
+    if (c === 0xa0) {
+      out += " ";
+      continue;
+    }
+    if (c < 32) continue;
+    out += c > 126 ? "?" : ch;
+  }
+  return out;
+}
+
 function escapePdfText(s: string): string {
-  return s.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+  return pdfSafeText(s).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 }
 
 export type PdfRect = { x: number; y: number; w: number; h: number };

@@ -9,7 +9,8 @@ export type DocumentItemType =
   | "Line"
   | "Box"
   | "QR"
-  | "Container";
+  | "Container"
+  | "Widget";
 
 export type DocumentBinding = {
   path: string;
@@ -65,6 +66,10 @@ export type PlacedItem = {
   visibility?: DocumentVisibility;
   properties?: Record<string, unknown>;
   children?: PlacedItem[];
+  /** Print-widget catalog id when type is Widget (e.g. doc.lineItems). */
+  widgetId?: string;
+  /** Reserved; v1 unused. Catalog owns widget internals. */
+  widgetConfig?: Record<string, unknown>;
   /** Degrees; unused in renderer initially. */
   rotation?: number;
   locked?: boolean;
@@ -79,6 +84,8 @@ export type DocumentPage = {
   margin?: { top: number; right: number; bottom: number; left: number };
 };
 
+export type StudioLevel = "business" | "power" | "developer";
+
 export type DocumentDefinition = {
   id?: string;
   key?: string;
@@ -92,6 +99,16 @@ export type DocumentDefinition = {
   items: PlacedItem[];
   /** Optional Figma-like layers. If absent, treat `items` as the default layer contents. */
   layers?: DocumentLayer[];
+  /**
+   * Studio UX chrome only — ignored by renderDocument / renderDocumentHtml.
+   * `level` is the working experience, not a template capability.
+   */
+  studio?: {
+    mode?: "guided" | "design";
+    level?: StudioLevel;
+    step?: number;
+    tab?: "design" | "data" | "preview" | "publish";
+  };
 };
 
 /** Schema-driven binding picker — paths relative to payload root. */
@@ -99,6 +116,8 @@ export type BindingSchemaLeaf = {
   path: string;
   label: string;
   formatter?: string;
+  /** True when this path is an array of row objects (table / repeater). */
+  collection?: boolean;
 };
 
 export type BindingSchemaGroup = {

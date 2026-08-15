@@ -6,12 +6,17 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   BottomNav,
   Button,
+  CircleHelp,
   Home,
   Inbox,
+  MapPin,
+  Menu,
   Package,
   ScrollText,
   Search,
   ShoppingCart,
+  User,
+  X,
 } from "@erp/ui";
 import { isAuthenticated } from "@/lib/api-client";
 import { cartCount, subscribeCart } from "@/lib/cart-store";
@@ -46,14 +51,87 @@ function SearchField({ className }: { className?: string }) {
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Search plywood, timber, SKU…"
+        placeholder="Search products…"
         aria-label="Search products"
       />
     </form>
   );
 }
 
-function MainBottomNav({ pathname, count }: { pathname: string; count: number }) {
+function MoreSheet({
+  open,
+  onClose,
+  authed,
+}: {
+  open: boolean;
+  onClose: () => void;
+  authed: boolean;
+}) {
+  if (!open) return null;
+  const links = [
+    { href: "/inbox", label: "Messages", icon: Inbox },
+    { href: "/account", label: "Account", icon: User },
+    { href: "/account/support", label: "Help", icon: CircleHelp },
+    { href: "/account/addresses", label: "Addresses", icon: MapPin },
+  ];
+  return (
+    <div className="fixed inset-0 z-[var(--z-modal,60)] md:hidden" role="dialog" aria-label="More">
+      <button type="button" className="absolute inset-0 bg-black/40" aria-label="Close" onClick={onClose} />
+      <div
+        className="absolute inset-x-0 bottom-0 rounded-t-2xl bg-[var(--surface-raised)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl"
+        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+      >
+        <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
+          <p className="text-sm font-bold text-[var(--ink)]">More</p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-md bg-[var(--mist)]"
+            aria-label="Close more menu"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <ul className="py-1">
+          {links.map(({ href, label, icon: Icon }) => (
+            <li key={href}>
+              <Link
+                href={href}
+                onClick={onClose}
+                className="flex items-center gap-3 px-4 py-3.5 text-sm font-semibold text-[var(--ink)] active:bg-[var(--mist)]"
+              >
+                <Icon className="h-5 w-5 text-[var(--ink-soft)]" />
+                {label}
+              </Link>
+            </li>
+          ))}
+          {!authed ? (
+            <li>
+              <Link
+                href="/login"
+                onClick={onClose}
+                className="flex items-center gap-3 px-4 py-3.5 text-sm font-semibold text-[var(--forest)] active:bg-[var(--mist)]"
+              >
+                <User className="h-5 w-5" />
+                Sign in
+              </Link>
+            </li>
+          ) : null}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function MainBottomNav({
+  pathname,
+  count,
+  onMore,
+}: {
+  pathname: string;
+  count: number;
+  onMore: () => void;
+}) {
   const items = useMemo(
     () => [
       { href: "/", label: "Home", icon: <Home className="h-[var(--icon-md)] w-[var(--icon-md)]" /> },
@@ -69,17 +147,18 @@ function MainBottomNav({ pathname, count }: { pathname: string; count: number })
         label: "Orders",
         icon: <ScrollText className="h-[var(--icon-md)] w-[var(--icon-md)]" />,
       },
-      {
-        href: "/inbox",
-        label: "Messages",
-        icon: <Inbox className="h-[var(--icon-md)] w-[var(--icon-md)]" />,
-      },
     ],
     [count]
   );
 
+  const moreActive =
+    pathname.startsWith("/inbox") ||
+    pathname.startsWith("/account") ||
+    pathname.startsWith("/profile");
+
   return (
     <div
+      data-bottom-nav
       className="sticky bottom-0 z-[var(--z-nav)] flex border-t border-[var(--line)] bg-[color-mix(in_srgb,var(--surface-raised)_92%,transparent)] backdrop-blur-md"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
@@ -89,7 +168,17 @@ function MainBottomNav({ pathname, count }: { pathname: string; count: number })
         pathname={pathname}
         linkComponent={Link}
       />
-      <ProfileMenu variant="nav" />
+      <button
+        type="button"
+        onClick={onMore}
+        className={`flex min-w-[3.5rem] flex-col items-center justify-center gap-0.5 px-2 text-[10px] font-semibold ${
+          moreActive ? "text-[var(--forest)]" : "text-[var(--ink-soft)]"
+        }`}
+        aria-label="More"
+      >
+        <Menu className="h-[var(--icon-md)] w-[var(--icon-md)]" />
+        More
+      </button>
     </div>
   );
 }
@@ -102,6 +191,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [count, setCount] = useState(0);
+  const [moreOpen, setMoreOpen] = useState(false);
   const orgName = useTenantDisplayName();
 
   useEffect(() => {
@@ -118,6 +208,9 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
   }, [pathname, router]);
 
   useEffect(() => subscribeCart(() => setCount(cartCount())), []);
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [pathname]);
 
   if (!ready && requiresAuth(pathname)) {
     return (
@@ -141,9 +234,6 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
             </Link>
             <SearchField className="max-w-xl" />
             <nav className="ml-auto flex items-center gap-1 text-sm font-semibold text-[var(--ink-soft)]">
-              <Link href="/dashboard" className="rounded-[var(--radius-sm)] px-3 py-2 hover:bg-[var(--mist)] hover:text-[var(--ink)]">
-                Dashboard
-              </Link>
               <Link href="/shop" className="rounded-[var(--radius-sm)] px-3 py-2 hover:bg-[var(--mist)] hover:text-[var(--ink)]">
                 Shop
               </Link>
@@ -196,9 +286,11 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
 
         {!isPdp ? (
           <div className={hideBottomOnDesktopWeb ? "md:hidden" : undefined}>
-            <MainBottomNav pathname={pathname} count={count} />
+            <MainBottomNav pathname={pathname} count={count} onMore={() => setMoreOpen(true)} />
           </div>
         ) : null}
+
+        <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} authed={authed} />
       </div>
     </div>
   );

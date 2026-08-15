@@ -99,6 +99,7 @@ model Tenant {
   capabilities          TenantCapability[]
   invitations           Invitation[]
   notifications         Notification[]
+  notificationDeliveries NotificationDelivery[]
   branches              Branch[]
   auditEvents           AuditEvent[]
   reconciliationRecords ReconciliationRecord[]
@@ -339,6 +340,36 @@ model Notification {
 
   @@index([userId])
   @@index([tenantId])
+}
+
+/// Outbound channel delivery log (email / SMS / WhatsApp / Telegram / FCM / in-app).
+model NotificationDelivery {
+  id                String    @id @default(cuid())
+  tenantId          String
+  channel           String // IN_APP | FCM | EMAIL | SMS | WHATSAPP | TELEGRAM
+  status            String    @default("QUEUED") // QUEUED | SENT | SKIPPED | FAILED | DEAD
+  type              String
+  title             String
+  body              String
+  toAddress         String?
+  userId            String?
+  provider          String?
+  providerMessageId String?
+  error             String?
+  attemptCount      Int       @default(0)
+  maxAttempts       Int       @default(5)
+  idempotencyKey    String?
+  commandVersion    Int       @default(1)
+  metadata          Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  sentAt            DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, status])
+  @@index([tenantId, idempotencyKey])
 }
 
 // ── Marketing / Grocery Extensions ──────────────────────────────────────────

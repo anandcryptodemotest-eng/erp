@@ -48,6 +48,8 @@ export default function CheckoutPage() {
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
   const [showNewAddr, setShowNewAddr] = useState(false);
+  /** Local files until SREQ exists — then upload + link as SalesRequestDocument */
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
   const bill = useMemo(
     () =>
@@ -242,18 +244,47 @@ export default function CheckoutPage() {
       "/api/sales-requests",
       { method: "POST", body: JSON.stringify(body) }
     );
-    setPlacing(false);
     if (res.error) {
+      setPlacing(false);
       setError(res.error);
       return;
     }
     const sreq = res.data?.data;
     if (!sreq?.id) {
+      setPlacing(false);
       setError("Request created but response was incomplete");
       return;
     }
+
+    // Attach buyer files (PO / site photo) — non-fatal if one fails
+    const uploadErrors: string[] = [];
+    for (const file of pendingFiles.slice(0, 5)) {
+      const fd = new FormData();
+      fd.append("file", file);
+      const up = await api<{
+        data: { id: string; url: string; name: string; mimeType: string; size: number };
+      }>("gateway", "/api/uploads/attachment", { method: "POST", body: fd });
+      if (up.error || !up.data?.data?.url) {
+        uploadErrors.push(file.name);
+        continue;
+      }
+      const linked = await api("sales", `/api/sales-requests/${sreq.id}/documents`, {
+        method: "POST",
+        body: JSON.stringify({
+          fileName: up.data.data.name || file.name,
+          fileUrl: up.data.data.url,
+          mimeType: up.data.data.mimeType || file.type,
+          type: "OTHER",
+        }),
+      });
+      if (linked.error) uploadErrors.push(file.name);
+    }
+
+    setPlacing(false);
     clearCart();
-    router.push(`/orders/${sreq.id}?placed=1&type=sreq`);
+    const q = new URLSearchParams({ placed: "1", type: "sreq" });
+    if (uploadErrors.length) q.set("attachWarn", String(uploadErrors.length));
+    router.push(`/orders/${sreq.id}?${q.toString()}`);
   }
 
   const host = useMemo(
@@ -296,7 +327,7 @@ export default function CheckoutPage() {
               <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[var(--radius-sm)] bg-[var(--mist)]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={i.imageUrl || productImageUrl({ id: i.productId, name: i.name }, idx)}
+                  src={i.imageUrl || productImageUrl({ id: i.productId, name: i.name })}
                   alt=""
                   className="h-full w-full object-cover"
                 />
@@ -400,6 +431,64 @@ export default function CheckoutPage() {
         ) : null}
       </section>
 
+      <section className="mb-5">
+        <h2 className="mb-1 text-sm font-semibold text-[var(--ink)]">Attachments (optional)</h2>
+        <p className="mb-2 text-xs text-[var(--ink-soft)]">
+          Add a purchase order PDF, site photo, or drawing (max 5 files, 5 MB each — JPG, PNG, WebP, PDF).
+        </p>
+        <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--line-strong)] bg-[var(--surface-raised)] p-3">
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,application/pdf,.pdf,.jpg,.jpeg,.png,.webp"
+            multiple
+            disabled={placing}
+            className="block w-full text-sm text-[var(--ink-soft)] file:mr-3 file:rounded-[var(--radius-sm)] file:border-0 file:bg-[var(--mist)] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[var(--ink)]"
+            onChange={(e) => {
+              const picked = Array.from(e.target.files ?? []);
+              e.target.value = "";
+              if (picked.length === 0) return;
+              setPendingFiles((prev) => {
+                const next = [...prev];
+                for (const f of picked) {
+                  if (next.length >= 5) break;
+                  if (f.size > 5 * 1024 * 1024) {
+                    setError(`${f.name} is larger than 5 MB`);
+                    continue;
+                  }
+                  next.push(f);
+                }
+                return next.slice(0, 5);
+              });
+            }}
+          />
+          {pendingFiles.length > 0 ? (
+            <ul className="mt-3 space-y-1.5">
+              {pendingFiles.map((f, idx) => (
+                <li
+                  key={`${f.name}-${f.size}-${idx}`}
+                  className="flex items-center justify-between gap-2 text-sm text-[var(--ink)]"
+                >
+                  <span className="min-w-0 truncate">
+                    {f.name}{" "}
+                    <span className="text-xs text-[var(--ink-soft)]">
+                      ({Math.max(1, Math.round(f.size / 1024))} KB)
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    className="shrink-0 text-xs text-[var(--danger)] underline"
+                    disabled={placing}
+                    onClick={() => setPendingFiles((prev) => prev.filter((_, i) => i !== idx))}
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      </section>
+
       {error ? (
         <div className="mb-3 rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_8%,white)] px-4 py-2.5 text-sm text-[var(--danger)]">
           {error}
@@ -407,23 +496,37 @@ export default function CheckoutPage() {
       ) : null}
 
       {!showNewAddr && selectedAddr && screen ? (
-        <CustomerScreenController
-          host={host}
-          screen={screen}
-          order={{
-            id: "checkout",
-            status: "DRAFT",
+        <div className="checkout-sticky-cta">
+          <CustomerScreenController
+            host={host}
+            screen={screen}
+            order={{
+              id: "checkout",
+              status: "DRAFT",
+              subtotal,
+              tax: bill.tax ?? 0,
+              discountAmount: bill.discount ?? 0,
+              deliveryFee: bill.delivery ?? 0,
+              total: payTotal,
               totalAmount: payTotal,
-          }}
-          customer={profile ? { id: profile.id, name: profile.name } : null}
-          fieldValues={fieldValues}
-          setFieldValue={(key, value) => setFieldValues((prev) => ({ ...prev, [key]: value }))}
-          busy={placing}
-          submitContext={{
-            onBusy: setPlacing,
-            onCheckoutSubmit: submitCheckout,
-          }}
-        />
+            }}
+            items={items.map((i) => ({
+              id: `${i.productId}-${i.variantId ?? ""}`,
+              productId: i.productId,
+              productName: i.name,
+              quantity: i.qty,
+              unitPrice: i.price,
+            }))}
+            customer={profile ? { id: profile.id, name: profile.name } : null}
+            fieldValues={fieldValues}
+            setFieldValue={(key, value) => setFieldValues((prev) => ({ ...prev, [key]: value }))}
+            busy={placing}
+            submitContext={{
+              onBusy: setPlacing,
+              onCheckoutSubmit: submitCheckout,
+            }}
+          />
+        </div>
       ) : null}
     </Container>
   );

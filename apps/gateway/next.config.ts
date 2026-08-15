@@ -23,11 +23,14 @@ const nextConfig: NextConfig = {
     "@opentelemetry/sdk-node",
     "@opentelemetry/sdk-metrics",
     "@opentelemetry/semantic-conventions",
+    "@grpc/grpc-js",
+    "@grpc/proto-loader",
     "google-auth-library",
     "gaxios",
     "https-proxy-agent",
     "@node-rs/argon2",
     "razorpay",
+    "nodemailer",
   ],
   // Served publicly only via nginx at https://host/admin (apps bind to 127.0.0.1).
   basePath: "/admin",
@@ -35,6 +38,7 @@ const nextConfig: NextConfig = {
     root: monorepoRoot,
     resolveAlias: {
       "@erp/ui": "./packages/ui/src/index.ts",
+      "@erp/ui/ops-attention": "./packages/ui/src/dashboard/ops-attention.ts",
       "@erp/workflow": "./packages/workflow/src/index.ts",
       "@erp/admin-ui-host": "./packages/admin-ui-host/src/index.ts",
       "@erp/ui-runtime": "./packages/ui-runtime/src/index.ts",
@@ -45,7 +49,7 @@ const nextConfig: NextConfig = {
     },
   },
   allowedDevOrigins: ["150.242.201.102", "localhost", "127.0.0.1"],
-  transpilePackages: ["@erp/logger", "@erp/ui", "@erp/types", "@erp/auth", "@erp/config", "@erp/workflow", "@erp/ui-runtime", "@erp/extensions", "@erp/pricing", "@erp/process-designer", "@erp/process-forms", "@erp/document-designer", "@erp/documents", "@erp/admin-ui-host", "@erp/tax-india", "@erp/platform-core"],
+    "transpilePackages": ["@erp/logger", "@erp/ui", "@erp/types", "@erp/auth", "@erp/config", "@erp/workflow", "@erp/ui-runtime", "@erp/extensions", "@erp/pricing", "@erp/process-designer", "@erp/process-forms", "@erp/document-designer", "@erp/documents", "@erp/admin-ui-host", "@erp/tax-india", "@erp/platform-core", "@erp/notifications", "@erp/communication"],
   async rewrites() {
     return {
       // Local-dev parity for nginx's public `/api/*` → gateway `/admin/api/*` rewrite.
@@ -94,6 +98,8 @@ const nextConfig: NextConfig = {
       { source: "/api/workflow-documents",        destination: `${SALES_URL}/api/workflow-documents` },
       { source: "/api/workflow-tasks/:path*", destination: `${SALES_URL}/api/workflow-tasks/:path*` },
       { source: "/api/workflow-tasks",        destination: `${SALES_URL}/api/workflow-tasks` },
+      { source: "/api/workflow-work-items/:path*", destination: `${SALES_URL}/api/workflow-work-items/:path*` },
+      { source: "/api/workflow-work-items",        destination: `${SALES_URL}/api/workflow-work-items` },
       { source: "/api/quotes/:path*",        destination: `${SALES_URL}/api/quotes/:path*` },
       { source: "/api/quotes",               destination: `${SALES_URL}/api/quotes` },
       { source: "/api/leads/:path*",         destination: `${SALES_URL}/api/leads/:path*` },

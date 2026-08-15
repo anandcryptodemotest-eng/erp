@@ -42,7 +42,8 @@ export async function GET(request: Request) {
   });
 
   return NextResponse.json({
-    data: workbench.tasks,
+    data: workbench.workItems,
+    tasks: workbench.tasks,
     meta: workbench.summary,
   });
 }

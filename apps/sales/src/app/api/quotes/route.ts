@@ -64,6 +64,19 @@ export async function POST(request: Request) {
     const customer = await prisma.customer.findFirst({ where: { id: data.customerId, tenantId } });
     if (!customer) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
 
+    if (data.opportunityId) {
+      const opportunity = await prisma.opportunity.findFirst({
+        where: { id: data.opportunityId, tenantId, isActive: true },
+      });
+      if (!opportunity) return NextResponse.json({ error: "Opportunity not found" }, { status: 404 });
+      if (opportunity.customerId && opportunity.customerId !== data.customerId) {
+        return NextResponse.json(
+          { error: "Quote customer must match the opportunity customer" },
+          { status: 409 }
+        );
+      }
+    }
+
     const TAX_RATE = parseFloat(process.env.TAX_RATE ?? "0.10");
     const items = data.items.map((item) => {
       const lineTotal = item.quantity * item.unitPrice * (1 - item.discount / 100);

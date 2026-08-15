@@ -30,12 +30,15 @@ List endpoints accept bounded `page` and `limit` parameters. Mutating endpoints 
 
 | Service | Local URL | Owner domains | Gateway/BFF route family |
 |---|---|---|---|
-| Gateway | `http://localhost:3010` | Auth, tenants, licenses, notifications, communication | `/admin/api/*` |
+| Gateway | `http://localhost:3010` | Auth, tenants, licenses, hosted capabilities (Notification, Communication) | `/admin/api/*` |
 | Sales | `http://localhost:3001` | Customers, SREQ, orders, quotes, returns | `/admin/api/customers`, `/admin/api/orders`, `/admin/api/reports/sales` |
 | Inventory | `http://localhost:3002` | Products, warehouses, stock, movements | `/admin/api/products`, `/admin/api/stock`, `/admin/api/reports/stock` |
 | Accounting | `http://localhost:3003` | Journals, invoices, payments, notes, reconciliation | `/admin/api/invoices`, `/admin/api/reports/reconciliation` |
 | HR | `http://localhost:3004` | Employees, payroll, leave | `/admin/api/employees`, `/admin/api/payroll` |
 | Procurement | `http://localhost:3005` | Vendors, purchase orders, receiving | `/admin/api/vendors`, `/admin/api/purchase-orders` |
+| Delivery | `http://localhost:3006` | Zones, assignments, delivery reports | `/admin/api/assignments`, `/admin/api/reports/delivery` |
+
+Ownership SRP: [`SERVICE-SRP.md`](SERVICE-SRP.md) (ADR 0020). Notification send contract (`POST /api/notifications/send`, command `version: 1`) is [ADR 0019](../adr/0019-notification-platform-capability.md). Compatibility: `POST /api/notifications/push` (IN_APP + FCM). Delivery log: `GET /api/notifications/deliveries`, retry `POST /api/notifications/deliveries/:id/retry`. Channel policy: `GET|PUT /api/notifications/channels`. `ModuleId communication` is a nav key; chat APIs are on Gateway, not port 3008 (POS).
 | Delivery | `http://localhost:3006` | Zones, assignments, delivery reports | `/admin/api/assignments`, `/admin/api/reports/delivery` |
 
 ## Critical Flow Contracts

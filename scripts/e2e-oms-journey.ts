@@ -117,7 +117,7 @@ async function main() {
   };
   ok("Staff personas logged in");
 
-  // Seed published SO_STANDARD v6 (assetRef + layout)
+  // Seed published SO_STANDARD (assetRef + layout)
   await expectStatus(
     "Seed/list workflow templates (publishes SO_STANDARD)",
     "GET",

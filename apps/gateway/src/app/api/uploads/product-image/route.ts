@@ -6,7 +6,7 @@ import { verifyToken, extractToken } from "@erp/auth";
 
 export const runtime = "nodejs";
 
-const UPLOAD_ROOT = process.env.UPLOAD_ROOT || "/home/erp/data/uploads";
+const UPLOAD_ROOT = process.env.UPLOAD_ROOT || "/var/lib/erp-uploads";
 const MAX_BYTES = 2 * 1024 * 1024; // 2 MB
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp"]);
 

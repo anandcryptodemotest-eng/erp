@@ -25,6 +25,10 @@ import {
   activityPermissionsFromSnapshot,
   assertWorkflowTaskAction,
 } from "@/lib/workflow-task-auth";
+import {
+  finalizeOrderDocumentsFromPayload,
+  finalizeOrderNotesFromPayload,
+} from "@/lib/order-context-finalize";
 
 const LEASE_MS = 15 * 60 * 1000;
 
@@ -551,6 +555,27 @@ async function completePlatformTaskInner(input: {
       rowVersion: { increment: 1 },
     },
   });
+
+  const persistedPayload = result.payload ?? input.payload;
+  if (instance.salesOrderId) {
+    const docType =
+      task.stepKey === "deliver" || task.action === "deliver-oms" ? "DELIVERY_PROOF" : "OTHER";
+    await finalizeOrderDocumentsFromPayload({
+      tenantId: instance.tenantId,
+      salesOrderId: instance.salesOrderId,
+      uploadedBy: input.actorUserId,
+      payload: persistedPayload,
+      defaultType: docType,
+    });
+    await finalizeOrderNotesFromPayload({
+      tenantId: instance.tenantId,
+      salesOrderId: instance.salesOrderId,
+      authorUserId: input.actorUserId,
+      authorRole: input.actorRole,
+      sourceStep: task.stepKey,
+      payload: persistedPayload,
+    });
+  }
 
   await prisma.workflowInstance.update({
     where: { id: instance.id },

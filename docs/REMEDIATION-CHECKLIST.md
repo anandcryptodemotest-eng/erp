@@ -89,8 +89,8 @@ Trustwood may onboard paying customers only when every Tier 1 item is checked or
 - [x] Add focused Accounting reconciliation route tests for tenant, date, reversed-range, and maximum-window guards.
 - [ ] **T2** Add category sales, payment-method, return/cancellation, and customer lifetime reports after ownership approval.
 - [ ] **T2** Add filtered CSV/XLSX exports with audit events.
-- [ ] **T2** Version the Gateway notification command contract.
-- [ ] **T2** Implement in-app notification list/read, FCM registration/status, retry, and dead-letter visibility.
+- [x] **T2** Version the Gateway notification command contract.
+- [x] **T2** Implement in-app notification list/read, FCM registration/status, retry, and dead-letter visibility.
 - [ ] **T2** Define and implement scheduled-report timezone, permission, recipient, and retention rules.
 
 ## Phase 6: Tests, Observability, CI, and Release
@@ -149,7 +149,7 @@ Trustwood may onboard paying customers only when every Tier 1 item is checked or
 ### Tier 2 — Strongly Recommended Within 1–2 Releases
 
 - [ ] CSV/XLSX exports, scheduled reports, and expanded analytics are available with audit events.
-- [ ] Notification commands are versioned and notification retry/dead-letter visibility is available.
+- [x] Notification commands are versioned and notification retry/dead-letter visibility is available.
 - [ ] Reconciliation dashboards expose backlog, retry history, and failure analysis.
 - [ ] Traces, dashboards, alerts, and SLOs cover critical journeys.
 

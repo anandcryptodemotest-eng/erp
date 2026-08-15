@@ -41,6 +41,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     where: { id, tenantId },
     include: {
       lead: { select: { id: true, name: true, company: true } },
+      customer: { select: { id: true, name: true, phone: true, email: true } },
       quotes: { where: { isActive: true }, select: { id: true, quoteNumber: true, status: true, total: true } },
     },
   });

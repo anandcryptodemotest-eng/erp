@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Container, ProductCard, SearchBar, SectionHeader, Skeleton } from "@erp/ui";
 import { api } from "@/lib/api-client";
+import { addToCart } from "@/lib/cart-store";
 import { productImageUrl } from "@/lib/media";
+import { formatPortalPrice } from "@/lib/pricing-display";
 
 type Suggestion = { type: string; id: string; label: string; href: string };
 type Group = {
@@ -13,13 +15,21 @@ type Group = {
   groupName: string;
   imageUrls?: string[];
   startingSellPrice?: number | null;
+  baseRate?: number | null;
+  pricingBasis?: string | null;
+  pricingUom?: string | null;
   productCount?: number;
+  categoryName?: string | null;
 };
 type Product = {
   id: string;
   name: string;
   sku?: string;
-  sellPrice?: number;
+  sellPrice?: number | null;
+  baseRate?: number | null;
+  pricingBasis?: string | null;
+  pricingUom?: string | null;
+  unit?: string;
   imageUrls?: string[];
 };
 
@@ -105,20 +115,29 @@ function SearchInner() {
             Catalog groups
           </h3>
           <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
-            {groups.map((g) => (
-              <ProductCard
-                key={g.groupCode}
-                href={`/shop/g/${encodeURIComponent(g.groupCode)}`}
-                title={g.groupName}
-                imageUrl={productImageUrl({ name: g.groupName, imageUrls: g.imageUrls })}
-                priceLabel={
-                  g.startingSellPrice != null
-                    ? `From ₹${Number(g.startingSellPrice).toLocaleString("en-IN")}`
-                    : "Configure"
-                }
-                meta={g.productCount != null ? `${g.productCount} options` : undefined}
-              />
-            ))}
+            {groups.map((g) => {
+              const price = formatPortalPrice({
+                startingSellPrice: g.startingSellPrice,
+                baseRate: g.baseRate,
+                pricingBasis: g.pricingBasis ?? "PER_AREA",
+                pricingUom: g.pricingUom,
+              });
+              return (
+                <ProductCard
+                  key={g.groupCode}
+                  href={`/shop/g/${encodeURIComponent(g.groupCode)}`}
+                  title={g.groupName}
+                  imageUrl={productImageUrl({
+                    name: g.groupName,
+                    imageUrls: g.imageUrls,
+                    categoryName: g.categoryName,
+                  })}
+                  priceLabel={price.label}
+                  purchaseMode="configure"
+                  meta={g.productCount != null ? `${g.productCount} options` : undefined}
+                />
+              );
+            })}
           </div>
         </section>
       ) : null}
@@ -129,20 +148,39 @@ function SearchInner() {
             Products
           </h3>
           <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
-            {products.map((p) => (
-              <ProductCard
-                key={p.id}
-                href={`/shop/p/${p.id}`}
-                title={p.name}
-                subtitle={p.sku}
-                imageUrl={productImageUrl(p)}
-                priceLabel={
-                  p.sellPrice != null
-                    ? `₹${Number(p.sellPrice).toLocaleString("en-IN")}`
-                    : "Configure"
-                }
-              />
-            ))}
+            {products.map((p) => {
+              const price = formatPortalPrice({
+                sellPrice: p.sellPrice,
+                baseRate: p.baseRate,
+                pricingBasis: p.pricingBasis,
+                pricingUom: p.pricingUom,
+                unit: p.unit,
+              });
+              return (
+                <ProductCard
+                  key={p.id}
+                  href={`/shop/p/${p.id}`}
+                  title={p.name}
+                  specs={p.sku ? [p.sku] : undefined}
+                  imageUrl={productImageUrl(p)}
+                  priceLabel={price.label}
+                  purchaseMode={price.quickAdd ? "fixed" : "configure"}
+                  onQuickAdd={
+                    price.quickAdd && price.amount != null
+                      ? () =>
+                          addToCart({
+                            productId: p.id,
+                            name: p.name,
+                            sku: p.sku ?? "",
+                            price: price.amount!,
+                            qty: 1,
+                            imageUrl: productImageUrl(p),
+                          })
+                      : undefined
+                  }
+                />
+              );
+            })}
           </div>
         </section>
       ) : null}

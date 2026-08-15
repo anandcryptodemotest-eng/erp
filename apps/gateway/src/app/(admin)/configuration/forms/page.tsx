@@ -25,6 +25,13 @@ export default function FormsCatalogPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [newId, setNewId] = useState("");
+  const [upgradePreview, setUpgradePreview] = useState<{
+    eligible: number;
+    alreadyCurrent: number;
+    customized: number;
+    missing: number;
+    rows: { formId: string; status: string }[];
+  } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -120,6 +127,59 @@ export default function FormsCatalogPage() {
     }
   }
 
+  async function previewUpgrade() {
+    setBusy("upgrade-preview");
+    setError(null);
+    setUpgradePreview(null);
+    try {
+      const r = await api("/api/workflow-forms", {
+        method: "POST",
+        body: JSON.stringify({ action: "upgrade-starters", dryRun: true }),
+      });
+      const meta = (r.meta ?? r) as {
+        summary?: {
+          eligible: number;
+          alreadyCurrent: number;
+          customized: number;
+          missing: number;
+        };
+        dryRun?: boolean;
+        latestRevision?: number;
+      };
+      const summary = meta.summary ?? {
+        eligible: 0,
+        alreadyCurrent: 0,
+        customized: 0,
+        missing: 0,
+      };
+      setUpgradePreview({
+        ...summary,
+        rows: (r.data ?? []) as { formId: string; status: string }[],
+      });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Upgrade preview failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function confirmUpgrade() {
+    setBusy("upgrade");
+    setError(null);
+    try {
+      await api("/api/workflow-forms", {
+        method: "POST",
+        body: JSON.stringify({ action: "upgrade-starters", dryRun: false }),
+      });
+      setUpgradePreview(null);
+      await load();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Upgrade failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <PageScaffold
       className="space-y-6"
@@ -166,7 +226,49 @@ export default function FormsCatalogPage() {
         >
           Restore starter forms
         </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={busy === "upgrade-preview" || busy === "upgrade"}
+          onClick={() => void previewUpgrade()}
+          title="Dry-run: show which unmodified starters can upgrade to revision 2"
+        >
+          Upgrade unmodified starters…
+        </Button>
       </div>
+
+      {upgradePreview && (
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--mist)]/60 px-4 py-3 space-y-3 text-sm">
+          <p className="font-medium text-[var(--ink)]">Upgrade unmodified starters</p>
+          <p className="text-[var(--ink-soft)]">
+            {upgradePreview.eligible} eligible · {upgradePreview.alreadyCurrent} already current ·{" "}
+            {upgradePreview.customized} customized — unchanged
+            {upgradePreview.missing > 0 ? ` · ${upgradePreview.missing} missing` : ""}
+          </p>
+          <ul className="max-h-40 overflow-y-auto text-xs text-[var(--ink-soft)] space-y-0.5">
+            {upgradePreview.rows.map((row) => (
+              <li key={row.formId}>
+                <span className="font-mono text-[var(--ink)]">{row.formId}</span> — {row.status}
+              </li>
+            ))}
+          </ul>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              disabled={busy === "upgrade" || upgradePreview.eligible === 0}
+              onClick={() => void confirmUpgrade()}
+            >
+              Confirm upgrade ({upgradePreview.eligible})
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setUpgradePreview(null)}>
+              Cancel
+            </Button>
+          </div>
+          <p className="text-[11px] text-[var(--ink-soft)]">
+            In-flight orders keep pinned form versions. Customized forms are never overwritten.
+          </p>
+        </div>
+      )}
 
       {!loading && latestByForm.length === 0 && (
         <div className="rounded-xl border border-dashed border-[var(--line)] bg-[var(--mist)]/80 px-6 py-10 text-center space-y-3">

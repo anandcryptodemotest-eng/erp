@@ -12,6 +12,8 @@ export interface KpiCardProps {
   href?: string;
   onClick?: () => void;
   className?: string;
+  /** Tighter padding/type for dense ops rows (BL-044 sales KPIs). */
+  compact?: boolean;
 }
 
 const COLOR_CLASSES: Record<NonNullable<KpiCardProps["color"]>, string> = {
@@ -35,12 +37,14 @@ export function KpiCard({
   href,
   onClick,
   className,
+  compact = false,
 }: KpiCardProps) {
   const clickable = Boolean(href || onClick);
   const content = (
     <div
       className={cn(
-        "rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] p-5 shadow-[var(--shadow-sm)] transition-shadow",
+        "rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] shadow-[var(--shadow-sm)] transition-shadow",
+        compact ? "p-3" : "p-5",
         clickable &&
           "cursor-pointer hover:shadow-[var(--shadow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]",
         !clickable && "hover:shadow-[var(--shadow)]",
@@ -49,8 +53,14 @@ export function KpiCard({
     >
       <div className="flex items-center justify-between">
         {Icon && (
-          <span className={cn("inline-flex h-9 w-9 items-center justify-center rounded-full", COLOR_CLASSES[color])}>
-            <Icon className="h-4 w-4" />
+          <span
+            className={cn(
+              "inline-flex items-center justify-center rounded-full",
+              compact ? "h-7 w-7" : "h-9 w-9",
+              COLOR_CLASSES[color]
+            )}
+          >
+            <Icon className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
           </span>
         )}
         {typeof trend === "number" && (
@@ -67,10 +77,12 @@ export function KpiCard({
           </span>
         )}
       </div>
-      <div className="mt-3 text-sm text-[var(--ink-soft)]">{label}</div>
-      <div className="mt-0.5 text-2xl font-semibold text-[var(--ink)]">{value}</div>
+      <div className={cn(compact ? "mt-1.5 text-xs" : "mt-3 text-sm", "text-[var(--ink-soft)]")}>{label}</div>
+      <div className={cn(compact ? "mt-0.5 text-xl" : "mt-0.5 text-2xl", "font-semibold tabular-nums text-[var(--ink)]")}>
+        {value}
+      </div>
       {subtext && <div className="mt-1 text-xs text-[var(--ink-soft)] opacity-80">{subtext}</div>}
-      {clickable && !subtext && (
+      {clickable && !subtext && !compact && (
         <div className="mt-2 text-xs font-medium text-[var(--brand-mid)]">View list →</div>
       )}
     </div>

@@ -32,20 +32,74 @@ export type StepUiLike = {
   layout?: ScreenDefinition["layout"];
 };
 
+type LayoutWidget = NonNullable<ScreenDefinition["layout"]>[number];
+
+/** Commercial widgets that should stay above remarks / delivery date. */
+const COMMERCIAL_BEFORE_FORMFIELDS = new Set([
+  "StatusBanner",
+  "ProductList",
+  "CatalogSearch",
+  "PriceSummary",
+  "InventoryView",
+]);
+
+/**
+ * Host chrome for pinned / outdated starter layouts (BL-036):
+ * - Remarks + delivery date (FormFields order scope) below line items
+ * - CustomerInfo + Notes + Attachments on every human step (Phase 2 ids; Comments/FileUpload aliases OK)
+ */
+export function applyHostLayoutChrome(
+  act: { action: string; label: string },
+  layout: LayoutWidget[] | undefined
+): LayoutWidget[] | undefined {
+  if (!layout?.length) return layout;
+
+  let next = [...layout];
+
+  if (
+    act.action === "dispatch" &&
+    next.some((w) => w.widget === "FormFields") &&
+    !next.some((w) => w.widget === "DispatchFulfillment")
+  ) {
+    next = next.map((w) =>
+      w.widget === "FormFields" ? { widget: "DispatchFulfillment", props: w.props ?? {} } : w
+    );
+  }
+
+  // Sales review (and any layout with ProductList + FormFields): FormFields after commercial block.
+  const formFieldsIdx = next.findIndex((w) => w.widget === "FormFields");
+  const productIdx = next.findIndex((w) => w.widget === "ProductList");
+  if (formFieldsIdx >= 0 && productIdx >= 0 && formFieldsIdx < productIdx) {
+    const [ff] = next.splice(formFieldsIdx, 1);
+    let insertAt = 0;
+    for (let i = 0; i < next.length; i++) {
+      if (COMMERCIAL_BEFORE_FORMFIELDS.has(next[i].widget)) insertAt = i + 1;
+    }
+    next.splice(insertAt, 0, ff);
+  }
+
+  if (!next.some((w) => w.widget === "CustomerInfo")) {
+    const afterBanner = next.findIndex((w) => w.widget === "StatusBanner");
+    next.splice(afterBanner >= 0 ? afterBanner + 1 : 0, 0, { widget: "CustomerInfo", props: {} });
+  }
+
+  const hasNotes = next.some((w) => w.widget === "Comments" || w.widget === "Notes");
+  const hasAttach = next.some((w) => w.widget === "FileUpload" || w.widget === "Attachments");
+  const actionIdx = next.findIndex((w) => w.widget === "ActionButtons");
+  const injectAt = actionIdx >= 0 ? actionIdx : next.length;
+  const toInject: LayoutWidget[] = [];
+  if (!hasNotes) toInject.push({ widget: "Notes", props: {} });
+  if (!hasAttach) toInject.push({ widget: "Attachments", props: {} });
+  if (toInject.length) next.splice(injectAt, 0, ...toInject);
+
+  return next;
+}
+
 export function stepUiToScreen(
   act: { action: string; label: string },
   ui?: StepUiLike | null
 ): ScreenDefinition {
-  let layout = ui?.layout;
-  if (
-    act.action === "dispatch" &&
-    layout?.some((w) => w.widget === "FormFields") &&
-    !layout.some((w) => w.widget === "DispatchFulfillment")
-  ) {
-    layout = layout.map((w) =>
-      w.widget === "FormFields" ? { widget: "DispatchFulfillment", props: w.props ?? {} } : w
-    );
-  }
+  const layout = applyHostLayoutChrome(act, ui?.layout ? [...ui.layout] : undefined);
   return normalizeScreenDefinition({
     key: ui?.formId ?? act.action,
     id: ui?.formId,
@@ -64,7 +118,14 @@ export function ScreenController(props: {
   label: string;
   ui?: StepUiLike | null;
   order: Record<string, unknown>;
-  customer?: { id?: string; name?: string | null } | null;
+  customer?: {
+    id?: string;
+    name?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    creditLimit?: number | null;
+    isBlocked?: boolean | null;
+  } | null;
   items: LineItemLike[];
   canComplete: boolean;
   fieldValues: Record<string, string>;

@@ -82,6 +82,7 @@ export default function QuotesPage() {
   });
   const [lines, setLines] = useState<SOLine[]>([]);
   const [formNotes, setFormNotes] = useState("");
+  const [opportunityId, setOpportunityId] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [saving, setSaving] = useState(false);
@@ -124,6 +125,17 @@ export default function QuotesPage() {
   }
 
   useEffect(() => { load(); }, [statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oid = params.get("opportunityId") ?? "";
+    const cid = params.get("customerId") ?? "";
+    if (oid) setOpportunityId(oid);
+    if (cid) {
+      setCustomerId(cid);
+      setShowForm(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (!productSearch.trim()) { setSuggestions([]); return; }
@@ -187,6 +199,7 @@ export default function QuotesPage() {
         method: "POST",
         body: JSON.stringify({
           customerId,
+          opportunityId: opportunityId || undefined,
           date: new Date(date).toISOString(),
           validUntil: new Date(validUntil).toISOString(),
           notes: formNotes.trim() || undefined,
@@ -236,32 +249,19 @@ export default function QuotesPage() {
   }
 
   async function convertToOrder(quote: Quote) {
-    if (!quote.items || quote.items.length === 0) {
-      notify("Load quote detail first", "err");
-      return;
-    }
     try {
-      // First find a warehouse
-      const wRes = await api("/api/warehouses?limit=5");
-      const warehouseId = wRes.data[0]?.id;
-      if (!warehouseId) { notify("No warehouse found", "err"); return; }
-
-      await api("/api/orders", {
-        method: "POST",
-        body: JSON.stringify({
-          customerId: quote.customer?.id,
-          quoteId: quote.id,
-          warehouseId,
-          items: quote.items.map((i: QuoteItem) => ({
-            productId: i.productId,
-            productName: i.productName,
-            quantity: i.quantity,
-            unitPrice: i.unitPrice,
-          })),
-        }),
-      });
-      notify("Sales order created from quote!");
+      const r = await api(`/api/quotes/${quote.id}/convert`, { method: "POST", body: "{}" });
+      const soNum = r.data?.soNumber ?? r.data?.salesOrder?.orderNumber;
+      const soId = r.data?.salesOrder?.id as string | undefined;
+      notify(
+        r.data?.alreadyConverted
+          ? `Already converted → ${soNum}`
+          : `Sales order ${soNum} created from quote`
+      );
       load();
+      if (soId) {
+        window.location.href = `/admin/sales-desk?salesOrderId=${encodeURIComponent(soId)}`;
+      }
     } catch (e: unknown) {
       notify(e instanceof Error ? e.message : "Failed to convert to order", "err");
     }
@@ -429,6 +429,11 @@ export default function QuotesPage() {
           )}
 
           <div className="mb-3">
+            {opportunityId && (
+              <p className="mb-2 rounded border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] px-3 py-2 text-xs text-[var(--success)]">
+                Linked to opportunity {opportunityId.slice(0, 8)}…
+              </p>
+            )}
             <label className="block text-xs text-[var(--ink-soft)] mb-1">Notes</label>
             <input value={formNotes} onChange={e => setFormNotes(e.target.value)} placeholder="Optional notes"
               className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]" />

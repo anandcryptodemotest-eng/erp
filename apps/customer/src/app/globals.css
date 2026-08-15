@@ -20,7 +20,7 @@ body {
   background: var(--page-bg);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
-  padding-bottom: env(safe-area-inset-bottom);
+  /* Safe-area lives on bottom nav / sticky CTAs — not body (avoids double padding). */
 }
 
 a {
@@ -258,16 +258,42 @@ img {
   color: var(--ink-inverse);
 }
 
+/* Sticky CTA sits above BottomNav (~3.5rem) when nav is visible; PDP pages hide nav. */
 .atc-bar {
   position: sticky;
-  bottom: 0;
-  z-index: 20;
+  bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+  z-index: 25;
   border-top: 1px solid var(--line);
   background: color-mix(in srgb, var(--surface-raised) 94%, transparent);
   backdrop-filter: blur(8px);
   padding: 0.75rem 1rem;
-  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
   box-shadow: var(--shadow-2);
+}
+
+/* PDP: bottom nav hidden — pin ATC to the physical bottom */
+.portal-shell:has(.atc-bar):not(:has([data-bottom-nav])) .atc-bar,
+[data-pdp] .atc-bar {
+  bottom: 0;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.checkout-sticky-cta {
+  position: sticky;
+  bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+  z-index: 25;
+  margin-top: 1rem;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-raised) 96%, transparent);
+  backdrop-filter: blur(8px);
+  padding: 0.75rem 0 max(0.75rem, 0px);
+  box-shadow: var(--shadow-2);
+}
+
+@media (min-width: 768px) {
+  .atc-bar,
+  .checkout-sticky-cta {
+    bottom: 0;
+  }
 }
 
 .cat-rail-item {

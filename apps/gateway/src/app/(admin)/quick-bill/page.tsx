@@ -96,7 +96,15 @@ export default function QuickBillPage() {
       hero={{
         eyebrow: "Sales",
         title: "Quick Bill",
-        description: "Walk-in customer → Create Bill → same Invoice as Order Desk. No SREQ or prep workflow.",
+        description: "Walk-in customer → invoice now. No fulfilment workflow. For later pick/dispatch, use Order Desk → New walk-in order.",
+        actions: (
+          <a
+            href="/admin/sales-desk"
+            className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border border-[var(--line-strong)] bg-[var(--surface-raised)] px-4 py-2 text-sm font-semibold text-[var(--ink)]"
+          >
+            Fulfilment walk-in (Order Desk)
+          </a>
+        ),
       }}
     >
       {error && (

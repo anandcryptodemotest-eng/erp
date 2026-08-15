@@ -125,8 +125,17 @@ export function resolveTenantSlug(opts?: {
     if (fromHost) return fromHost;
   }
 
+  const fromEnv =
+    process.env.NEXT_PUBLIC_TENANT_SLUG?.trim() || process.env.DEFAULT_TENANT_SLUG?.trim();
+  if (fromEnv) return fromEnv;
+
+  // Shared demo IP without ?tenant=: prefer Trustwood rather than blank chrome.
+  if (typeof window !== "undefined" && isSharedIpHostname(window.location.hostname)) {
+    return DEFAULT_SLUG;
+  }
+
   if (process.env.NODE_ENV === "production") return "";
-  return process.env.NEXT_PUBLIC_TENANT_SLUG?.trim() || process.env.DEFAULT_TENANT_SLUG?.trim() || DEFAULT_SLUG;
+  return DEFAULT_SLUG;
 }
 
 /** Resolve a verified custom hostname through Gateway and cache it for browser API calls. */

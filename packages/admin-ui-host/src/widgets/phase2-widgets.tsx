@@ -13,6 +13,22 @@ import {
   type AttachmentItem,
 } from "@erp/ui-runtime";
 
+function formatBytes(n?: number) {
+  if (n == null || !Number.isFinite(n)) return "";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function fileGlyph(mime?: string, name?: string) {
+  const m = (mime || "").toLowerCase();
+  const ext = (name || "").split(".").pop()?.toLowerCase() || "";
+  if (m.startsWith("image/") || ["jpg", "jpeg", "png", "webp"].includes(ext)) return "IMG";
+  if (m === "application/pdf" || ext === "pdf") return "PDF";
+  if (m.startsWith("audio/")) return "AUD";
+  return "FILE";
+}
+
 function FileUploadInner({ runtime }: { runtime: UIRuntime }) {
   const [busy, setBusy] = useState(false);
   const canEdit = runtime.context.permissions.canEdit;
@@ -26,12 +42,24 @@ function FileUploadInner({ runtime }: { runtime: UIRuntime }) {
   }
   const all = [...existing, ...draft.filter((d) => !existing.some((e) => e.id === d.id))];
 
-  async function onPick(files: FileList | null) {
+  function writeDraft(next: AttachmentItem[]) {
+    runtime.context.setFieldValue(draftKey, JSON.stringify(next));
+  }
+
+  async function onPick(files: FileList | null, replaceId?: string | null) {
     if (!files?.length || !canEdit) return;
     const upload = runtime.context.hostApis?.uploadFile;
     setBusy(true);
     try {
-      const next = [...draft];
+      let next = [...draft];
+      if (replaceId) {
+        const isPersisted = existing.some((e) => e.id === replaceId);
+        if (isPersisted) {
+          await runtime.context.hostApis?.deleteAttachment?.(replaceId);
+        } else {
+          next = next.filter((d) => d.id !== replaceId);
+        }
+      }
       for (const file of Array.from(files)) {
         if (upload) {
           const item = await upload(file);
@@ -48,8 +76,12 @@ function FileUploadInner({ runtime }: { runtime: UIRuntime }) {
           runtime.toast.info?.("File recorded locally — host upload API not wired");
         }
       }
-      runtime.context.setFieldValue(draftKey, JSON.stringify(next));
-      runtime.toast.success("Attachment added");
+      writeDraft(next);
+      runtime.toast.success(replaceId ? "Attachment replaced" : "Attachment added");
+      if (replaceId && existing.some((e) => e.id === replaceId)) {
+        // Host reloads order documents after delete; draft holds the new file until complete
+        runtime.events.publish({ type: "FieldChanged", payload: { key: "attachments" } });
+      }
     } catch (e) {
       runtime.toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -57,32 +89,121 @@ function FileUploadInner({ runtime }: { runtime: UIRuntime }) {
     }
   }
 
+  async function onDelete(id: string) {
+    if (!canEdit) return;
+    const ok = await runtime.dialog?.confirm?.("Remove this attachment?", "Delete attachment");
+    if (ok === false) return;
+    setBusy(true);
+    try {
+      const isPersisted = existing.some((e) => e.id === id);
+      if (isPersisted) {
+        await runtime.context.hostApis?.deleteAttachment?.(id);
+      }
+      writeDraft(draft.filter((d) => d.id !== id));
+      runtime.toast.success("Attachment removed");
+      runtime.events.publish({ type: "FieldChanged", payload: { key: "attachments" } });
+    } catch (e) {
+      runtime.toast.error(e instanceof Error ? e.message : "Could not delete");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <div className="space-y-2 rounded-lg border border-dashed border-[var(--line)] p-3">
-      <p className="text-xs font-medium text-[var(--ink-soft)]">Attachments</p>
-      {canEdit && (
-        <input
-          type="file"
-          multiple
-          disabled={busy}
-          className="block w-full text-xs text-[var(--ink-soft)]"
-          onChange={(e) => void onPick(e.target.files)}
-        />
-      )}
-      {busy && <p className="text-[11px] text-[var(--ink-soft)]">Uploading…</p>}
-      <ul className="space-y-1">
+    <div className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--surface-raised)] p-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-soft)]">
+          Attachments
+        </p>
+        {all.length > 0 ? (
+          <span className="text-[10px] font-medium text-[var(--ink-soft)]">{all.length} file{all.length === 1 ? "" : "s"}</span>
+        ) : null}
+      </div>
+
+      {canEdit ? (
+        <label
+          className={`flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-[var(--line-strong)] bg-[var(--mist)]/50 px-3 py-5 text-center transition hover:border-[var(--brand)] hover:bg-[color-mix(in_srgb,var(--brand)_6%,white)] ${
+            busy ? "pointer-events-none opacity-60" : ""
+          }`}
+        >
+          <span className="text-sm font-semibold text-[var(--ink)]">
+            {busy ? "Uploading…" : "Drop files or click to browse"}
+          </span>
+          <span className="text-[11px] text-[var(--ink-soft)]">JPG, PNG, WebP, PDF, or text · max 5 MB</span>
+          <input
+            type="file"
+            multiple
+            disabled={busy}
+            className="sr-only"
+            onChange={(e) => {
+              const files = e.target.files;
+              void onPick(files);
+              e.target.value = "";
+            }}
+          />
+        </label>
+      ) : null}
+
+      <ul className="space-y-2">
         {all.map((a) => (
-          <li key={a.id} className="text-xs text-[var(--ink-soft)]">
-            {a.url ? (
-              <a href={a.url} className="text-[var(--brand)] underline" target="_blank" rel="noreferrer">
-                {a.name}
-              </a>
-            ) : (
-              a.name
-            )}
+          <li
+            key={a.id}
+            className="flex items-center gap-3 rounded-lg border border-[var(--line)] bg-[var(--page-bg)] px-3 py-2"
+          >
+            <span
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[var(--mist)] text-[10px] font-bold tracking-wide text-[var(--brand)]"
+              aria-hidden
+            >
+              {fileGlyph(a.mimeType, a.name)}
+            </span>
+            <div className="min-w-0 flex-1">
+              {a.url ? (
+                <button
+                  type="button"
+                  className="block truncate text-left text-sm font-medium text-[var(--brand)] hover:underline"
+                  onClick={() => void runtime.context.hostApis?.openDocument?.(a.url!, a.name)}
+                >
+                  {a.name}
+                </button>
+              ) : (
+                <p className="truncate text-sm font-medium text-[var(--ink)]">{a.name}</p>
+              )}
+              <p className="text-[11px] text-[var(--ink-soft)]">
+                {[a.mimeType, formatBytes(a.size)].filter(Boolean).join(" · ") || "Attached"}
+              </p>
+            </div>
+            {canEdit ? (
+              <div className="flex shrink-0 gap-1">
+                <label className="cursor-pointer rounded-md px-2 py-1 text-[11px] font-semibold text-[var(--ink-soft)] hover:bg-[var(--mist)] hover:text-[var(--ink)]">
+                  Replace
+                  <input
+                    type="file"
+                    disabled={busy}
+                    className="sr-only"
+                    onChange={(e) => {
+                      const files = e.target.files;
+                      void onPick(files, a.id);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  disabled={busy}
+                  className="rounded-md px-2 py-1 text-[11px] font-semibold text-[var(--danger)] hover:bg-[color-mix(in_srgb,var(--danger)_10%,white)] disabled:opacity-50"
+                  onClick={() => void onDelete(a.id)}
+                >
+                  Delete
+                </button>
+              </div>
+            ) : null}
           </li>
         ))}
-        {all.length === 0 && <li className="text-[11px] text-[var(--ink-soft)]">No files yet</li>}
+        {all.length === 0 ? (
+          <li className="rounded-lg border border-dashed border-[var(--line)] px-3 py-4 text-center text-[11px] text-[var(--ink-soft)]">
+            No attachments yet
+          </li>
+        ) : null}
       </ul>
     </div>
   );
@@ -136,6 +257,8 @@ const TimelineWidget: Widget = {
 function CommentsInner({ runtime }: { runtime: UIRuntime }) {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editBody, setEditBody] = useState("");
   const comments = runtime.context.comments ?? [];
   const canEdit = runtime.context.permissions.canEdit;
 
@@ -151,41 +274,150 @@ function CommentsInner({ runtime }: { runtime: UIRuntime }) {
         [local, body].filter(Boolean).join("\n")
       );
       setDraft("");
-      runtime.toast.success("Comment added");
+      runtime.toast.success("Note added");
       runtime.events.publish({ type: "FieldChanged", payload: { key: "comments" } });
     } catch (e) {
-      runtime.toast.error(e instanceof Error ? e.message : "Failed to add comment");
+      runtime.toast.error(e instanceof Error ? e.message : "Failed to add note");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveEdit() {
+    if (!editingId || !canEdit) return;
+    const body = editBody.trim();
+    if (!body) return;
+    setBusy(true);
+    try {
+      await runtime.context.hostApis?.updateComment?.(editingId, body);
+      setEditingId(null);
+      setEditBody("");
+      runtime.toast.success("Note updated");
+      runtime.events.publish({ type: "FieldChanged", payload: { key: "comments" } });
+    } catch (e) {
+      runtime.toast.error(e instanceof Error ? e.message : "Failed to update note");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(id: string) {
+    if (!canEdit) return;
+    const ok = await runtime.dialog?.confirm?.("Delete this note?", "Delete note");
+    if (ok === false) return;
+    setBusy(true);
+    try {
+      await runtime.context.hostApis?.deleteComment?.(id);
+      if (editingId === id) {
+        setEditingId(null);
+        setEditBody("");
+      }
+      runtime.toast.success("Note deleted");
+      runtime.events.publish({ type: "FieldChanged", payload: { key: "comments" } });
+    } catch (e) {
+      runtime.toast.error(e instanceof Error ? e.message : "Failed to delete note");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="space-y-2" key="Comments">
-      <p className="text-xs font-medium text-[var(--ink-soft)]">Comments</p>
-      <ul className="max-h-40 space-y-2 overflow-y-auto">
+    <div className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--surface-raised)] p-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-soft)]">Notes</p>
+      <ul className="max-h-56 space-y-2 overflow-y-auto">
         {comments.map((c) => (
-          <li key={c.id} className="rounded-lg border border-[var(--line)] bg-[var(--mist)]/80 p-2 text-xs">
-            <p className="text-[var(--ink)]">{c.body}</p>
-            <p className="mt-0.5 text-[var(--ink-soft)]">
-              {c.author ?? "User"} · {new Date(c.at).toLocaleString()}
-            </p>
+          <li key={c.id} className="rounded-lg border border-[var(--line)] bg-[var(--page-bg)] p-2.5">
+            {editingId === c.id ? (
+              <div className="space-y-2">
+                <textarea
+                  className="w-full rounded-md border border-[var(--line)] px-2 py-1.5 text-sm text-[var(--ink)]"
+                  rows={3}
+                  value={editBody}
+                  disabled={busy}
+                  onChange={(e) => setEditBody(e.target.value)}
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={busy || !editBody.trim()}
+                    className="rounded-md bg-[var(--brand)] px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-50"
+                    onClick={() => void saveEdit()}
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="rounded-md px-2.5 py-1 text-[11px] font-semibold text-[var(--ink-soft)] hover:bg-[var(--mist)]"
+                    onClick={() => {
+                      setEditingId(null);
+                      setEditBody("");
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="whitespace-pre-wrap text-sm text-[var(--ink)]">{c.body}</p>
+                <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[11px] text-[var(--ink-soft)]">
+                    {c.author ?? "User"} · {new Date(c.at).toLocaleString()}
+                  </p>
+                  {canEdit ? (
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        className="rounded-md px-2 py-0.5 text-[11px] font-semibold text-[var(--ink-soft)] hover:bg-[var(--mist)] hover:text-[var(--ink)]"
+                        onClick={() => {
+                          setEditingId(c.id);
+                          setEditBody(c.body);
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        className="rounded-md px-2 py-0.5 text-[11px] font-semibold text-[var(--danger)] hover:bg-[color-mix(in_srgb,var(--danger)_10%,white)]"
+                        onClick={() => void remove(c.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </>
+            )}
           </li>
         ))}
-        {comments.length === 0 && <li className="text-[11px] text-[var(--ink-soft)]">No comments yet</li>}
+        {comments.length === 0 ? (
+          <li className="rounded-lg border border-dashed border-[var(--line)] px-3 py-4 text-center text-[11px] text-[var(--ink-soft)]">
+            No notes yet
+          </li>
+        ) : null}
       </ul>
       {canEdit && (
         <div className="flex gap-2">
           <input
-            className="flex-1 rounded border border-[var(--line)] px-2 py-1.5 text-sm"
-            placeholder="Add a comment…"
+            className="flex-1 rounded-md border border-[var(--line)] px-2.5 py-2 text-sm"
+            placeholder="Add a note…"
             value={draft}
+            disabled={busy}
             onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void submit();
+              }
+            }}
           />
           <button
             type="button"
             disabled={busy || !draft.trim()}
-            className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            className="rounded-md bg-[var(--brand)] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
             onClick={() => void submit()}
           >
             Post
@@ -205,6 +437,82 @@ const CommentsWidget: Widget = {
     const append = runtime.context.fieldValues.commentsAppend;
     return append ? { commentsAppend: append } : {};
   },
+};
+
+/** BL-036 Phase 2 — same Notes UX; stable id for starter layouts. */
+const NotesWidget: Widget = {
+  render(runtime) {
+    return <CommentsInner key="Notes" runtime={runtime} />;
+  },
+  validate: () => ({ ok: true }),
+  collectPayload(runtime) {
+    const append = runtime.context.fieldValues.commentsAppend;
+    return append ? { commentsAppend: append } : {};
+  },
+};
+
+/** BL-036 Phase 2 — same Attachments UX; stable id for starter layouts. */
+const AttachmentsWidget: Widget = {
+  render(runtime) {
+    return <FileUploadInner key="Attachments" runtime={runtime} />;
+  },
+  validate: () => ({ ok: true }),
+  collectPayload(runtime) {
+    try {
+      const draft = JSON.parse(runtime.context.fieldValues.attachmentsJson || "[]");
+      return { attachments: draft };
+    } catch {
+      return {};
+    }
+  },
+};
+
+function CustomerInfoInner({ runtime }: { runtime: UIRuntime }) {
+  const c = runtime.context.customer;
+  if (!c?.id && !c?.name) {
+    return (
+      <div className="rounded-lg border border-[var(--line)] bg-[var(--mist)]/60 px-3 py-2 text-xs text-[var(--ink-soft)]">
+        No customer on this order
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2 space-y-1">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-soft)]">Customer</p>
+      <p className="text-sm font-semibold text-[var(--ink)]">{c.name ?? "—"}</p>
+      {c.phone ? <p className="text-xs text-[var(--ink-soft)]">{c.phone}</p> : null}
+      {c.email ? <p className="text-xs text-[var(--ink-soft)]">{c.email}</p> : null}
+      <div className="flex flex-wrap gap-2 pt-0.5">
+        {c.isBlocked ? (
+          <span className="rounded-full bg-[color-mix(in_srgb,var(--danger)_12%,white)] px-2 py-0.5 text-[10px] font-semibold text-[var(--danger)]">
+            Blocked
+          </span>
+        ) : (
+          <span className="rounded-full bg-[var(--mist)] px-2 py-0.5 text-[10px] font-semibold text-[var(--ink-soft)]">
+            Active
+          </span>
+        )}
+        {typeof c.creditLimit === "number" ? (
+          <span className="text-[10px] text-[var(--ink-soft)]">
+            Credit{" "}
+            {new Intl.NumberFormat("en-IN", {
+              style: "currency",
+              currency: "INR",
+              maximumFractionDigits: 0,
+            }).format(c.creditLimit)}
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+const CustomerInfoWidget: Widget = {
+  render(runtime) {
+    return <CustomerInfoInner key="CustomerInfo" runtime={runtime} />;
+  },
+  validate: () => ({ ok: true }),
+  collectPayload: () => ({}),
 };
 
 const InventoryViewWidget: Widget = {
@@ -271,7 +579,8 @@ const PriceSummaryWidget: Widget = {
     const additional = Number(order.additionalCharges ?? 0);
     const delivery = Number(order.deliveryFee ?? 0);
     const total =
-      Number(order.total) || subtotal - discount + tax + transport + additional + delivery;
+      Number(order.total ?? order.totalAmount) ||
+      subtotal - discount + tax + transport + additional + delivery;
     const rows: [string, number][] = [
       ["Subtotal", subtotal],
       ["Discount", -discount],
@@ -622,6 +931,13 @@ function DocumentGenerateInner({
 
 const DocumentGenerateWidget: Widget = {
   render(runtime, props) {
+    if (props.phoneDeferred) {
+      return (
+        <p className="rounded-lg border border-[var(--line)] bg-[var(--mist)] px-3 py-2 text-sm text-[var(--ink-soft)]">
+          Generate / edit invoice on tablet or desktop.
+        </p>
+      );
+    }
     return <DocumentGenerateInner runtime={runtime} props={props} />;
   },
   validate: () => ({ ok: true }),
@@ -679,6 +995,39 @@ export function ensurePhase2WidgetsRegistered(): void {
       supportsPayload: true,
     },
     factory: () => CommentsWidget,
+  });
+  registerWidget({
+    manifest: {
+      id: "Notes",
+      category: "Input",
+      displayName: "Notes",
+      icon: "message",
+      supportsValidation: false,
+      supportsPayload: true,
+    },
+    factory: () => NotesWidget,
+  });
+  registerWidget({
+    manifest: {
+      id: "Attachments",
+      category: "Input",
+      displayName: "Attachments",
+      icon: "paperclip",
+      supportsValidation: false,
+      supportsPayload: true,
+    },
+    factory: () => AttachmentsWidget,
+  });
+  registerWidget({
+    manifest: {
+      id: "CustomerInfo",
+      category: "Business",
+      displayName: "Customer Info",
+      icon: "user",
+      supportsValidation: false,
+      supportsPayload: false,
+    },
+    factory: () => CustomerInfoWidget,
   });
   registerWidget({
     manifest: {

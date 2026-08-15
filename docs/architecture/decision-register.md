@@ -151,6 +151,18 @@ Owners are role placeholders until assigned by the Approver. Review dates are go
 - **Exit criteria:** Services healthy in review environment (done for Gateway + domains); Platform health route decided; traces captured for login, order, PO receive, payroll, delivery, and workflow completion; evidence linked in ledger.
 - **Review date:** Before accepting P1 boundary changes
 
+### AGR-014 — Service SRP catalog; Gateway hosts named capabilities
+
+- **Status:** Accepted
+- **Owner:** Platform Owner
+- **Priority:** P1
+- **Rationale:** Prevent Gateway becoming a dump and prevent extracting a microservice for every platform noun.
+- **Decision:** Follow [SERVICE-SRP.md](SERVICE-SRP.md) / [ADR 0020](../adr/0020-service-srp.md). New table → owning service. Cross-domain access is HTTP only. Notification stays Gateway-hosted (ADR 0019 addendum).
+- **Consequences:** Cursor rule `service-srp.mdc` always applies. No extraction-only backlog items.
+- **Related ADRs:** ADR 0016, ADR 0017, ADR 0019, ADR 0020
+- **Exit criteria:** Catalog exists; agents follow owns/does-not-own; no `apps/notification` or `apps/communication` process.
+- **Review date:** On first proposal for a new `apps/*` or Notification `:3012`
+
 ## Register history
 
 | Version | Date | Change |

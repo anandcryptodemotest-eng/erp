@@ -491,6 +491,7 @@ const ActionButtonsWidget: Widget = {
 };
 
 import { DispatchFulfillmentWidget } from "./dispatch-fulfillment";
+import { ExternalLinkWidget } from "./external-link";
 import { ensurePhase2WidgetsRegistered } from "./phase2-widgets";
 
 let registered = false;
@@ -553,6 +554,24 @@ export function ensureOmsWidgetsRegistered(): void {
       supportsPayload: true,
     },
     factory: () => DispatchFulfillmentWidget,
+  });
+  registerWidget({
+    manifest: {
+      id: "ExternalLink",
+      category: "System",
+      displayName: "External Link",
+      icon: "external-link",
+      supportsValidation: true,
+      supportsPayload: true,
+      defaultProps: {
+        label: "Open external app",
+        url: "",
+        description: "",
+        urlFromVariable: "",
+        openInNewTab: true,
+      },
+    },
+    factory: () => ExternalLinkWidget,
   });
   ensurePhase2WidgetsRegistered();
 }

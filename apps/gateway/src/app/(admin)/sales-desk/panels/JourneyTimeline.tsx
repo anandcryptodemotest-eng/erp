@@ -95,3 +95,29 @@ export function buildJourneySteps(opts: {
     state: i < idx ? "done" : i === idx ? "current" : "upcoming",
   }));
 }
+
+/** BL-035 — journey from Business Work Items (hides HIDDEN / skipped exceptions). */
+export function buildWorkItemJourneySteps(
+  workItems: {
+    key: string;
+    label: string;
+    status: string;
+    actionable?: boolean;
+  }[]
+): JourneyStep[] {
+  if (!workItems.length) return [];
+  let sawCurrent = false;
+  return workItems.map((wi) => {
+    const terminal = wi.status === "COMPLETED";
+    const current =
+      !terminal &&
+      !sawCurrent &&
+      (wi.actionable || ["READY", "CLAIMED", "IN_PROGRESS"].includes(wi.status));
+    if (current) sawCurrent = true;
+    return {
+      id: wi.key,
+      label: wi.label,
+      state: terminal ? "done" : current ? "current" : "upcoming",
+    };
+  });
+}

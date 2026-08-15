@@ -1,18 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import type { DocumentBindingSchema, DocumentDefinition, DocumentItemType } from "@erp/documents";
+import type { DocumentBindingSchema, DocumentDefinition, StudioLevel } from "@erp/documents";
 import {
   bindingSchemaForDocumentType,
   findItemById,
   flattenItems,
 } from "@erp/documents";
-import { defaultItem } from "./defaultItem";
+import {
+  defaultAreaContainer,
+  defaultItem,
+  defaultPageNumberItem,
+  invoiceStarterItems,
+} from "./defaultItem";
 import { PageCanvas } from "./PageCanvas";
 import { PropertyPanel } from "./PropertyPanel";
 import { canvasReducer, createInitialState, getPrimarySelected } from "./reducer";
-import type { DesignerCommand, GridSize } from "./types";
-import { PALETTE } from "./types";
+import type { DesignerCommand, GridSize, PaletteTile } from "./types";
+import { PALETTE_GROUPS, QR_TILE } from "./types";
 import "./document-designer.css";
 
 export type DocumentDesignerProps = {
@@ -20,6 +25,8 @@ export type DocumentDesignerProps = {
   definition: DocumentDefinition;
   readOnly?: boolean;
   bindingSchema?: DocumentBindingSchema;
+  /** Working experience — chrome only. Default business. */
+  level?: StudioLevel;
   /** Optional print-look HTML (host-provided, read-only preview). */
   previewHtml?: string;
   /** Host upload for Logo/Image — returns a public URL. */
@@ -32,22 +39,19 @@ export function DocumentDesigner({
   definition,
   readOnly = false,
   bindingSchema,
-  previewHtml,
+  level = "business",
   onUploadImage,
   onChange,
   className,
 }: DocumentDesignerProps) {
-  const [state, rawDispatch] = useReducer(
-    canvasReducer,
-    definition,
-    createInitialState
-  );
-  const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [state, rawDispatch] = useReducer(canvasReducer, definition, createInitialState);
   const [jsonText, setJsonText] = useState(() => JSON.stringify(definition, null, 2));
   const [jsonError, setJsonError] = useState<string | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const skipNotify = useRef(true);
+  const power = level === "power" || level === "developer";
+  const developer = level === "developer";
 
   const dispatch = useCallback(
     (cmd: DesignerCommand) => {
@@ -57,7 +61,6 @@ export function DocumentDesigner({
     [readOnly]
   );
 
-  // Notify host when the document model changes (not on mount / selection-only).
   useEffect(() => {
     setJsonText(JSON.stringify(state.definition, null, 2));
     if (skipNotify.current) {
@@ -105,14 +108,29 @@ export function DocumentDesigner({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [deleteSelected, readOnly, state.selectedIds.size]);
 
-  const addFromPalette = (type: DocumentItemType) => {
-    const parent =
-      selectedItem?.type === "Container" ? selectedItem.id : null;
+  const addTile = (tile: PaletteTile) => {
+    const parent = selectedItem?.type === "Container" ? selectedItem.id : null;
+    if (tile.action.kind === "item") {
+      dispatch({ type: "CreateItems", items: [defaultItem(tile.action.type)], parentId: parent });
+      return;
+    }
+    if (tile.action.kind === "qr") {
+      dispatch({ type: "CreateItems", items: [defaultItem("QR")], parentId: parent });
+      return;
+    }
+    if (tile.action.kind === "pageNumber") {
+      dispatch({ type: "CreateItems", items: [defaultPageNumberItem()], parentId: parent });
+      return;
+    }
     dispatch({
       type: "CreateItems",
-      items: [defaultItem(type)],
-      parentId: parent,
+      items: [defaultAreaContainer(tile.action.area)],
+      parentId: null,
     });
+  };
+
+  const addInvoiceStarter = () => {
+    dispatch({ type: "CreateItems", items: invoiceStarterItems(), parentId: null });
   };
 
   const applyJson = () => {
@@ -125,10 +143,10 @@ export function DocumentDesigner({
     }
   };
 
-  const developerJson = (
+  const developerJson = developer ? (
     <div>
       <p style={{ fontSize: 10, color: "#78716c", marginBottom: 6 }}>
-        Raw DocumentDefinition — most users can ignore this.
+        Raw DocumentDefinition.
       </p>
       <textarea
         style={{
@@ -156,58 +174,78 @@ export function DocumentDesigner({
         </button>
       )}
     </div>
-  );
+  ) : null;
 
   return (
     <div className={`erp-doc-designer${className ? ` ${className}` : ""}`}>
       <aside className="erp-doc-designer__pane">
-        <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: "#78716c", marginBottom: 8 }}>
-          Outline
+        <p className="erp-doc-studio__group-label" style={{ marginBottom: 8 }}>
+          Components
         </p>
-        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-          {outline.map((n) => {
-            const row = findItemById(state.definition.items, n.id);
-            const selected = state.selectedIds.has(n.id);
-            return (
-              <li key={n.id} className="erp-doc-designer__outline-row">
+        {PALETTE_GROUPS.map((group) => (
+          <div key={group.id} className="erp-doc-studio__group">
+            <p className="erp-doc-studio__group-label">{group.label}</p>
+            <div className="erp-doc-studio__tiles">
+              {group.tiles.map((tile) => (
+                <button
+                  key={tile.id}
+                  type="button"
+                  disabled={readOnly}
+                  className={
+                    tile.span === "full"
+                      ? "erp-doc-studio__tile erp-doc-studio__tile--full"
+                      : "erp-doc-studio__tile"
+                  }
+                  onClick={() => addTile(tile)}
+                >
+                  {tile.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+        {power && (
+          <div className="erp-doc-studio__group">
+            <p className="erp-doc-studio__group-label">More</p>
+            <div className="erp-doc-studio__tiles">
+              <button
+                type="button"
+                disabled={readOnly}
+                className="erp-doc-studio__tile erp-doc-studio__tile--full"
+                onClick={() => addTile(QR_TILE)}
+              >
+                {QR_TILE.label}
+              </button>
+            </div>
+            <details style={{ marginTop: 12 }}>
+              <summary
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  color: "#78716c",
+                  cursor: "pointer",
+                }}
+              >
+                Invoice starter
+              </summary>
+              <p style={{ fontSize: 10, color: "#78716c", margin: "6px 0" }}>
+                Optional ERP composition pack. Not part of the generic catalog.
+              </p>
+              {!readOnly && (
                 <button
                   type="button"
-                  className={`erp-doc-designer__outline-btn${
-                    selected ? " erp-doc-designer__outline-btn--active" : ""
-                  }`}
-                  style={{ paddingLeft: 6 + n.depth * 12 }}
-                  onClick={(e) =>
-                    dispatch({
-                      type: "SetSelection",
-                      ids: [n.id],
-                      mode: e.shiftKey ? "toggle" : "replace",
-                    })
-                  }
+                  className="erp-doc-designer__palette-btn"
+                  onClick={addInvoiceStarter}
                 >
-                  {row?.name ?? n.id}{" "}
-                  <span style={{ color: "#a8a29e", fontSize: 10 }}>{n.type}</span>
+                  Insert invoice layout
                 </button>
-                {!readOnly && !row?.locked && (
-                  <button
-                    type="button"
-                    className="erp-doc-designer__icon-btn erp-doc-designer__icon-btn--danger"
-                    title="Delete"
-                    aria-label={`Delete ${row?.name ?? n.id}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      dispatch({ type: "SetSelection", ids: [n.id] });
-                      dispatch({ type: "DeleteItems", ids: [n.id] });
-                    }}
-                  >
-                    <TrashIcon />
-                  </button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+              )}
+            </details>
+          </div>
+        )}
 
-        {!readOnly && (
+        {power ? (
           <>
             <p
               style={{
@@ -218,24 +256,55 @@ export function DocumentDesigner({
                 margin: "16px 0 8px",
               }}
             >
-              Palette{" "}
-              {selectedItem?.type === "Container"
-                ? `→ ${selectedItem.name ?? selectedItem.id}`
-                : "(page)"}
+              Layers
             </p>
-            <div>
-              {PALETTE.map((p) => (
-                <button
-                  key={p.type}
-                  type="button"
-                  className="erp-doc-designer__palette-btn"
-                  onClick={() => addFromPalette(p.type)}
-                >
-                  + {p.label}
-                </button>
-              ))}
-            </div>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {outline.map((n) => {
+                const row = findItemById(state.definition.items, n.id);
+                const selected = state.selectedIds.has(n.id);
+                return (
+                  <li key={n.id} className="erp-doc-designer__outline-row">
+                    <button
+                      type="button"
+                      className={`erp-doc-designer__outline-btn${
+                        selected ? " erp-doc-designer__outline-btn--active" : ""
+                      }`}
+                      style={{ paddingLeft: 6 + n.depth * 12 }}
+                      onClick={(e) =>
+                        dispatch({
+                          type: "SetSelection",
+                          ids: [n.id],
+                          mode: e.shiftKey ? "toggle" : "replace",
+                        })
+                      }
+                    >
+                      {row?.name ?? n.id}{" "}
+                      <span style={{ color: "#a8a29e", fontSize: 10 }}>{n.type}</span>
+                    </button>
+                    {!readOnly && !row?.locked && (
+                      <button
+                        type="button"
+                        className="erp-doc-designer__icon-btn erp-doc-designer__icon-btn--danger"
+                        title="Delete"
+                        aria-label={`Delete ${row?.name ?? n.id}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          dispatch({ type: "SetSelection", ids: [n.id] });
+                          dispatch({ type: "DeleteItems", ids: [n.id] });
+                        }}
+                      >
+                        <TrashIcon />
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           </>
+        ) : (
+          <p className="erp-doc-studio__hint" style={{ paddingLeft: 0 }}>
+            Select on the page. Layers are in Power mode.
+          </p>
         )}
       </aside>
 
@@ -260,7 +329,7 @@ export function DocumentDesigner({
             </select>
           </label>
           <span style={{ color: "#78716c", fontSize: 11 }}>
-            Layer: default · {state.selectedIds.size} selected
+            {state.selectedIds.size} selected
           </span>
           {!readOnly && state.selectedIds.size > 0 && (
             <button
@@ -272,26 +341,18 @@ export function DocumentDesigner({
               <TrashIcon /> Delete
             </button>
           )}
-          {previewHtml != null && (
-            <button
-              type="button"
-              className="erp-doc-designer__palette-btn"
-              onClick={() => setShowPrintPreview((v) => !v)}
-            >
-              {showPrintPreview ? "Hide" : "Show"} print preview
-            </button>
-          )}
         </div>
 
-        {!showPrintPreview ? (
-          <PageCanvas state={state} readOnly={readOnly} dispatch={dispatch} />
-        ) : (
-          <iframe
-            title="print-preview"
-            className="erp-doc-designer__preview-frame"
-            srcDoc={previewHtml}
-            style={{ maxWidth: 640, margin: "0 auto", display: "block", minHeight: 900 }}
-          />
+        <PageCanvas state={state} readOnly={readOnly} dispatch={dispatch} />
+        {state.definition.items.length === 0 && (
+          <p className="erp-doc-studio__empty">
+            Empty page. Add Text, Field, Image, or Table from Components — or open Data and place a bound path.
+          </p>
+        )}
+        {state.definition.items.length === 0 && (
+          <p className="erp-doc-studio__empty">
+            Empty page. Add Text, Field, Image, or Table from Components — or open Data and place a bound path.
+          </p>
         )}
       </div>
 
@@ -299,6 +360,8 @@ export function DocumentDesigner({
         <PropertyPanel
           item={selectedItem}
           schema={schema}
+          page={state.definition.page}
+          level={level}
           readOnly={readOnly}
           dispatch={dispatch}
           onDelete={deleteSelected}

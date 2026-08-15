@@ -34,7 +34,7 @@ import {
 } from "@erp/tax-india";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma";
-import { fetchTenantTaxProfile } from "@/lib/fetch-tenant-tax-profile";
+import { fetchTenantTaxContext } from "@/lib/fetch-tenant-tax-profile";
 import {
   registerDocumentPayloadProvider,
   getDocumentPayloadProvider,
@@ -176,10 +176,11 @@ export async function generateInvoice(input: GenerateInvoiceInput) {
     }
   }
 
-  const [order, profile] = await Promise.all([
+  const [order, taxCtx] = await Promise.all([
     loadSalesOrder(tenantId, salesOrderId, userId),
-    fetchTenantTaxProfile(tenantId),
+    fetchTenantTaxContext(tenantId),
   ]);
+  const profile = taxCtx.profile;
 
   const posResult = resolvePlaceOfSupply({
     transactionPos: order.placeOfSupply,
@@ -222,7 +223,7 @@ export async function generateInvoice(input: GenerateInvoiceInput) {
     }
   );
 
-  const templateId = documentTemplateId(summary.documentKind);
+  const templateId = input.documentRef?.id ?? documentTemplateId(summary.documentKind);
   let documentRef = input.documentRef ?? {
     type: "DOCUMENT" as const,
     id: templateId,
@@ -234,28 +235,31 @@ export async function generateInvoice(input: GenerateInvoiceInput) {
     throw new Error(`Unknown payloadBuilder: ${builderType}`);
   }
 
-  let definition: DocumentDefinition = seedForDocumentId(documentRef.id);
-  const docRes = await serviceClient.call<{
+  // Prefer latest published catalog so force-published seeds apply without
+  // bumping every workflow documentRef pin (still stores the resolved version).
+  let definition: DocumentDefinition = seedForDocumentId(templateId);
+  const latest = await serviceClient.call<{
     data: { definition: DocumentDefinition; ref: { id: string; version: number } };
   }>(
     "sales",
-    `/api/workflow-documents/lookup?documentId=${encodeURIComponent(documentRef.id)}&version=${documentRef.version}`,
+    `/api/workflow-documents/lookup?documentId=${encodeURIComponent(templateId)}`,
     { method: "GET", tenantId, userId }
   );
-  if (docRes.status === 404 || !docRes.data?.data?.definition) {
-    const latest = await serviceClient.call<{
+  if (latest.data?.data?.definition) {
+    definition = latest.data.data.definition;
+    if (latest.data.data.ref) documentRef = { type: "DOCUMENT", ...latest.data.data.ref };
+  } else if (input.documentRef) {
+    const pinned = await serviceClient.call<{
       data: { definition: DocumentDefinition; ref: { id: string; version: number } };
     }>(
       "sales",
-      `/api/workflow-documents/lookup?documentId=${encodeURIComponent(documentRef.id)}`,
+      `/api/workflow-documents/lookup?documentId=${encodeURIComponent(input.documentRef.id)}&version=${input.documentRef.version}`,
       { method: "GET", tenantId, userId }
     );
-    if (latest.data?.data?.definition) {
-      definition = latest.data.data.definition;
-      if (latest.data.data.ref) documentRef = { type: "DOCUMENT", ...latest.data.data.ref };
+    if (pinned.data?.data?.definition) {
+      definition = pinned.data.data.definition;
+      if (pinned.data.data.ref) documentRef = { type: "DOCUMENT", ...pinned.data.data.ref };
     }
-  } else {
-    definition = docRes.data.data.definition;
   }
 
   const today = new Date();
@@ -379,7 +383,7 @@ export async function generateInvoice(input: GenerateInvoiceInput) {
 
   if (!invoice) throw new Error("Failed to create invoice");
 
-  const payload = buildInvoicePayload(invoice, order, profile, summary);
+  const payload = buildInvoicePayload(invoice, order, profile, summary, taxCtx.logoUrl);
   const overrideErrors = applyPayloadOverrides(
     payload,
     input.payloadOverrides,
@@ -439,6 +443,16 @@ export async function generateInvoice(input: GenerateInvoiceInput) {
   };
 }
 
+function partyStateLine(stateCode?: string | null): string {
+  const code = (stateCode ?? "").trim();
+  return code ? `State: ${code}` : "";
+}
+
+function partyGstinLine(gstin?: string | null): string {
+  const g = (gstin ?? "").trim();
+  return g ? `GSTIN: ${g}` : "";
+}
+
 export function buildInvoicePayload(
   invoice: {
     number: string;
@@ -450,6 +464,7 @@ export function buildInvoicePayload(
     entityName: string | null;
     documentKind?: string | null;
     placeOfSupply?: string | null;
+    notes?: string | null;
     cgst?: number;
     sgst?: number;
     igst?: number;
@@ -467,7 +482,8 @@ export function buildInvoicePayload(
   },
   order: SalesOrderPayload,
   profile?: TenantTaxProfile,
-  summary?: ReturnType<typeof computeInvoiceTax>
+  summary?: ReturnType<typeof computeInvoiceTax>,
+  logoUrl?: string
 ): Record<string, unknown> {
   const title =
     invoice.documentKind === "COMMERCIAL"
@@ -476,27 +492,53 @@ export function buildInvoicePayload(
         ? "BILL OF SUPPLY"
         : "TAX INVOICE";
 
+  const sellerName = profile?.legalName || process.env.TENANT_LEGAL_NAME || "Seller";
+  const sellerGstin = profile?.regime === "IN_GST" ? profile.gstin ?? "" : "";
+  const sellerState = profile?.stateCode ?? "";
+  const sellerAddress = profile?.address || process.env.TENANT_ADDRESS || "";
+  const buyerGstin = order.customer?.taxId ?? "";
+  const buyerState = order.customer?.stateCode ?? "";
+  const placeOfSupply = invoice.placeOfSupply ?? summary?.placeOfSupply ?? "";
+
+  const gstinMetaParts = [
+    sellerGstin ? `GSTIN: ${sellerGstin}` : "",
+    sellerState ? `State: ${sellerState}` : "",
+  ].filter(Boolean);
+
   return {
     invoice: {
       number: invoice.number,
       date: invoice.date.toISOString(),
       dueDate: invoice.dueDate.toISOString(),
       title,
+      notes: (invoice.notes ?? "").trim(),
+      placeOfSupply,
+      placeOfSupplyLabel: placeOfSupply ? `Place of Supply: ${placeOfSupply}` : "",
     },
     seller: {
-      name: profile?.legalName || process.env.TENANT_LEGAL_NAME || "Seller",
-      address: profile?.address || process.env.TENANT_ADDRESS || "",
-      gstin: profile?.regime === "IN_GST" ? profile.gstin : "",
-      logoUrl: process.env.TENANT_LOGO_URL || "",
-      stateCode: profile?.stateCode ?? "",
+      name: sellerName,
+      address: sellerAddress,
+      gstin: sellerGstin,
+      logoUrl: (logoUrl && logoUrl.trim()) || process.env.TENANT_LOGO_URL || "",
+      stateCode: sellerState,
+      state: sellerState,
+      gstinMeta: gstinMetaParts.join(" | "),
+      cityState: sellerState ? `State ${sellerState}` : "",
+      gstinLine: partyGstinLine(sellerGstin),
+      stateLine: partyStateLine(sellerState),
+      signatoryFor: `For ${sellerName}`,
     },
     buyer: {
       name: order.customer?.name ?? invoice.entityName ?? "",
       address: [order.customer?.address, order.customer?.city].filter(Boolean).join(", "),
-      gstin: order.customer?.taxId ?? "",
+      gstin: buyerGstin,
+      stateCode: buyerState,
+      state: buyerState,
+      gstinLine: partyGstinLine(buyerGstin),
+      stateLine: partyStateLine(buyerState),
     },
     tax: {
-      placeOfSupply: invoice.placeOfSupply ?? summary?.placeOfSupply ?? "",
+      placeOfSupply,
       cgst: invoice.cgst ?? summary?.cgst ?? 0,
       sgst: invoice.sgst ?? summary?.sgst ?? 0,
       igst: invoice.igst ?? summary?.igst ?? 0,
@@ -526,20 +568,66 @@ export function buildInvoicePayload(
   };
 }
 
+function stubOrderFromInvoice(invoice: {
+  id: string;
+  sourceRef: string | null;
+  entityId: string | null;
+  entityName: string | null;
+  subtotal: number;
+  tax: number;
+  total: number;
+}): SalesOrderPayload {
+  return {
+    id: invoice.sourceRef ?? invoice.id,
+    orderNumber: "",
+    customerId: invoice.entityId ?? "",
+    subtotal: invoice.subtotal,
+    tax: invoice.tax,
+    total: invoice.total,
+    customer: {
+      id: invoice.entityId ?? "",
+      name: invoice.entityName ?? "",
+    },
+    items: [],
+  };
+}
+
+/** Same payload generate uses — Studio invoice simulate and payloadBuilder. */
+export async function buildInvoiceDocumentPayload(
+  tenantId: string,
+  invoiceId: string,
+  userId?: string
+): Promise<Record<string, unknown>> {
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: invoiceId, tenantId },
+    include: { lines: true },
+  });
+  if (!invoice) throw new Error("Invoice not found");
+  const taxCtx = await fetchTenantTaxContext(tenantId);
+  let order = stubOrderFromInvoice(invoice);
+  if (invoice.sourceRef) {
+    try {
+      order = await loadSalesOrder(tenantId, invoice.sourceRef, userId);
+    } catch {
+      /* Quick Bill / missing SO — keep invoice lines + entity name */
+    }
+  }
+  return buildInvoicePayload(invoice, order, taxCtx.profile, undefined, taxCtx.logoUrl);
+}
+
 registerDocumentPayloadProvider({
   type: "accounting.invoice",
   async build(ctx: PayloadBuildContext): Promise<Record<string, unknown>> {
-    if (!ctx.salesOrderId) throw new Error("salesOrderId required");
+    if (ctx.entityId) {
+      return buildInvoiceDocumentPayload(ctx.tenantId, ctx.entityId, ctx.userId);
+    }
+    if (!ctx.salesOrderId) throw new Error("salesOrderId or entityId required");
     const invoice = await prisma.invoice.findFirst({
       where: { tenantId: ctx.tenantId, sourceRef: ctx.salesOrderId },
       include: { lines: true },
       orderBy: { createdAt: "desc" },
     });
     if (!invoice) throw new Error("Invoice not found for sales order — generate first");
-    const [order, profile] = await Promise.all([
-      loadSalesOrder(ctx.tenantId, ctx.salesOrderId, ctx.userId),
-      fetchTenantTaxProfile(ctx.tenantId),
-    ]);
-    return buildInvoicePayload(invoice, order, profile);
+    return buildInvoiceDocumentPayload(ctx.tenantId, invoice.id, ctx.userId);
   },
 });

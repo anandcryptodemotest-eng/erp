@@ -27,6 +27,7 @@ const TAX_INVOICE_IDS = [
   "title",
   "invoiceNumber",
   "invoiceDate",
+  "placeOfSupply",
   "seller",
   "sellerName",
   "sellerAddress",
@@ -40,7 +41,7 @@ const TAX_INVOICE_IDS = [
   "subtotal",
   "taxTotal",
   "grandTotal",
-  "amountInWordsLabel",
+  "invoiceNotes",
   "amountInWords",
   "footer",
   "declaration",
@@ -517,12 +518,17 @@ async function main() {
   );
 
   const dashChecks: { label: string; who: Session; types: string[]; variant?: string }[] = [
-    { label: "Sales", who: sales, types: ["ops-kpi-row", "my-tasks-list", "sreq-order-table"], variant: "sales" },
-    { label: "Pricing", who: pricing, types: ["ops-kpi-row", "price-ops"], variant: "pricing" },
-    { label: "Dispatch", who: dispatch, types: ["ops-kpi-row"], variant: "dispatch" },
-    { label: "Delivery", who: delivery, types: ["ops-kpi-row"], variant: "delivery" },
-    { label: "Accountant", who: accountant, types: ["ops-kpi-row"], variant: "accountant" },
-    { label: "Admin", who: admin, types: ["ops-kpi-row"], variant: "admin" },
+    { label: "Sales", who: sales, types: ["ops-kpi-row", "my-tasks-list", "sreq-order-table", "revenue-trend", "recent-customers"], variant: "sales" },
+    { label: "Pricing", who: pricing, types: ["ops-kpi-row", "my-tasks-list", "price-ops"], variant: "pricing" },
+    { label: "Dispatch", who: dispatch, types: ["ops-kpi-row", "my-tasks-list", "delivery-performance", "order-status"], variant: "dispatch" },
+    { label: "Delivery", who: delivery, types: ["ops-kpi-row", "my-tasks-list", "delivery-performance"], variant: "delivery" },
+    { label: "Accountant", who: accountant, types: ["ops-kpi-row", "my-tasks-list", "outstanding-invoices"], variant: "accountant" },
+    {
+      label: "Admin",
+      who: admin,
+      types: ["today-attention", "ops-kpi-row", "my-tasks-list", "recent-activity", "order-status", "revenue-trend"],
+      variant: "admin",
+    },
   ];
   for (const d of dashChecks) {
     const r = await api("GET", "/api/dashboard/config?portal=ADMIN", { token: d.who.token, tenantId: d.who.tenantId });
@@ -888,6 +894,22 @@ async function main() {
   }
   record("OMS", "SREQ subtotal ≈ cart", Math.abs((sreq.subtotal ?? 0) - expectedSubtotal) < 0.05);
 
+  const attachName = `gf-site-photo-${slug}.jpg`;
+  await expectHttp(
+    "OMS",
+    "SREQ attachment linked",
+    "POST",
+    `/api/sales-requests/${sreq.id}/documents`,
+    buyer,
+    {
+      fileName: attachName,
+      fileUrl: `/uploads/demo/${attachName}`,
+      mimeType: "image/jpeg",
+      type: "SITE_PHOTO",
+    },
+    [200, 201]
+  );
+
   // ----- Convert + tasks -----
   console.log("Phase 5 — SR→SO + tasks");
   const converted = (await expectHttp(
@@ -949,7 +971,57 @@ async function main() {
     tax: number;
     total: number;
     status: string;
+    workItems?: { key: string; label: string; status: string; actionable?: boolean }[];
+    orderNotes?: { body: string; sourceStep?: string | null }[];
+    documents?: { type: string; fileName: string }[];
   } | null;
+
+  const workItems = detail?.workItems ?? [];
+  const requiredLabels = [
+    "Confirm Order",
+    "Check Stock",
+    "Pricing Review",
+    "Dispatch Order",
+    "Confirm Delivery",
+    "Bill & Collect",
+  ];
+  const workLabels = new Set(workItems.map((w) => w.label));
+  const missingLabels = requiredLabels.filter((l) => !workLabels.has(l));
+  record(
+    "OMS",
+    "workItems labels",
+    missingLabels.length === 0 && workItems.length > 0,
+    missingLabels.length ? `missing ${missingLabels.join(",")}` : `n=${workItems.length}`
+  );
+  record(
+    "OMS",
+    "no Procurement Exception (full stock)",
+    !workItems.some((w) => w.key === "procurement_exception" || w.label === "Procurement Exception")
+  );
+  const confirmWi = workItems.find((w) => w.key === "confirm_order");
+  record(
+    "OMS",
+    "Confirm Order READY",
+    confirmWi?.status === "READY" && confirmWi?.actionable === true,
+    confirmWi ? `${confirmWi.status} actionable=${confirmWi.actionable}` : "missing"
+  );
+
+  const notes = detail?.orderNotes ?? [];
+  record(
+    "OMS",
+    "checkout note → OrderNote",
+    notes.some(
+      (n) => n.sourceStep === "customer-checkout" && String(n.body).includes("greenfield e2e cart")
+    ),
+    `notes=${notes.length}`
+  );
+  const checkoutDocs = detail?.documents ?? [];
+  record(
+    "OMS",
+    "checkout file → OrderDocument",
+    checkoutDocs.some((d) => d.type === "OTHER" && d.fileName === attachName),
+    checkoutDocs.map((d) => `${d.type}:${d.fileName}`).join(",") || "none"
+  );
 
   async function patch(
     who: Session,

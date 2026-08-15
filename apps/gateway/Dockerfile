@@ -60,7 +60,9 @@ ENV PORT=3010
 ENV HOSTNAME=0.0.0.0
 ENV SERVICE_NAME=gateway
 RUN addgroup --system --gid 1001 nodejs \
-    && adduser --system --uid 1001 nextjs
+    && adduser --system --uid 1001 nextjs \
+    && mkdir -p /var/lib/erp-uploads \
+    && chown nextjs:nodejs /var/lib/erp-uploads
 
 # Next standalone output
 COPY --from=builder --chown=nextjs:nodejs \
@@ -82,4 +84,5 @@ COPY --from=deployer --chown=nextjs:nodejs \
 
 USER nextjs
 EXPOSE 3010
+ENV UPLOAD_ROOT=/tmp/erp-uploads
 CMD ["node", "apps/gateway/server.js"]

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/admin-api";
 import { Button, EmptyState, PageScaffold, Skeleton, StatusChip } from "@erp/ui";
 
@@ -54,6 +55,16 @@ function bucketTone(bucket: string): "success" | "warning" | "danger" | "neutral
 }
 
 export default function ArWorkbenchPage() {
+  return (
+    <Suspense fallback={<PageScaffold hero={{ title: "Receivables" }}><Skeleton className="h-40 w-full" /></PageScaffold>}>
+      <ArWorkbenchInner />
+    </Suspense>
+  );
+}
+
+function ArWorkbenchInner() {
+  const searchParams = useSearchParams();
+  const bucketFilter = (searchParams.get("bucket") ?? "").trim();
   const [data, setData] = useState<AgeingData | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -160,18 +171,23 @@ export default function ArWorkbenchPage() {
                 <div className="text-xs text-[var(--ink-soft)]">{data.invoiceCount} open bills</div>
               </div>
               {(["current", "d1_30", "d31_60", "d61_90", "d90_plus"] as const).map((k) => (
-                <div
+                <a
                   key={k}
-                  className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] p-4 shadow-[var(--shadow-1)]"
+                  href={`/admin/ar?bucket=${k}`}
+                  className={`rounded-[var(--radius-md)] border bg-[var(--surface-raised)] p-4 shadow-[var(--shadow-1)] ${
+                    bucketFilter === k
+                      ? "border-[var(--brand)] ring-1 ring-[var(--brand)]"
+                      : "border-[var(--line)]"
+                  }`}
                 >
                   <div className="text-xs text-[var(--ink-soft)]">{BUCKET_LABELS[k]}</div>
                   <div className="mt-1 text-lg font-semibold">{inr(data.buckets[k])}</div>
-                </div>
+                </a>
               ))}
             </div>
 
             <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] shadow-[var(--shadow-1)]">
-              {data.invoices.length === 0 ? (
+              {data.invoices.filter((inv) => !bucketFilter || inv.bucket === bucketFilter).length === 0 ? (
                 <EmptyState title="No open receivables" subtitle="Paid or unsettled bills will show here by ageing bucket." />
               ) : (
                 <table className="w-full text-sm">
@@ -186,7 +202,9 @@ export default function ArWorkbenchPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--line)]">
-                    {data.invoices.map((inv) => (
+                    {data.invoices
+                      .filter((inv) => !bucketFilter || inv.bucket === bucketFilter)
+                      .map((inv) => (
                       <tr key={inv.id}>
                         <td className="px-4 py-3 font-mono text-xs">
                           {inv.number}

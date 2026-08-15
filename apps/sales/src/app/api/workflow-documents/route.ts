@@ -7,7 +7,7 @@ import {
   ensureDocumentCatalogSeed,
   listDocumentVersions,
 } from "@/lib/document-catalog";
-import { TAX_INVOICE_SEED, type DocumentDefinition } from "@erp/documents";
+import { blankDocumentDefinition, type DocumentDefinition } from "@erp/documents";
 import { getServiceSecret } from "@erp/auth";
 
 const log = createLogger({ service: "sales" });
@@ -81,14 +81,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ data: cloned }, { status: 201 });
     }
 
-    const documentId = String(body.documentId ?? "tax-invoice");
-    const definition = (body.definition as DocumentDefinition) ?? {
-      ...TAX_INVOICE_SEED,
-      id: documentId,
-      key: documentId,
-      name: body.name ?? TAX_INVOICE_SEED.name,
-      documentType: body.documentType ?? "INVOICE",
-    };
+    const documentId = String(body.documentId ?? `doc-${Date.now().toString(36)}`);
+    const definition = (body.definition as DocumentDefinition) ??
+      blankDocumentDefinition({
+        id: documentId,
+        name: body.name,
+        documentType: body.documentType,
+      });
     const latest = await prisma.documentTemplateVersion.findFirst({
       where: { tenantId, documentId },
       orderBy: { version: "desc" },

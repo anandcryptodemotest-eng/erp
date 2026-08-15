@@ -15,6 +15,8 @@ export function PwaRegister() {
       .register("/sw.js")
       .then((reg) => {
         if (cancelled) return;
+        // Prefer fresh SW after deploy so stale HTML/chunks don't persist.
+        void reg.update();
         if (reg.waiting) {
           setWaiting(reg.waiting);
           setUpdateReady(true);

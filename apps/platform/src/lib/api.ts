@@ -68,6 +68,41 @@ export async function api<T = unknown>(path: string, options: RequestInit = {}):
   return json as T;
 }
 
+export async function downloadAuthenticatedDocument(
+  path: string,
+  fileName: string,
+  options: RequestInit = {}
+) {
+  const res = await fetch(path, {
+    method: "POST",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getAccessToken()}`,
+      ...(options.headers ?? {}),
+    },
+  });
+  if (!res.ok) {
+    let msg = `Download failed (${res.status})`;
+    try {
+      const j = (await res.json()) as { error?: string };
+      if (j.error) msg = j.error;
+    } catch {
+      /* binary */
+    }
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
 /** Sales process APIs via gateway rewrite — platform JWT + target tenant. */
 export async function processApi<T = { data?: unknown }>(
   path: string,

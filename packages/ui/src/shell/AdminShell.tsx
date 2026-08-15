@@ -256,6 +256,8 @@ export function AdminShell({
 }: AdminShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  /** Phone = operational/glance; tablet+ keep dense ERP. */
+  const [adminMode, setAdminMode] = useState<"operational" | "dense">("dense");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
     for (const g of groups) init[g.key] = defaultOpenGroups?.[g.key] ?? true;
@@ -265,6 +267,25 @@ export function AdminShell({
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => setAdminMode(mq.matches ? "operational" : "dense");
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.dataset.adminMode = adminMode;
+    if (adminMode === "operational") {
+      document.documentElement.dataset.density = "comfortable";
+    } else {
+      document.documentElement.dataset.density = "dense";
+    }
+  }, [adminMode]);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -306,7 +327,7 @@ export function AdminShell({
   };
 
   return (
-    <div className="admin-shell">
+    <div className="admin-shell" data-admin-mode={adminMode}>
       <div className="admin-shell__rail">
         <SidebarBody {...sidebarProps} />
       </div>

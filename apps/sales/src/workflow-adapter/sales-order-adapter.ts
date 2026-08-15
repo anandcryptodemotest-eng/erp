@@ -114,15 +114,61 @@ async function loadOrder(entityId: string) {
   return order;
 }
 
+/** Persist qty/unitPrice edits onto SO lines before Accounting generateInvoice. */
+async function applyInvoiceLineUpdates(orderId: string, items: unknown) {
+  if (!Array.isArray(items) || items.length === 0) return;
+  const order = await loadOrder(orderId);
+  await prisma.$transaction(async (tx) => {
+    for (const raw of items as Record<string, unknown>[]) {
+      const id = String(raw.id ?? raw.orderItemId ?? "");
+      if (!id || id.startsWith("new-")) continue;
+      const existing = order.items.find((i) => i.id === id);
+      if (!existing) continue;
+      const quantity = Math.max(
+        1,
+        Math.round(Number(raw.quantity ?? existing.quantity) || existing.quantity)
+      );
+      const unitPrice = Math.max(0, Number(raw.unitPrice ?? existing.unitPrice) || 0);
+      const total = Math.round(quantity * unitPrice * 100) / 100;
+      await tx.salesOrderItem.update({
+        where: { id },
+        data: { quantity, unitPrice, total },
+      });
+    }
+    const refreshed = await tx.salesOrderItem.findMany({ where: { salesOrderId: orderId } });
+    const subtotal = refreshed.reduce((s, i) => s + i.total, 0);
+    await tx.salesOrder.update({
+      where: { id: orderId },
+      data: {
+        subtotal,
+        total: subtotal + order.tax + order.deliveryFee - order.couponDiscount,
+      },
+    });
+  });
+}
+
 /** Domain handlers — invoked from completePlatformTask via adapter.execute */
 export function registerDefaultSalesHandlers() {
   const passthrough: Handler = async (_t, payload) => ({
     payload: (payload as Record<string, unknown>) ?? {},
   });
 
-  for (const type of ["WAREHOUSE_PICK", "DELIVERY_CONFIRM", "ORDER_CLOSE"]) {
+  for (const type of ["DELIVERY_CONFIRM", "ORDER_CLOSE"]) {
     registerSalesTaskHandler(type, passthrough);
   }
+
+  registerSalesTaskHandler("WAREHOUSE_PICK", async (_task, payload, ctx) => {
+    const p = (payload && typeof payload === "object" ? payload : {}) as Record<string, unknown>;
+    const warehouseId =
+      typeof p.warehouseId === "string" && p.warehouseId.trim() ? p.warehouseId.trim() : null;
+    if (warehouseId) {
+      await prisma.salesOrder.update({
+        where: { id: ctx.instance.entityId },
+        data: { warehouseId },
+      });
+    }
+    return { payload: { ...p, warehouseId: warehouseId ?? undefined } };
+  });
 
   registerSalesTaskHandler("PAYMENT_COLLECTION", async (_task, payload, ctx) => {
     const p = (payload && typeof payload === "object" ? payload : {}) as Record<string, unknown>;
@@ -153,15 +199,37 @@ export function registerDefaultSalesHandlers() {
       return { payload: { ...p, invoiceId: invoice.id, alreadyPaid: true } };
     }
     const remaining = Math.round((invoice.total - invoice.paidAmount) * 100) / 100;
+    let paidNow = 0;
+    let invoiceStatus = invoice.status;
     if (remaining > 0 && (invoice.status === "ISSUED" || invoice.status === "PARTIALLY_PAID" || invoice.status === "OVERDUE")) {
-      const pay = await serviceClient.call("accounting", `/api/invoices/${invoice.id}?action=pay`, {
+      const rawAmount = typeof p.paymentAmount === "string" || typeof p.paymentAmount === "number"
+        ? Number(p.paymentAmount)
+        : NaN;
+      const amount =
+        Number.isFinite(rawAmount) && rawAmount > 0
+          ? Math.min(Math.round(rawAmount * 100) / 100, remaining)
+          : remaining;
+      paidNow = amount;
+
+      const rawMethod = typeof p.paymentMethod === "string" ? p.paymentMethod.trim().toUpperCase() : "";
+      const allowed = new Set(["CASH", "BANK_TRANSFER", "CREDIT_CARD", "CHECK", "UPI", "OTHER"]);
+      const method = allowed.has(rawMethod) ? rawMethod : "OTHER";
+
+      const reference =
+        typeof p.paymentReference === "string" && p.paymentReference.trim()
+          ? p.paymentReference.trim()
+          : ctx.instance.entityId;
+
+      const pay = await serviceClient.call<{
+        data?: { status?: string; paidAmount?: number };
+      }>("accounting", `/api/invoices/${invoice.id}?action=pay`, {
         method: "PATCH",
         tenantId: ctx.tenantId,
         userId: ctx.actorUserId,
         body: {
-          amount: remaining,
-          method: "OTHER",
-          reference: ctx.instance.entityId,
+          amount,
+          method,
+          reference,
           date: new Date().toISOString(),
         },
       });
@@ -169,17 +237,30 @@ export function registerDefaultSalesHandlers() {
         const body = pay.data as { error?: string } | undefined;
         throw new Error(pay.error || body?.error || `Invoice pay failed (${pay.status})`);
       }
+      const payBody = pay.data as { data?: { status?: string }; status?: string } | undefined;
+      invoiceStatus =
+        payBody?.data?.status ?? payBody?.status ?? (amount >= remaining ? "PAID" : "PARTIALLY_PAID");
     }
+    const soPaymentStatus = invoiceStatus === "PAID" ? "PAID" : "PARTIAL";
     await prisma.salesOrder.update({
       where: { id: ctx.instance.entityId },
-      data: { paymentStatus: "PAID" },
+      data: { paymentStatus: soPaymentStatus },
     });
-    return { payload: { ...p, invoiceId: invoice.id, paidAmount: remaining } };
+    return {
+      payload: {
+        ...p,
+        invoiceId: invoice.id,
+        paidAmount: paidNow || remaining,
+        paymentStatus: soPaymentStatus,
+      },
+    };
   });
 
   registerSalesTaskHandler("INVOICE_GENERATE", async (task, payload, ctx) => {
     const orderId = ctx.instance.entityId;
     const p = (payload && typeof payload === "object" ? payload : {}) as Record<string, unknown>;
+    await applyInvoiceLineUpdates(orderId, p.items);
+
     const rawRef = p.documentRef as { type?: string; id?: string; version?: number } | undefined;
     const documentRef =
       rawRef?.type === "DOCUMENT" && rawRef.id && rawRef.version

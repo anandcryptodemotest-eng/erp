@@ -1,15 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import type { CSSProperties } from "react";
-import { Fraunces, Outfit } from "next/font/google";
+import { Outfit } from "next/font/google";
 import { PwaRegister } from "@/components/PwaRegister";
 import { TenantBrandingProvider } from "@/components/TenantBrandingProvider";
 import "./globals.css";
-
-const display = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-display-loaded",
-  display: "swap",
-});
 
 const body = Outfit({
   subsets: ["latin"],
@@ -41,15 +35,16 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  /* Outfit for body and display — one typography system (BL-038). */
   const fontVars = {
-    ["--font-display" as string]: "var(--font-display-loaded), Georgia, serif",
+    ["--font-display" as string]: "var(--font-body-loaded), system-ui, sans-serif",
     ["--font-body" as string]: "var(--font-body-loaded), system-ui, sans-serif",
   } as CSSProperties;
 
   return (
     <html
       lang="en"
-      className={`${display.variable} ${body.variable}`}
+      className={body.variable}
       data-scroll-behavior="smooth"
       data-theme="trustwood"
       data-density="comfortable"

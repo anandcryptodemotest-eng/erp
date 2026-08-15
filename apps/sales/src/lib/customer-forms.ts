@@ -1,6 +1,44 @@
 import type { FormDefinition } from "@erp/workflow";
 
 /** Default Customer Host checkout screen (ADR 0010 / Phase 2). */
+export const CUSTOMER_CHECKOUT_FORM_REV1: FormDefinition = {
+  id: "customer-checkout",
+  key: "customer_checkout",
+  title: "Checkout",
+  description: "Confirm payment and notes for your sales request",
+  audiences: ["CUSTOMER"],
+  renderer: "generic",
+  themeId: "oms-default",
+  confirmLabel: "Place order",
+  showTotal: true,
+  fields: [
+    {
+      key: "paymentMethod",
+      label: "Payment",
+      type: "radio",
+      scope: "order",
+      required: true,
+      options: [
+        { value: "COD", label: "Cash on Delivery" },
+        { value: "COUNTER", label: "Pay at Counter" },
+        { value: "BANK_TRANSFER", label: "Bank Transfer" },
+      ],
+    },
+    {
+      key: "notes",
+      label: "Delivery / site notes for sales (optional)",
+      type: "textarea",
+      scope: "order",
+      required: false,
+    },
+  ],
+  layout: [
+    { widget: "FormFields", props: {} },
+    { widget: "ActionButtons", props: {} },
+  ],
+};
+
+/** Default Customer Host checkout screen (ADR 0010 / Phase 2). */
 export const CUSTOMER_CHECKOUT_FORM: FormDefinition = {
   id: "customer-checkout",
   key: "customer_checkout",
@@ -26,16 +64,17 @@ export const CUSTOMER_CHECKOUT_FORM: FormDefinition = {
     },
     {
       key: "notes",
-      label: "Notes for sales",
+      label: "Delivery / site notes for sales (optional)",
       type: "textarea",
       scope: "order",
       required: false,
     },
   ],
   // Items + address selection stay host chrome (Host Experience Principle).
-  // Widgets cover payment / notes / place-order only.
+  // Attachments are host chrome on checkout page (not staff Notes/Attachments widgets).
   layout: [
     { widget: "FormFields", props: {} },
+    { widget: "PriceSummary", props: {} },
     { widget: "ActionButtons", props: {} },
   ],
 };

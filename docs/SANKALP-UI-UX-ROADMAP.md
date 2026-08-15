@@ -1,7 +1,7 @@
 # Sankalp ERP — UI / UX improvement roadmap
 
 **Status:** Product UX baseline · improvement plan (not a redesign)  
-**Date:** 09 August 2026  
+**Date:** 15 August 2026 (BL-044 SE visual lock frozen/shipped)  
 **Related:** `docs/SANKALP-UI-UX-NOW.md` (current flow only), `docs/SANKALP-ERP-COMPETITIVE-ROADMAP.md`, `docs/TRADING-JOURNEY.md`, `docs/guides/design-system.md`, `docs/guides/themes.md`, `docs/guides/app-guidelines.md`, `docs/adr/0014-erp-ui-framework-classification.md`, `docs/adr/0015-trustwood-erp-platform-v1.md`, `docs/architecture/host-experience-principle.md`, `docs/UI-DESIGN.md` (legacy Inter/indigo — do not implement new screens from it)
 
 This document scores **UI design and user-friendly flow**, then lists **concrete improvements per surface** to reach 10/10 UX (including GST / AR / pay / WhatsApp when those land).
@@ -151,22 +151,51 @@ If a UI change cannot point at **SREQ / SO / INV**, it is not P0.5.
 
 ---
 
-### 6.3 Dashboard — **5.5 → 10**
+### 6.3 Dashboard — **8.0 (BL-039 baseline LOCKED)**
 
-**Why 5.5:** Right idea (attention ≠ Desk). Save can persist `[]`. Editor chrome (add widget, col span) is not SE home. Role KPIs exist in code; may not be deployed.
+**Principle:** Dashboard tells me what needs me. Order Desk lets me do the work.
+
+```text
+DASHBOARD ("What needs me now?")
+  KPIs · My Tasks · Summaries
+        │
+        ▼ Open Order Desk
+ORDER DESK ("Do the actual work")
+  Claim / Complete   ← BL-040
+```
+
+**Three layers — do not mix:**
+
+| Layer | Source | Mutates prefs? |
+|-------|--------|----------------|
+| **1. Saved layout** | DB 12-col `x/y/w/h` | Yes (Customize save) |
+| **2. Role defaults** | [`defaults.ts`](../packages/ui/src/dashboard/defaults.ts) when no pref | Seed only |
+| **3. Responsive presentation** | [`getPresentationWidgets`](../packages/ui/src/dashboard/presentation.ts) | **Never** — phone ops render order only |
+
+Phone ops order: **My Tasks → TODAY → secondary** (charts/tables/activity if configured — **not** hard-hidden). Desktop ≥1024 uses persisted grid. Tablet = light tighten only.
+
+Priority lives in the presentation helper (`PHONE_PRIORITY`), not per-widget `mobilePriority` metadata — avoid a new abstraction until the map is insufficient.
+
+**BL-039 owns (SHIPPED):** phone hierarchy, compact hero, CTA contrast, Customize demotion, TODAY 2×2, presentation-only order, role defaults foundation, responsive render.  
+**BL-041 Phase A (SHIPPED):** curated role defaults + actionable charts (click → Desk/AR). **Not** a Customize feature. Defaults evolve; customizations persist. Never soft-replace saved layouts.  
+**BL-043 (SHIPPED):** My Tasks + Requests/orders hybrid status bars (separate SREQ/SO); same widget IDs; Desk tab/taskStatus/sreqStatus filters.  
+**BL-044 (SHIPPED):** SE/ops visual lock — contextual hero; three-state My Tasks; Sales layout work→pipeline→trend|customers; compact KPIs. Principle: summarize when simple, visualize when variation exists. Does not reopen BL-039.  
+**BL-042 (SHIPPED thin):** 7D/30D/MTD/QTD chips on `revenue-trend` only (session state; never touches prefs). Phase C brush/zoom deferred.  
+**Do not own here:** Order Desk claim cards (BL-040), Bill & Collect redesign, Studio mobile, Capacitor, customer portal.
 
 | # | Work | Fit |
 |---|------|-----|
-| DB1 | Fix save/reload: `registerDashboardWidgets()` on server; empty pref → role default | **P0.5** (demo blocker) |
-| DB2 | Rebuild gateway so live UI matches ws-hero + KpiCards | **P0.5** |
-| DB3 | Default layout = KPI row + activity/table only; hide editor until “Customize” | **P0.5** |
-| DB4 | Primary CTA: **Open Order Desk** | **P0.5** |
-| DB5 | Role chip (Sales Executive, …) | **P0.5** |
+| DB1 | Fix save/reload: `registerDashboardWidgets()` on server; empty pref → role default | **SHIPPED** |
+| DB2 | Rebuild gateway so live UI matches ws-hero + KpiCards | **SHIPPED** |
+| DB3 | Default layout = KPI row + activity/table only; hide editor until “Customize” | **SHIPPED** (phone: under ⋮) |
+| DB4 | Primary CTA: **Open Order Desk** | **SHIPPED** |
+| DB5 | Role chip (Sales Executive, …) | **SHIPPED** |
 | DB6 | Rows click to `/sales-desk?sreqId=` or `?salesOrderId=` or `/invoices` ageing | **P0.5** |
-| DB7 | Empty state: “Restore default layout” not a blank page | **P0.5** |
+| DB7 | Empty state: “Restore default layout” not a blank page | **SHIPPED** |
 | DB8 | Accountant default widgets = outstanding + ageing (after P0.2) | **P0.2 + P0.5** |
-| DB9 | Toast on save/reset | **P0.5** |
+| DB9 | Toast on save/reset | **SHIPPED** |
 | DB10 | Do not put Order Desk inbox widget on dashboard | LOCKED |
+| DB11 | Phone presentation-only order; no hide-charts policy | **SHIPPED** (BL-039) |
 
 **Thesis 10/10:** 10-second home: what needs me + one button to work.
 
@@ -175,6 +204,8 @@ If a UI change cannot point at **SREQ / SO / INV**, it is not P0.5.
 ### 6.4 Order Desk — **6.5 → 10**
 
 **Why 6.5:** Correct Workspace pattern + stage rail. Too many modes for SE. Parallel prep unexplained. Invoice/collect not on SO panel.
+
+**Next MA3 slice (BL-040):** phone Needs Action cards with Claim / Review; In Progress → Complete; desktop desk unchanged. Does not change dashboard presentation (BL-039 locked).
 
 | # | Work | Fit |
 |---|------|-----|
@@ -330,7 +361,7 @@ If a UI change cannot point at **SREQ / SO / INV**, it is not P0.5.
 |---|------|-----|
 | MA1 | AdminShell drawer already exists — ensure Desk primary actions not hover-only | **P0.5** |
 | MA2 | Tablet: queue stacked above detail | P2 |
-| MA3 | Phone: claim/complete only; convert on tablet+ | P2 |
+| MA3 | **Admin Mobile Operational Mode** — phone = glance + claim/confirm/assign/status; cards not H-scroll tables; sticky primary; hide Process Studio; Bill & Collect read-only on phone; tablet+ full | **SHIPPED** shell/desk (BL-037) + dashboard phone ops (BL-039); **BL-040** desk claim cards |
 | MA4 | Do not make admin a second customer PWA | LOCKED |
 
 ---

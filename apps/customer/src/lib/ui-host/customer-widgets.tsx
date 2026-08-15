@@ -195,6 +195,61 @@ const ActionButtonsWidget: Widget = {
   collectPayload: () => ({}),
 };
 
+const PriceSummaryWidget: Widget = {
+  render(runtime) {
+    const order = runtime.context.order ?? {};
+    const items = runtime.context.items ?? [];
+    const subtotal =
+      Number(order.subtotal) ||
+      items.reduce((s, i) => s + i.quantity * Number(i.unitPrice ?? 0), 0);
+    const tax = Number(order.tax ?? 0);
+    const discount = Number(order.discountAmount ?? order.couponDiscount ?? 0);
+    const transport = Number(order.transportationCharge ?? 0);
+    const additional = Number(order.additionalCharges ?? 0);
+    const delivery = Number(order.deliveryFee ?? 0);
+    const total =
+      Number(order.total ?? order.totalAmount) ||
+      subtotal - discount + tax + transport + additional + delivery;
+    const rows: [string, number][] = [
+      ["Subtotal", subtotal],
+      ["Discount", -discount],
+      ["Tax", tax],
+      ["Transport", transport],
+      ["Additional", additional],
+      ["Delivery", delivery],
+    ];
+    const fmt = (n: number) =>
+      `₹${Math.abs(n).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+    return (
+      <div
+        className="space-y-1 rounded-2xl border border-[var(--line)] bg-[var(--mist)]/50 p-4 text-sm"
+        key="PriceSummary"
+      >
+        <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--amber)]">
+          Price summary
+        </p>
+        {rows.map(([label, val]) =>
+          val === 0 && label !== "Subtotal" ? null : (
+            <div key={label} className="flex justify-between text-[var(--ink-soft)]">
+              <span>{label}</span>
+              <span>
+                {val < 0 ? "−" : ""}
+                {fmt(val)}
+              </span>
+            </div>
+          )
+        )}
+        <div className="mt-2 flex justify-between border-t border-[var(--line)] pt-2 font-semibold text-[var(--ink)]">
+          <span>Total</span>
+          <span>{fmt(total)}</span>
+        </div>
+      </div>
+    );
+  },
+  validate: () => ({ ok: true }),
+  collectPayload: () => ({}),
+};
+
 const StatusBannerWidget: Widget = {
   render(runtime) {
     const status = String(runtime.context.order?.status ?? "—");
@@ -233,7 +288,7 @@ const TimelineWidget: Widget = {
             <div>
               <p className="font-medium text-[var(--ink)]">{ev.title}</p>
               <p className="text-xs text-[var(--ink-soft)]">
-                {new Date(ev.at).toLocaleString()}
+                <span suppressHydrationWarning>{new Date(ev.at).toLocaleString()}</span>
                 {ev.remarks ? ` · ${ev.remarks}` : ""}
               </p>
             </div>
@@ -287,6 +342,17 @@ export function ensureCustomerWidgetsRegistered(): void {
       supportsPayload: false,
     },
     factory: () => ActionButtonsWidget,
+  });
+  registerWidget({
+    manifest: {
+      id: "PriceSummary",
+      category: "Business",
+      displayName: "Price Summary",
+      icon: "receipt",
+      supportsValidation: false,
+      supportsPayload: false,
+    },
+    factory: () => PriceSummaryWidget,
   });
   registerWidget({
     manifest: {

@@ -54,3 +54,34 @@ test("ResizeItems se handle", () => {
   assert.equal(after.placement.width, before.placement.width + 20);
   assert.equal((after.placement.height ?? 0), (before.placement.height ?? 0) + 20);
 });
+
+test("CreateItems widget ref is stored, not exploded", () => {
+  const state = createInitialState({
+    name: "Blank",
+    documentType: "INVOICE",
+    page: { size: "A4" },
+    items: [],
+  });
+  const next = canvasReducer(state, {
+    type: "CreateItems",
+    items: [
+      {
+        id: "w1",
+        name: "Line items",
+        type: "Widget",
+        widgetId: "doc.lineItems",
+        widgetConfig: {},
+        placement: { x: 40, y: 40, width: 515, height: 280 },
+        rotation: 0,
+        locked: false,
+        visible: true,
+        zIndex: 0,
+        opacity: 1,
+      },
+    ],
+    parentId: null,
+  });
+  assert.equal(next.definition.items[0].type, "Widget");
+  assert.equal(next.definition.items[0].widgetId, "doc.lineItems");
+  assert.equal(next.definition.items[0].children, undefined);
+});

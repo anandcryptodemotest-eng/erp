@@ -1,4 +1,6 @@
-/** Shared helpers to present quotes / cart lines for any pricing basis. */
+/** Shared helpers to present quotes / cart lines for any pricing basis.
+ * Catalog list/PDP prices MUST go through `formatPortalPrice` — never render ₹0.
+ */
 
 export type QuoteLike = {
   unitPrice?: number;
@@ -21,12 +23,99 @@ export type QuoteLike = {
 
 export type BillRow = { label: string; value: string; muted?: boolean; emphasize?: boolean };
 
+export type PortalPriceInput = {
+  sellPrice?: number | null;
+  startingSellPrice?: number | null;
+  baseRate?: number | null;
+  pricingBasis?: string | null;
+  pricingUom?: string | null;
+  unit?: string | null;
+};
+
+export type PortalPriceResult = {
+  /** Ready-to-render label (never contains ₹0). */
+  label: string;
+  /** Fixed sellable unit vs configure/from-rate vs unavailable. */
+  kind: "fixed" | "from" | "request";
+  /** True when quick-add [+] is allowed on list cards. */
+  quickAdd: boolean;
+  amount: number | null;
+};
+
 function inr(n: number): string {
   return `₹${n.toLocaleString("en-IN")}`;
 }
 
 function fmtQty(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toLocaleString("en-IN", { maximumFractionDigits: 4 });
+}
+
+function positive(n: unknown): number | null {
+  if (typeof n !== "number" || !Number.isFinite(n) || n <= 0) return null;
+  return n;
+}
+
+function humanUom(uom: string | null | undefined): string {
+  if (!uom) return "unit";
+  const u = uom.trim();
+  if (!u) return "unit";
+  if (/^sq[_\s-]?ft$/i.test(u) || u === "sqft") return "sq.ft";
+  if (/^sheet$/i.test(u)) return "sheet";
+  return u.replace(/_/g, " ");
+}
+
+/**
+ * Single source of truth for customer-facing catalog prices.
+ * Fixed → ₹X · Area/configurable → From ₹X / uom · Missing → Price on request.
+ * Never returns a label containing ₹0.
+ */
+export function formatPortalPrice(input: PortalPriceInput): PortalPriceResult {
+  const basis = (input.pricingBasis ?? "").toUpperCase() || "PER_EACH";
+  const isEach = !basis || basis === "PER_EACH";
+
+  if (!isEach) {
+    const rate = positive(input.baseRate);
+    if (rate != null) {
+      return {
+        label: `From ${inr(rate)} / ${humanUom(input.pricingUom ?? input.unit)}`,
+        kind: "from",
+        quickAdd: false,
+        amount: rate,
+      };
+    }
+    const start = positive(input.startingSellPrice);
+    if (start != null) {
+      return {
+        label: `From ${inr(start)}`,
+        kind: "from",
+        quickAdd: false,
+        amount: start,
+      };
+    }
+    return { label: "Price on request", kind: "request", quickAdd: false, amount: null };
+  }
+
+  const fixed = positive(input.sellPrice) ?? positive(input.startingSellPrice);
+  if (fixed != null) {
+    return {
+      label: inr(fixed),
+      kind: "fixed",
+      quickAdd: true,
+      amount: fixed,
+    };
+  }
+
+  const rate = positive(input.baseRate);
+  if (rate != null) {
+    return {
+      label: `From ${inr(rate)} / ${humanUom(input.pricingUom ?? input.unit)}`,
+      kind: "from",
+      quickAdd: false,
+      amount: rate,
+    };
+  }
+
+  return { label: "Price on request", kind: "request", quickAdd: false, amount: null };
 }
 
 /** Human measure from quote (area / weight / volume). */
@@ -75,14 +164,14 @@ export function billRowsFromQuote(q: QuoteLike, qty: number): BillRow[] {
       label: `${measure.label} / unit`,
       value: `${fmtQty(measure.quantity)} ${measure.uom}`,
     });
-    if (q.unitPrice != null) {
+    if (q.unitPrice != null && q.unitPrice > 0) {
       rows.push({
         label: "Price / unit",
         value: inr(q.unitPrice),
         emphasize: true,
       });
     }
-  } else if (q.unitPrice != null) {
+  } else if (q.unitPrice != null && q.unitPrice > 0) {
     rows.push({
       label: basis === "PER_EACH" ? "Price / unit" : "Unit price",
       value: inr(q.unitPrice),

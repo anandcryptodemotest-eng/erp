@@ -3,11 +3,13 @@
 @import "@erp/ui/admin-shell.css";
 @import "@erp/process-designer/workflow-designer.css";
 @import "@erp/process-forms/form-designer.css";
+@import "@erp/document-designer/document-designer.css";
 
 /* Scan shared UI package so AdminShell / framework utilities are generated */
 @source "../../../../packages/ui/src";
 @source "../../../../packages/process-designer/src";
 @source "../../../../packages/process-forms/src";
+@source "../../../../packages/document-designer/src";
 @source "../../../../packages/admin-ui-host/src";
 
 

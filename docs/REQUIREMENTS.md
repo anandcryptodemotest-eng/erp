@@ -1,7 +1,7 @@
 # ERP — Requirements & Dependencies
 
 > **Living document.** Update this file whenever a new host tool, runtime, service dependency, or npm package becomes required for local or production use.
-> **Last updated:** 2026-08-13 (`razorpay` on gateway for Sankalp SaaS Subscriptions)
+> **Last updated:** 2026-08-15 (Gateway `UPLOAD_ROOT` for Docker attachment/product uploads; BL-032 starter-hash; Notification platform capability)
 
 ---
 
@@ -26,7 +26,7 @@
 
 | Database | Owner service | Typical data |
 |----------|---------------|--------------|
-| `erp_gateway` | gateway | Users, tenants, auth, notifications, **communication**, **assets** |
+| `erp_gateway` | gateway | Users, tenants, auth, notifications, **notification deliveries**, **communication**, **assets** |
 | `erp_sales` | sales | Customers, orders, OMS workflow |
 | `erp_inventory` | inventory | Products, stock, categories |
 | `erp_accounting` | accounting | Journals, AR/AP invoices |
@@ -43,7 +43,7 @@
 
 **Optional local helper:** `tools/local-pg` (embedded Postgres) for machines without Docker Postgres.
 
-**Trading document flow:** Customer checkout creates a **Sales Request (SREQ)**; sales converts it to a **Sales Order (SO)**. Parallel prep tasks drive fulfillment — not a long sequential SO status ladder. See `docs/TRADING-JOURNEY.md`.
+**Trading document flow:** Three capture paths converge on one CONFIRMED **Sales Order** + **SO_STANDARD**: dealer **SREQ** convert, Sales Desk **walk-in SO**, CRM **Quote** convert (`POST /api/quotes/:id/convert`). Quick Bill remains cash-and-carry with no fulfilment workflow. See `docs/guides/sales-channels.md` and `docs/TRADING-JOURNEY.md`.
 
 **Document files (invoice PDFs):** not in Postgres. Accounting writes PDFs under `FILE_STORE_ROOT` (Compose: `/var/lib/erp-files` on named volume `erp-files`). Local `next dev` defaults to `/tmp/erp-files`. GET `/api/invoices/:id/pdf` re-renders if the DB row exists but the file is missing.
 
@@ -62,6 +62,7 @@
 | Docker | Engine + Compose v2+ | 29.1.5 / Compose v5 ✓ |
 | PostgreSQL | **16** via Docker (preferred) or local | `erp-postgres-1` healthy ✓ |
 | Invoice file store | Compose volume `erp-files` → `/var/lib/erp-files` (`FILE_STORE_ROOT`) | accounting ✓ |
+| Gateway uploads | Compose `UPLOAD_ROOT` → `/tmp/erp-uploads` (attachments + product images) | gateway ✓ |
 | Workspace deps | `pnpm install` | Installed ✓ |
 | App `.env` files | Per-service `DATABASE_URL` | Created ✓ |
 | Firewall | **TCP 80 + 443 only** (no app ports) | 80/443 ✓ |
@@ -169,6 +170,11 @@ corepack enable && corepack prepare pnpm@9.15.0 --activate
 
 | Date | Package / change | Version | Added to | Why |
 |------|------------------|---------|----------|-----|
+| 2026-08-15 | `@erp/workflow/starter-hash` (subpath export) | — | `packages/workflow` | Server-only FormDefinition canonicalize/hash for upgrade-starters; not exported from package barrel (avoids `node:crypto` in Next client bundles) |
+| 2026-08-15 | `tsx` | ^4.23.1 | `packages/admin-ui-host` | Unit tests for ExternalLink URL resolver (`pnpm --filter @erp/admin-ui-host test`) |
+| 2026-08-14 | `@erp/notifications` (workspace package) | 1.0.0 | `packages/notifications` | Notification platform capability — versioned send command, channel types, template render, dispatch/retry (ADR 0019) |
+| 2026-08-14 | `@erp/notifications` + `nodemailer` | workspace:* / ^6.10.1 | `apps/gateway` | Gateway hosts Notification APIs; SMTP adapter for LIVE email |
+| 2026-08-14 | Gateway Prisma: `NotificationDelivery` | — | `apps/gateway/prisma/schema.prisma` | Outbound delivery log (QUEUED/SENT/SKIPPED/FAILED/DEAD) for email/SMS/WhatsApp/Telegram/FCM/in-app |
 | 2026-08-13 | `razorpay` | ^2.9.8 | `apps/gateway` | Sankalp SaaS Subscriptions /v1 (DEMO apply path + LIVE SDK). KEY_SECRET stays server-side. Not used for dealer AR invoices. |
 | 2026-08-13 | `@erp/tax-india` deps | workspace:* | `apps/gateway`, `apps/sales`, `apps/accounting` | Tenant tax profile, invoice generation, settings validation |
 | 2026-07-28 | Auto SKU `CAT-BRAND-####` via `/api/products/suggest-sku` | — | inventory + admin UI | SKU from category + brand codes; manual override allowed |
@@ -194,6 +200,7 @@ corepack enable && corepack prepare pnpm@9.15.0 --activate
 | 2026-07-28 | nginx `erp-gateway.conf` | Public TLS gateway; app ports not exposed |
 | 2026-07-28 | firewalld 80/443 only | Closed 3007/3010 after gateway cutover |
 | 2026-08-08 | Outbound HTTPS to `www.fast2sms.com` | Per-tenant WhatsApp OTP (no host daemon) |
+| 2026-08-14 | Outbound HTTPS to `api.telegram.org` | Optional; LIVE Telegram Bot API sends. DEMO mode needs no outbound. |
 | 2026-08-08 | `erp` CLI (`scripts/erp`) + `/usr/local/bin/erp` | Host ops: up/down/status/logs/doctor/heal. No new npm package. |
 | 2026-08-08 | systemd `erp-watchdog.timer` (2 min) | Periodic `erp heal`; does not replace Compose. |
 | 2026-08-08 | Compose `restart: unless-stopped` | Container crash recovery for postgres + APIs + obs profile |
@@ -208,14 +215,16 @@ Copy from `.env.example`. Critical keys:
 |----------|---------|
 | `JWT_SECRET` | Auth tokens (must change in production) |
 | `SERVICE_SECRET` | Inter-service auth |
-| `INTEGRATION_ENCRYPTION_KEY` | 32-byte hex AES-256-GCM key for per-tenant Fast2SMS API keys (`openssl rand -hex 32`) |
+| `INTEGRATION_ENCRYPTION_KEY` | 32-byte hex AES-256-GCM key for per-tenant connector secrets (Fast2SMS, SMTP password, Telegram bot token) (`openssl rand -hex 32`) |
 | `OTP_PEPPER` | Optional OTP hash pepper; defaults to `INTEGRATION_ENCRYPTION_KEY` |
 | `GOOGLE_CLIENT_ID` | Google Identity Services client id (server-side ID-token verify) |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Same value exposed to the customer portal browser for the sign-in button |
 | `TAX_RATE` | Order tax fraction (e.g. `0.10`) |
 | `OTEL_SDK_DISABLED` | Default **true** in Compose. Set `false` only with `docker compose --profile obs up -d` |
 | `FILE_STORE_ROOT` | Accounting invoice PDF directory (Compose: `/var/lib/erp-files`) |
+| `UPLOAD_ROOT` | Gateway multipart uploads (attachments, product images). Compose: `/tmp/erp-uploads` (must be writable by the `nextjs` user). |
 | `META_WHATSAPP_VERIFY_TOKEN` | Meta App Dashboard webhook verify token (`GET /api/meta/whatsapp/webhook`) |
+| `FIREBASE_SERVER_KEY` | Optional FCM server key for LIVE push. Without it, FCM deliveries are SKIPPED. |
 | `RAZORPAY_KEY_ID` | Sankalp Razorpay Key ID (test `rzp_test_…`). Also returned to Checkout from create-order. |
 | `RAZORPAY_KEY_SECRET` | Sankalp Razorpay Key Secret — **server only**, never `NEXT_PUBLIC_` |
 | `RAZORPAY_WEBHOOK_SECRET` | Dashboard webhook secret for `POST /api/webhooks/razorpay` (raw-body HMAC) |

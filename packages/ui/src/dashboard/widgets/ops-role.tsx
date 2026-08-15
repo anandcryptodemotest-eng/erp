@@ -1,50 +1,27 @@
 "use client";
 import { useEffect, useState } from "react";
-import {
-  Boxes,
-  ClipboardList,
-  IndianRupee,
-  ListOrdered,
-  Package,
-  Receipt,
-  ShoppingCart,
-  Tag,
-  Truck,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
-import { KpiCard, type KpiCardProps } from "../../kpi-card";
+import { KpiCard } from "../../kpi-card";
 import type { WidgetProps } from "../types";
+import {
+  buildOpsAttention,
+  formatAttentionLine,
+  formatInr,
+  formatInrCompact,
+  type OpsAttentionItem,
+} from "../ops-attention";
+import { kpisForVariant, type OpsKpi, type OpsKpiVariant } from "../ops-kpis";
+import {
+  buildMyTasksStatusHref,
+  buildOrderStatusHref,
+  buildSreqStatusHref,
+  countByStatus,
+  formatStatusLabel,
+  positiveStatusCounts,
+  taskVizMode,
+  type StatusCount,
+} from "../charts/hrefs";
+import { StatusBars } from "./status-bars";
 import { WidgetShell, WidgetEmpty, WidgetError } from "./shell";
-
-type OpsKpi = {
-  revenue?: number;
-  salesOrders?: number;
-  sreqs?: number;
-  sreqsOpen?: number;
-  openTasks?: number;
-  customers?: number;
-  todaySales?: number;
-  mySreqs?: number;
-  myOrders?: number;
-  myTasks?: number;
-  priceLists?: number;
-  priceUpdates?: number;
-  priceRequests?: number;
-  pendingDispatches?: number;
-  todayDispatches?: number;
-  delayedOrders?: number;
-  outForDelivery?: number;
-  deliveredToday?: number;
-  delayedDeliveries?: number;
-  pendingInvoices?: number;
-  receivables?: number;
-  payments?: number;
-  products?: number;
-  categories?: number;
-  brands?: number;
-  attributes?: number;
-};
 
 type ActivityRow = {
   id: string;
@@ -81,6 +58,7 @@ type TaskRow = {
   action?: string;
   salesOrderId?: string;
   orderNumber?: string;
+  customerName?: string;
   dueAt?: string;
 };
 
@@ -90,31 +68,36 @@ type ProductRow = { id: string; name: string; sku?: string };
 
 type OpsSummary = {
   kpis?: OpsKpi;
+  attention?: OpsAttentionItem[];
   activity?: ActivityRow[];
   sreqs?: SreqRow[];
   orders?: OrderRow[];
   tasks?: TaskRow[];
+  taskStatusCounts?: StatusCount[];
+  sreqStatusCounts?: StatusCount[];
+  orderStatusCounts?: StatusCount[];
   customers?: CustomerRow[];
   priceLists?: PriceListRow[];
   products?: ProductRow[];
 };
 
-type Variant =
-  | "admin"
-  | "sales"
-  | "pricing"
-  | "dispatch"
-  | "delivery"
-  | "accountant"
-  | "catalog";
-
 function money(v?: number) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(v ?? 0);
+  return formatInr(v ?? 0);
 }
+
+function relativeTime(iso?: string): string {
+  if (!iso) return "";
+  const ms = Date.now() - Date.parse(iso);
+  if (!Number.isFinite(ms)) return "";
+  const mins = Math.round(ms / 60_000);
+  if (Math.abs(mins) < 1) return "just now";
+  if (Math.abs(mins) < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (Math.abs(hrs) < 24) return `${hrs}h ago`;
+  return `${Math.round(hrs / 24)}d ago`;
+}
+
+const ACTIVITY_MAX = 8;
 
 function useOpsSummary(fetchData: WidgetProps["fetchData"]) {
   const [data, setData] = useState<OpsSummary | null>(null);
@@ -137,118 +120,163 @@ function useOpsSummary(fetchData: WidgetProps["fetchData"]) {
   return { data, error, retry: () => setTick((n) => n + 1) };
 }
 
-type KpiSpec = {
-  label: string;
-  value: string;
-  href: string;
-  subtext?: string;
-  icon: LucideIcon;
-  color: NonNullable<KpiCardProps["color"]>;
-};
-
-function kpisForVariant(variant: Variant, k?: OpsKpi): KpiSpec[] {
-  switch (variant) {
-    case "sales":
-      return [
-        { label: "Today's sales", value: money(k?.todaySales), href: "/admin/analytics", icon: IndianRupee, color: "amber" },
-        { label: "Open SREQs", value: String(k?.mySreqs ?? 0), href: "/admin/sales-desk", icon: ClipboardList, color: "indigo" },
-        { label: "Orders", value: String(k?.myOrders ?? 0), href: "/admin/sales-desk", icon: ShoppingCart, color: "emerald" },
-        { label: "My tasks", value: String(k?.myTasks ?? 0), href: "/admin/sales-desk", icon: ListOrdered, color: "violet" },
-      ];
-    case "pricing":
-      return [
-        { label: "Price lists", value: String(k?.priceLists ?? 0), href: "/admin/price-lists", icon: Tag, color: "indigo" },
-        { label: "Updated (7d)", value: String(k?.priceUpdates ?? 0), href: "/admin/price-lists", icon: Receipt, color: "amber" },
-        { label: "Price requests", value: String(k?.priceRequests ?? 0), href: "/admin/price-lists", icon: ClipboardList, color: "slate" },
-        { label: "Open tasks", value: String(k?.openTasks ?? 0), href: "/admin/sales-desk", icon: ListOrdered, color: "violet" },
-      ];
-    case "dispatch":
-      return [
-        { label: "Pending dispatch", value: String(k?.pendingDispatches ?? 0), href: "/admin/sales-desk", icon: Package, color: "indigo" },
-        { label: "Dispatched today", value: String(k?.todayDispatches ?? 0), href: "/admin/sales-desk", icon: Truck, color: "emerald" },
-        { label: "Delayed", value: String(k?.delayedOrders ?? 0), href: "/admin/sales-desk", icon: ClipboardList, color: "red" },
-      ];
-    case "delivery":
-      return [
-        { label: "Out for delivery", value: String(k?.outForDelivery ?? 0), href: "/admin/sales-desk", icon: Truck, color: "blue" },
-        { label: "Delivered today", value: String(k?.deliveredToday ?? 0), href: "/admin/sales-desk", icon: Package, color: "emerald" },
-        { label: "Delayed", value: String(k?.delayedDeliveries ?? 0), href: "/admin/sales-desk", icon: ClipboardList, color: "red" },
-      ];
-    case "accountant":
-      return [
-        { label: "Invoices", value: String(k?.pendingInvoices ?? 0), href: "/admin/invoices", icon: Receipt, color: "indigo" },
-        { label: "Receivables", value: money(k?.receivables), href: "/admin/invoices", icon: IndianRupee, color: "amber" },
-        { label: "Payments", value: money(k?.payments), href: "/admin/invoices", icon: IndianRupee, color: "emerald" },
-      ];
-    case "catalog":
-      return [
-        { label: "Products", value: String(k?.products ?? 0), href: "/admin/products", icon: Package, color: "indigo" },
-        { label: "Categories", value: String(k?.categories ?? 0), href: "/admin/categories", icon: Boxes, color: "violet" },
-        { label: "Brands", value: String(k?.brands ?? 0), href: "/admin/brands", icon: Tag, color: "amber" },
-        { label: "Attributes", value: String(k?.attributes ?? 0), href: "/admin/attributes", icon: ListOrdered, color: "slate" },
-      ];
-    default:
-      return [
-        { label: "Revenue", value: money(k?.revenue), href: "/admin/analytics", icon: IndianRupee, color: "amber" },
-        { label: "Sales orders", value: String(k?.salesOrders ?? 0), href: "/admin/sales-desk", icon: ShoppingCart, color: "emerald" },
-        { label: "Open SREQs", value: String(k?.sreqsOpen ?? 0), href: "/admin/sales-desk", icon: ClipboardList, color: "indigo" },
-        { label: "Open tasks", value: String(k?.openTasks ?? 0), href: "/admin/sales-desk", icon: ListOrdered, color: "violet" },
-        { label: "Customers", value: String(k?.customers ?? 0), href: "/admin/customers", icon: Users, color: "blue" },
-      ];
-  }
-}
-
 export function OpsKpiRowWidget({ fetchData, config }: WidgetProps) {
   const { data, error, retry } = useOpsSummary(fetchData);
+  const [phoneOps, setPhoneOps] = useState(false);
+
+  useEffect(() => {
+    const apply = () => {
+      const mode =
+        typeof document !== "undefined"
+          ? document.querySelector(".admin-shell")?.getAttribute("data-admin-mode")
+          : null;
+      setPhoneOps(mode === "operational" && window.matchMedia("(max-width: 767px)").matches);
+    };
+    apply();
+    window.addEventListener("resize", apply);
+    const shell = document.querySelector(".admin-shell");
+    const mo = shell ? new MutationObserver(apply) : null;
+    if (shell && mo) mo.observe(shell, { attributes: true, attributeFilter: ["data-admin-mode"] });
+    return () => {
+      window.removeEventListener("resize", apply);
+      mo?.disconnect();
+    };
+  }, []);
+
   if (error) return <WidgetError message={error} onRetry={retry} />;
-  const variant = (typeof config?.variant === "string" ? config.variant : "admin") as Variant;
+  const variant = (typeof config?.variant === "string" ? config.variant : "admin") as OpsKpiVariant;
   const cards = kpisForVariant(variant, data?.kpis);
+  const weighted = variant === "admin" && cards.some((c) => c.span);
+  const compactKpis = variant === "sales" || variant === "pricing" || variant === "dispatch" || variant === "delivery";
+
+  if (phoneOps) {
+    const cells = cards.slice(0, 4).map((c) => {
+      let display = data ? c.value : "…";
+      if (data && c.value.startsWith("₹")) {
+        const digits = Number(c.value.replace(/[^\d.-]/g, ""));
+        if (Number.isFinite(digits)) display = formatInrCompact(digits);
+      }
+      return {
+        label: c.label.replace(/^Today'?s\s+/i, "").replace(/^My\s+/i, ""),
+        value: display,
+        href: c.href,
+      };
+    });
+    return (
+      <div className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-raised)] p-3 shadow-[var(--shadow-sm)]">
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--ink-soft)]">Today</p>
+        <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-3">
+          {cells.map((cell) => (
+            <a key={cell.label} href={cell.href} className="-m-1 block min-w-0 rounded-md p-1 hover:bg-[var(--mist)]">
+              <p className="truncate text-base font-bold tabular-nums text-[var(--ink)]">{cell.value}</p>
+              <p className="truncate text-xs text-[var(--ink-soft)]">{cell.label}</p>
+            </a>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
-      className="grid h-full gap-3"
-      style={{ gridTemplateColumns: `repeat(${Math.min(cards.length, 5)}, minmax(0, 1fr))` }}
+      className={compactKpis ? "grid h-full gap-2" : "grid h-full gap-3"}
+      style={
+        weighted
+          ? { gridTemplateColumns: "repeat(12, minmax(0, 1fr))" }
+          : { gridTemplateColumns: `repeat(${Math.min(cards.length, 5)}, minmax(0, 1fr))` }
+      }
     >
       {cards.map((c) => (
-        <KpiCard
+        <div
           key={c.label}
-          label={c.label}
-          value={data ? c.value : "…"}
-          href={c.href}
-          icon={c.icon}
-          color={c.color}
-          subtext={c.subtext}
-          className="h-full"
-        />
+          className="min-w-0"
+          style={weighted ? { gridColumn: `span ${c.span ?? 3}` } : undefined}
+        >
+          <KpiCard
+            label={c.label}
+            value={data ? c.value : "…"}
+            href={c.href}
+            icon={c.icon}
+            color={c.color}
+            subtext={compactKpis ? undefined : c.subtext}
+            compact={compactKpis}
+            className="h-full"
+          />
+        </div>
       ))}
     </div>
+  );
+}
+
+export function TodayAttentionWidget({ fetchData }: WidgetProps) {
+  const { data, error, retry } = useOpsSummary(fetchData);
+  if (error) return <WidgetError message={error} onRetry={retry} />;
+  const rows = Array.isArray(data?.attention)
+    ? data.attention.filter((row) => row.value > 0)
+    : data
+      ? buildOpsAttention({
+          sreqsOpen: data.kpis?.sreqsOpen ?? 0,
+          pendingFulfilment: data.kpis?.pendingDispatches ?? 0,
+          deliveriesPending: data.kpis?.outForDelivery ?? 0,
+          overdueReceivables: data.kpis?.overdueReceivables ?? 0,
+          openTasks: data.kpis?.openTasks ?? 0,
+        })
+      : [];
+  return (
+    <WidgetShell
+      title="TODAY"
+      subtitle="What needs your attention right now?"
+      style={{ height: "100%" }}
+    >
+      {!data ? (
+        <WidgetEmpty message="Loading…" />
+      ) : rows.length === 0 ? (
+        <WidgetEmpty message="Nothing waiting — Order Desk is clear." />
+      ) : (
+        <ul className="flex flex-wrap gap-2">
+          {rows.map((row) => (
+            <li key={row.id}>
+              <a
+                href={row.href}
+                className={
+                  row.tone === "danger"
+                    ? "inline-flex items-center rounded-full border border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_8%,transparent)] px-3 py-1.5 text-sm font-medium text-[var(--danger)]"
+                    : "inline-flex items-center rounded-full border border-[var(--line)] bg-[var(--mist)] px-3 py-1.5 text-sm font-medium text-[var(--ink)]"
+                }
+              >
+                {formatAttentionLine(row, money)}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </WidgetShell>
   );
 }
 
 export function RecentActivityWidget({ fetchData }: WidgetProps) {
   const { data, error, retry } = useOpsSummary(fetchData);
   if (error) return <WidgetError message={error} onRetry={retry} />;
-  const rows = data?.activity ?? [];
+  const rows = (data?.activity ?? []).slice(0, ACTIVITY_MAX);
   return (
-    <WidgetShell title="Recent activity" subtitle="What needs attention" style={{ height: "100%" }}>
+    <WidgetShell title="Recent activity" subtitle="Latest movement" style={{ height: "100%" }}>
       {!data ? (
         <WidgetEmpty message="Loading…" />
       ) : rows.length === 0 ? (
         <WidgetEmpty message="Nothing new" />
       ) : (
-        <ul className="space-y-2 overflow-y-auto">
-          {rows.map((row) => (
-            <li key={row.id}>
-              <a href={row.href} className="ws-row">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-[var(--ink,#1a1a1a)]">{row.title}</p>
-                  <p className="truncate text-xs text-[var(--ink-soft,#666)]/70">{row.subtitle}</p>
-                </div>
-                <span className="shrink-0 text-[10px] uppercase tracking-wide text-[var(--ink-soft,#666)]/50">
-                  {row.kind}
-                </span>
-              </a>
-            </li>
-          ))}
+        <ul className="overflow-y-auto">
+          {rows.map((row) => {
+            const when = relativeTime(row.at);
+            const line = [row.title, row.subtitle, when].filter(Boolean).join(" · ");
+            return (
+              <li key={row.id}>
+                <a href={row.href} className="ws-row py-1">
+                  <p className="min-w-0 truncate text-sm text-[var(--ink,#1a1a1a)]">{line}</p>
+                </a>
+              </li>
+            );
+          })}
         </ul>
       )}
     </WidgetShell>
@@ -260,53 +288,87 @@ export function SreqOrderTableWidget({ fetchData }: WidgetProps) {
   if (error) return <WidgetError message={error} onRetry={retry} />;
   const sreqs = data?.sreqs ?? [];
   const orders = data?.orders ?? [];
+  const sreqCounts =
+    data?.sreqStatusCounts?.length
+      ? data.sreqStatusCounts
+      : countByStatus(sreqs);
+  const orderCounts =
+    data?.orderStatusCounts?.length
+      ? data.orderStatusCounts
+      : countByStatus(orders);
+  const recent = [
+    ...sreqs.map((r) => ({
+      key: `sreq-${r.id}`,
+      href: `/admin/sales-desk?sreqId=${encodeURIComponent(r.id)}`,
+      ref: r.requestNumber || "SREQ",
+      customer: r.customerName,
+      status: r.status,
+      total: r.total,
+    })),
+    ...orders.map((r) => ({
+      key: `so-${r.id}`,
+      href: `/admin/sales-desk?salesOrderId=${encodeURIComponent(r.id)}`,
+      ref: r.orderNumber || "SO",
+      customer: r.customerName,
+      status: r.status,
+      total: r.total,
+    })),
+  ].slice(0, 6);
+
   return (
-    <WidgetShell title="Recent requests & orders" subtitle="Open to process on Order Desk" style={{ height: "100%" }}>
+    <WidgetShell title="Requests & orders" subtitle="Status by pipeline — click a bar to open Order Desk" style={{ height: "100%" }}>
       {!data ? (
         <WidgetEmpty message="Loading…" />
-      ) : sreqs.length === 0 && orders.length === 0 ? (
+      ) : sreqCounts.length === 0 && orderCounts.length === 0 && recent.length === 0 ? (
         <WidgetEmpty message="No recent work" />
       ) : (
-        <div className="overflow-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-[11px] uppercase tracking-wide text-[var(--ink-soft,#666)]/60">
-              <tr>
-                <th className="pb-2 font-semibold">Ref</th>
-                <th className="pb-2 font-semibold">Customer</th>
-                <th className="pb-2 font-semibold">Status</th>
-                <th className="pb-2 text-right font-semibold">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sreqs.map((row) => (
-                <tr key={`sreq-${row.id}`} className="border-t border-[var(--line,#e8e8e8)]">
-                  <td className="py-2">
-                    <a className="font-medium text-[var(--brand,#c8922a)] hover:underline" href={`/admin/sales-desk?sreqId=${encodeURIComponent(row.id)}`}>
-                      {row.requestNumber || "SREQ"}
+        <div className="flex h-full min-h-0 flex-col gap-3 overflow-auto">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ink-soft)]">SREQ</p>
+              {positiveStatusCounts(sreqCounts).length === 0 ? (
+                <p className="text-xs text-[var(--ink-soft)]">No open requests</p>
+              ) : (
+                <StatusBars
+                  items={positiveStatusCounts(sreqCounts)}
+                  hrefFor={buildSreqStatusHref}
+                  actionHint="View requests →"
+                />
+              )}
+            </div>
+            <div>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ink-soft)]">Sales orders</p>
+              {positiveStatusCounts(orderCounts).length === 0 ? (
+                <p className="text-xs text-[var(--ink-soft)]">No open orders</p>
+              ) : (
+                <StatusBars
+                  items={positiveStatusCounts(orderCounts)}
+                  hrefFor={buildOrderStatusHref}
+                  actionHint="View orders →"
+                />
+              )}
+            </div>
+          </div>
+          {recent.length > 0 ? (
+            <div>
+              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ink-soft)]">Recent</p>
+              <ul className="space-y-1.5">
+                {recent.map((row) => (
+                  <li key={row.key}>
+                    <a href={row.href} className="ws-row !py-1.5">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-[var(--ink)]">{row.ref}</p>
+                        <p className="truncate text-xs text-[var(--ink-soft)]">
+                          {row.status} · {row.customer}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-xs tabular-nums text-[var(--ink-soft)]">{money(row.total)}</span>
                     </a>
-                  </td>
-                  <td className="py-2 text-[var(--ink-soft,#666)]">{row.customerName}</td>
-                  <td className="py-2">{row.status}</td>
-                  <td className="py-2 text-right font-medium">{money(row.total)}</td>
-                </tr>
-              ))}
-              {orders.map((row) => (
-                <tr key={`so-${row.id}`} className="border-t border-[var(--line,#e8e8e8)]">
-                  <td className="py-2">
-                    <a
-                      className="font-medium text-[var(--brand,#c8922a)] hover:underline"
-                      href={`/admin/sales-desk?salesOrderId=${encodeURIComponent(row.id)}`}
-                    >
-                      {row.orderNumber || "SO"}
-                    </a>
-                  </td>
-                  <td className="py-2 text-[var(--ink-soft,#666)]">{row.customerName}</td>
-                  <td className="py-2">{row.status}</td>
-                  <td className="py-2 text-right font-medium">{money(row.total)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
       )}
     </WidgetShell>
@@ -317,34 +379,80 @@ export function MyTasksListWidget({ fetchData }: WidgetProps) {
   const { data, error, retry } = useOpsSummary(fetchData);
   if (error) return <WidgetError message={error} onRetry={retry} />;
   const rows = data?.tasks ?? [];
+  const counts = positiveStatusCounts(
+    data?.taskStatusCounts?.length
+      ? data.taskStatusCounts
+      : countByStatus(rows, { exclude: ["COMPLETED", "CANCELLED", "SKIPPED", "DONE"] })
+  );
+  const total = counts.reduce((n, c) => n + c.count, 0);
+  const mode = taskVizMode(counts);
+  const title = `My tasks · ${total}`;
+
   return (
-    <WidgetShell title="My tasks" subtitle="Open on Order Desk to complete" style={{ height: "100%" }}>
+    <WidgetShell
+      title={title}
+      subtitle={mode === "empty" ? undefined : "Status first — then next work on Order Desk"}
+      style={{ height: "100%" }}
+    >
       {!data ? (
         <WidgetEmpty message="Loading…" />
-      ) : rows.length === 0 ? (
-        <WidgetEmpty message="No open tasks" />
+      ) : mode === "empty" ? (
+        <div className="flex h-full flex-col justify-center py-2">
+          <p className="text-sm font-medium text-[var(--ink)]">You&apos;re all caught up.</p>
+          <p className="mt-1 text-xs text-[var(--ink-soft)]">No work needs your attention right now.</p>
+        </div>
       ) : (
-        <ul className="space-y-2 overflow-y-auto">
-          {rows.map((row) => (
-            <li key={row.id}>
+        <div className="flex h-full min-h-0 flex-col gap-3 overflow-auto">
+          {mode === "single" && counts[0] ? (
+            <a
+              href={buildMyTasksStatusHref(counts[0].status)}
+              className="flex items-baseline justify-between gap-3 rounded-md px-0.5 py-1 hover:bg-[var(--mist)]"
+              title={`${formatStatusLabel(counts[0].status)} · ${counts[0].count} · Open →`}
+            >
+              <span className="truncate text-sm font-semibold uppercase tracking-wide text-[var(--ink)]">
+                {formatStatusLabel(counts[0].status)}
+              </span>
+              <span className="shrink-0 text-sm font-semibold tabular-nums text-[var(--ink)]">{counts[0].count}</span>
+            </a>
+          ) : (
+            <StatusBars items={counts} hrefFor={buildMyTasksStatusHref} actionHint="Open →" />
+          )}
+          {rows.length > 0 ? (
+            <div>
+              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ink-soft)]">Next</p>
+              <ul className="space-y-1.5">
+                {rows.slice(0, 5).map((row) => (
+                  <li key={row.id}>
+                    <a
+                      href={
+                        row.salesOrderId
+                          ? `/admin/sales-desk?salesOrderId=${encodeURIComponent(row.salesOrderId)}`
+                          : buildMyTasksStatusHref()
+                      }
+                      className="ws-row !py-1.5"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-[var(--ink,#1a1a1a)]">{row.title}</p>
+                        <p className="truncate text-xs text-[var(--ink-soft,#666)]/70">
+                          {[row.orderNumber, row.customerName, row.status].filter(Boolean).join(" · ")}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[var(--ink-soft)]" aria-hidden>
+                        →
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
               <a
-                href={
-                  row.salesOrderId
-                    ? `/admin/sales-desk?salesOrderId=${encodeURIComponent(row.salesOrderId)}`
-                    : "/admin/sales-desk"
-                }
-                className="ws-row"
+                href={buildMyTasksStatusHref()}
+                className="mt-2 inline-block text-xs font-semibold text-[var(--brand)] hover:underline"
               >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-[var(--ink,#1a1a1a)]">{row.title}</p>
-                  <p className="truncate text-xs text-[var(--ink-soft,#666)]/70">
-                    {row.orderNumber ? `${row.orderNumber} · ${row.status}` : row.status}
-                  </p>
-                </div>
+                View all tasks →
               </a>
-            </li>
-          ))}
-        </ul>
+            </div>
+          ) : null}
+        </div>
       )}
     </WidgetShell>
   );
@@ -352,26 +460,43 @@ export function MyTasksListWidget({ fetchData }: WidgetProps) {
 
 export function RecentCustomersWidget({ fetchData }: WidgetProps) {
   const { data, error, retry } = useOpsSummary(fetchData);
+  const [compactList, setCompactList] = useState(false);
+
+  useEffect(() => {
+    const apply = () => {
+      // Tablet / tight grid: prefer compact list over dense dual-line rows (BL-044).
+      setCompactList(window.matchMedia("(max-width: 1023px)").matches);
+    };
+    apply();
+    window.addEventListener("resize", apply);
+    return () => window.removeEventListener("resize", apply);
+  }, []);
+
   if (error) return <WidgetError message={error} onRetry={retry} />;
   const rows = data?.customers ?? [];
   return (
-    <WidgetShell title="Recent customers" subtitle="Open customer record" style={{ height: "100%" }}>
+    <WidgetShell title="Recent customers" subtitle="Relationship context" style={{ height: "100%" }}>
       {!data ? (
         <WidgetEmpty message="Loading…" />
       ) : rows.length === 0 ? (
         <WidgetEmpty message="No customers" />
       ) : (
-        <ul className="space-y-2 overflow-y-auto">
+        <ul className={compactList ? "space-y-1 overflow-y-auto" : "space-y-1.5 overflow-y-auto"}>
           {rows.map((row) => (
             <li key={row.id}>
               <a
-                href="/admin/customers"
-                className="ws-row"
+                href={`/admin/customers?id=${encodeURIComponent(row.id)}`}
+                className={compactList ? "ws-row !py-1" : "ws-row !py-1.5"}
               >
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-[var(--ink,#1a1a1a)]">{row.name}</p>
-                  <p className="truncate text-xs text-[var(--ink-soft,#666)]/70">{row.email || row.phone || "—"}</p>
+                  {!compactList ? (
+                    <p className="truncate text-xs text-[var(--ink-soft,#666)]/70">{row.email || row.phone || "—"}</p>
+                  ) : null}
                 </div>
+                <span className="shrink-0 text-[var(--ink-soft)]" aria-hidden>
+                  →
+                </span>
               </a>
             </li>
           ))}

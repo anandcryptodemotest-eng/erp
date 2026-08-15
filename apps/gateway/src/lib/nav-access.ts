@@ -237,7 +237,9 @@ export const FEATURE_NAV_MAP: Record<string, NavModuleKey[]> = {
   dashboard: ["dashboard"],
   organization: ["administration"],
   users: ["users"],
-  oms: ["order_desk", "orders", "customers"],
+  oms: ["order_desk", "orders", "customers", "communication"],
+  communication: ["communication"],
+  messaging: ["communication"],
   inventory: ["products", "categories", "brands", "attributes", "price_lists"],
   accounting: ["invoices", "returns"],
   ar: ["invoices"],
@@ -246,6 +248,9 @@ export const FEATURE_NAV_MAP: Record<string, NavModuleKey[]> = {
   process_studio: ["workflows", "configuration"],
   hr: ["employees", "payroll"],
 };
+
+/** Always kept when role allows — Gateway platform, not a SaaS SKU gate. */
+const PLATFORM_NAV_ALWAYS: ReadonlySet<NavModuleKey> = new Set(["communication"]);
 
 export function intersectPlanFeatures(
   allowed: Set<NavModuleKey>,
@@ -258,7 +263,7 @@ export function intersectPlanFeatures(
   }
   const next = new Set<NavModuleKey>();
   for (const key of allowed) {
-    if (unlocked.has(key)) next.add(key);
+    if (unlocked.has(key) || PLATFORM_NAV_ALWAYS.has(key)) next.add(key);
   }
   return next;
 }

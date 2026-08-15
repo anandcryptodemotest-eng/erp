@@ -59,6 +59,8 @@ services:
       HR_SERVICE_URL: http://hr:3004
       PROCUREMENT_SERVICE_URL: http://procurement:3005
       DELIVERY_SERVICE_URL: http://delivery:3006
+      # Writable by container user (nextjs). Named volumes are root-owned unless chowned.
+      UPLOAD_ROOT: /tmp/erp-uploads
     depends_on:
       postgres:
         condition: service_healthy

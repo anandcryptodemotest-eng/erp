@@ -56,6 +56,7 @@ export async function GET(request: Request) {
     where: { userId_portal: { userId: auth.userId, portal } },
   });
 
+  // Preference wins forever; role default only when none saved (Reset clears pref).
   const stored = Array.isArray(pref?.config)
     ? (pref.config as unknown as DashboardPlacement[])
     : [];

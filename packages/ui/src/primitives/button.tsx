@@ -18,7 +18,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "bg-[var(--brand)] text-white hover:bg-[var(--brand-dark)] shadow-[var(--shadow-1)] rounded-[var(--radius-sm)]",
+          "bg-[var(--brand)] text-[var(--ink-inverse)] hover:bg-[var(--brand-dark)] shadow-[var(--shadow-1)] rounded-[var(--radius-sm)]",
         secondary:
           "border border-[var(--line-strong)] bg-[var(--surface-raised)] text-[var(--ink)] hover:bg-[var(--surface-sunken)] shadow-[var(--shadow-1)] rounded-[var(--radius-sm)]",
         outline:

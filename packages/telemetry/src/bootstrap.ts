@@ -1,23 +1,15 @@
 /**
  * Process-wide OpenTelemetry bootstrap. Call once from instrumentation.ts.
  * Feature code must not import raw @opentelemetry/* — use helpers from @erp/telemetry.
+ *
+ * All OTEL deps are loaded via dynamic import so Next.js webpack does not
+ * pull Node-only packages (`stream`, `fs`, `@grpc/grpc-js`) into the compile graph.
  */
 
-import { NodeSDK } from "@opentelemetry/sdk-node";
-import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
-import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
-import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
-import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
-import { resourceFromAttributes } from "@opentelemetry/resources";
-import {
-  ATTR_SERVICE_NAME,
-  ATTR_SERVICE_VERSION,
-  ATTR_SERVICE_NAMESPACE,
-} from "@opentelemetry/semantic-conventions";
 import { hostname } from "node:os";
 
 let started = false;
-let sdk: NodeSDK | null = null;
+let sdk: { shutdown: () => Promise<void> } | null = null;
 
 export interface BootstrapOptions {
   serviceName: string;
@@ -42,6 +34,24 @@ export async function bootstrapTelemetry(opts: BootstrapOptions): Promise<void> 
     return;
   }
 
+  const [
+    { NodeSDK },
+    { getNodeAutoInstrumentations },
+    { OTLPTraceExporter },
+    { OTLPMetricExporter },
+    { PeriodicExportingMetricReader },
+    { resourceFromAttributes },
+    semconv,
+  ] = await Promise.all([
+    import("@opentelemetry/sdk-node"),
+    import("@opentelemetry/auto-instrumentations-node"),
+    import("@opentelemetry/exporter-trace-otlp-http"),
+    import("@opentelemetry/exporter-metrics-otlp-http"),
+    import("@opentelemetry/sdk-metrics"),
+    import("@opentelemetry/resources"),
+    import("@opentelemetry/semantic-conventions"),
+  ]);
+
   const serviceName =
     opts.serviceName || process.env.OTEL_SERVICE_NAME || process.env.SERVICE_NAME || "erp";
   const serviceVersion =
@@ -50,14 +60,14 @@ export async function bootstrapTelemetry(opts: BootstrapOptions): Promise<void> 
   const base = endpointBase(opts.otlpEndpoint);
 
   const resource = resourceFromAttributes({
-    [ATTR_SERVICE_NAME]: serviceName,
-    [ATTR_SERVICE_VERSION]: serviceVersion,
-    [ATTR_SERVICE_NAMESPACE]: "erp",
+    [semconv.ATTR_SERVICE_NAME]: serviceName,
+    [semconv.ATTR_SERVICE_VERSION]: serviceVersion,
+    [semconv.ATTR_SERVICE_NAMESPACE]: "erp",
     "deployment.environment": env,
     "host.name": hostname(),
   });
 
-  sdk = new NodeSDK({
+  const nodeSdk = new NodeSDK({
     resource,
     traceExporter: new OTLPTraceExporter({ url: `${base}/v1/traces` }),
     metricReader: new PeriodicExportingMetricReader({
@@ -73,7 +83,8 @@ export async function bootstrapTelemetry(opts: BootstrapOptions): Promise<void> 
     ],
   });
 
-  await sdk.start();
+  await nodeSdk.start();
+  sdk = nodeSdk;
   started = true;
 
   const shutdown = async () => {

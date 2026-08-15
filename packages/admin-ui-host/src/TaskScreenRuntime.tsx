@@ -26,7 +26,14 @@ import { bootstrapAdminRuntime } from "./bootstrap";
 export function TaskScreenRuntime(props: {
   screen: ScreenDefinition;
   order: Record<string, unknown>;
-  customer?: { id?: string; name?: string | null } | null;
+  customer?: {
+    id?: string;
+    name?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    creditLimit?: number | null;
+    isBlocked?: boolean | null;
+  } | null;
   items: LineItemLike[];
   taskAction: string;
   canComplete: boolean;

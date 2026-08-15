@@ -194,7 +194,7 @@ export default function OpportunitiesPage() {
                           </>
                         )}
                         {canCreateQuote && (
-                          <Link href="/quotes" className="rounded border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] px-2 py-1 text-xs text-[var(--success)] hover:bg-[color-mix(in_srgb,var(--success)_16%,white)]">
+                          <Link href={`/quotes?opportunityId=${op.id}&customerId=${op.customer?.id ?? ""}`} className="rounded border border-[color-mix(in_srgb,var(--success)_35%,var(--line))] bg-[color-mix(in_srgb,var(--success)_10%,white)] px-2 py-1 text-xs text-[var(--success)] hover:bg-[color-mix(in_srgb,var(--success)_16%,white)]">
                             Create Quote
                           </Link>
                         )}

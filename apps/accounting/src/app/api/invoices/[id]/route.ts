@@ -10,7 +10,7 @@ const updateInvoiceSchema = z.object({
 
 const paymentSchema = z.object({
   amount: z.number().positive(),
-  method: z.enum(["CASH", "BANK_TRANSFER", "CREDIT_CARD", "CHECK", "OTHER"]),
+  method: z.enum(["CASH", "BANK_TRANSFER", "CREDIT_CARD", "CHECK", "UPI", "OTHER"]),
   reference: z.string().optional(),
   date: z.string(),
 });

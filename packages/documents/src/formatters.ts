@@ -110,7 +110,8 @@ export function formatWords(value: unknown, _options?: unknown): string {
 function formatCurrency(value: unknown, _options?: unknown): string {
   const n = Number(value);
   if (Number.isNaN(n)) return String(value ?? "");
-  return `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  // ASCII "Rs." until BL-025 embeds a Unicode font — ₹ becomes overlapping tofu in PDF Helvetica.
+  return `Rs. ${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function formatDate(value: unknown, _options?: unknown): string {

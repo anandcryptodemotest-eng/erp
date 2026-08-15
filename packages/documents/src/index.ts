@@ -15,8 +15,11 @@ export type {
   PlacedItem,
   RenderDocumentInput,
   RenderDocumentResult,
+  StudioLevel,
 } from "./types";
 export { TAX_INVOICE_SEED } from "./seed-tax-invoice";
+export { blankDocumentDefinition } from "./blank-document";
+export { SAMPLE_DOCUMENT_PAYLOAD } from "./sample-payload";
 export { COMMERCIAL_INVOICE_SEED, BILL_OF_SUPPLY_SEED } from "./seed-commercial-invoice";
 export {
   getByPath,
@@ -32,6 +35,8 @@ export type { Formatter, FormatterId } from "./resolve";
 export {
   INVOICE_BINDING_SCHEMA,
   bindingSchemaForDocumentType,
+  listBindingLeaves,
+  listCollectionLeaves,
 } from "./binding-schema";
 export {
   LOGO_SIZE_PRESETS,
@@ -53,3 +58,11 @@ export {
   flattenItems,
   generateItemId,
 } from "./tree";
+export {
+  PRINT_WIDGET_CATALOG,
+  expandWidgets,
+  expandDocumentDefinition,
+  isPrintWidgetId,
+  printWidgetById,
+} from "./print-widgets";
+export type { PrintWidgetId, PrintWidgetSlot, PrintWidgetCatalogEntry } from "./print-widgets";

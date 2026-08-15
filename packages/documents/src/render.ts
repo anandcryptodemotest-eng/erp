@@ -5,6 +5,7 @@ import type { AssetRef } from "@erp/workflow";
 import { formatValue, getByPath, isVisible } from "./resolve";
 import { resolveImageUrl } from "./image-url";
 import { buildLayoutPdf, isJpeg, readJpegDimensions, textWidth, type DrawOp, type PdfImage } from "./pdf";
+import { expandDocumentDefinition } from "./print-widgets";
 import type {
   DocumentDefinition,
   PlacedItem,
@@ -20,6 +21,18 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+const ACCENT = "#173f5f";
+const LINE_SOFT = "#dbe2ea";
+
+function parseCssColor(input?: string): [number, number, number] | null {
+  if (!input) return null;
+  const hex = input.trim();
+  const m = /^#([0-9a-fA-F]{6})$/.exec(hex);
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+}
+
 function styleAttr(style?: PlacedItem["style"]): string {
   if (!style) return "";
   const parts: string[] = [];
@@ -32,19 +45,37 @@ function styleAttr(style?: PlacedItem["style"]): string {
   return parts.length ? ` style="${parts.join(";")}"` : "";
 }
 
-function renderItemHtml(item: PlacedItem, payload: Record<string, unknown>, ox = 0, oy = 0): string {
-  if (!isVisible(item, payload)) return "";
+function colRightAligned(col: { key: string; formatter?: string }): boolean {
+  return (
+    col.formatter === "currency" ||
+    col.key === "qty" ||
+    col.key === "taxRate" ||
+    col.key === "tax" ||
+    col.key === "rate" ||
+    col.key === "amount"
+  );
+}
+
+function itemBoxStyle(item: PlacedItem, ox: number, oy: number, includeHeight: boolean): string {
   const x = ox + (item.placement.x ?? 0);
   const y = oy + (item.placement.y ?? 0);
   const w = item.placement.width ?? 100;
   const h = item.placement.height;
-  const pos = `position:absolute;left:${x}px;top:${y}px;width:${w}px;${h != null ? `height:${h}px;` : ""}`;
+  // Tables must not get a fixed CSS height — browsers stretch the single body row
+  // to fill it (huge gap between header and first line).
+  const height = includeHeight && h != null ? `height:${h}px;` : "";
+  return `position:absolute;left:${x}px;top:${y}px;width:${w}px;${height}line-height:1.2;overflow:hidden;`;
+}
+
+function renderItemHtml(item: PlacedItem, payload: Record<string, unknown>, ox = 0, oy = 0): string {
+  if (!isVisible(item, payload)) return "";
+  const pos = itemBoxStyle(item, ox, oy, item.type !== "Table");
 
   if (item.type === "Container") {
     // Children use local coords (ox=0,oy=0) inside a page-absolute container —
     // never pass page-absolute offsets into nested renderItemHtml (double-offset bug).
     const kids = (item.children ?? []).map((c) => renderItemHtml(c, payload, 0, 0)).join("");
-    const outer = `${pos}overflow:visible`;
+    const outer = `${pos}overflow:hidden;line-height:1.2`;
     return `<div data-id="${escapeHtml(item.id)}" style="${outer}"><div style="position:relative;width:100%;height:100%">${kids}</div></div>`;
   }
 
@@ -72,29 +103,37 @@ function renderItemHtml(item: PlacedItem, payload: Record<string, unknown>, ox =
       unknown
     >[];
     const columns = (item.properties?.columns as { key: string; label: string; width?: number; formatter?: string }[]) ?? [];
+    const headerBg = String(item.properties?.headerBackground ?? ACCENT);
     const head = columns
-      .map((c) => `<th style="text-align:left;padding:4px;border-bottom:1px solid #333;width:${c.width ?? 80}px">${escapeHtml(c.label)}</th>`)
+      .map((c) => {
+        const align = colRightAligned(c) ? "right" : "left";
+        return `<th style="text-align:${align};padding:8px 7px;color:#fff;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;border:none;width:${c.width ?? 80}px">${escapeHtml(c.label)}</th>`;
+      })
       .join("");
     const body = (Array.isArray(rows) ? rows : [])
       .map((row) => {
         const cells = columns
           .map((c) => {
             const v = formatValue(row[c.key], c.formatter);
-            return `<td style="padding:4px;border-bottom:1px solid #eee">${escapeHtml(v)}</td>`;
+            const align = colRightAligned(c) ? "right" : "left";
+            return `<td style="padding:8px 7px;border-bottom:1px solid ${LINE_SOFT};border-left:none;border-right:none;text-align:${align};font-size:10px;vertical-align:top">${escapeHtml(v)}</td>`;
           })
           .join("");
         return `<tr>${cells}</tr>`;
       })
       .join("");
-    return `<table data-id="${escapeHtml(item.id)}" style="${pos}border-collapse:collapse;font-size:11px"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    return `<table data-id="${escapeHtml(item.id)}" style="${pos}border-collapse:collapse;table-layout:fixed;font-size:11px"><thead><tr style="background:${escapeHtml(headerBg)}">${head}</tr></thead><tbody>${body}</tbody></table>`;
   }
 
   if (item.type === "Line") {
-    return `<div data-id="${escapeHtml(item.id)}" style="${pos}height:1px;background:#333"></div>`;
+    const bg = item.style?.background ?? item.style?.color ?? "#333";
+    return `<div data-id="${escapeHtml(item.id)}" style="${pos}height:1px;background:${escapeHtml(bg)}"></div>`;
   }
 
   if (item.type === "Box") {
-    return `<div data-id="${escapeHtml(item.id)}" style="${pos}border:1px solid #333;box-sizing:border-box"></div>`;
+    const bg = item.style?.background ?? "transparent";
+    const border = item.style?.border ?? `1px solid ${LINE_SOFT}`;
+    return `<div data-id="${escapeHtml(item.id)}" style="${pos}background:${escapeHtml(bg)};border:${escapeHtml(border)};border-radius:3px;box-sizing:border-box"></div>`;
   }
 
   return "";
@@ -111,10 +150,11 @@ export function renderDocumentHtml(
   payload: Record<string, unknown>,
   opts: { interactive?: boolean; selectedId?: string | null } = {}
 ): string {
-  const pageH = definition.page.size === "Letter" ? 792 : 842;
-  const pageW = definition.page.size === "Letter" ? 612 : 595;
-  const margin = definition.page.margin ?? { top: 40, right: 40, bottom: 40, left: 40 };
-  const inner = definition.items.map((i) => renderItemHtml(i, payload, margin.left, margin.top)).join("");
+  const expanded = expandDocumentDefinition(definition);
+  const pageH = expanded.page.size === "Letter" ? 792 : 842;
+  const pageW = expanded.page.size === "Letter" ? 612 : 595;
+  const margin = expanded.page.margin ?? { top: 40, right: 40, bottom: 40, left: 40 };
+  const inner = expanded.items.map((i) => renderItemHtml(i, payload, margin.left, margin.top)).join("");
   const selectedStyle = opts.selectedId
     ? `[data-id="${escapeHtml(opts.selectedId)}"]{outline:2px solid #10b981;outline-offset:1px}`
     : "";
@@ -124,6 +164,8 @@ export function renderDocumentHtml(
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${escapeHtml(definition.name)}</title>
 <style>body{margin:0;font-family:Helvetica,Arial,sans-serif;background:#f3f3f3}
 .page{position:relative;width:${pageW}px;height:${pageH}px;margin:16px auto;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+table[data-id]{height:auto!important}
+table[data-id] th,table[data-id] td{height:auto;vertical-align:top}
 [data-id]{cursor:${opts.interactive ? "pointer" : "default"}}
 ${selectedStyle}
 </style></head><body><div class="page">${inner}</div>${clickScript}</body></html>`;
@@ -215,7 +257,8 @@ function collectDrawOps(
     if (!text) return;
     const tw = textWidth(text, fontSize, bold);
     const tx = align === "right" ? x + w - tw : align === "center" ? x + (w - tw) / 2 : x;
-    ops.push({ kind: "text", x: tx, y: y + fontSize, text, fontSize, bold });
+    const color = parseCssColor(item.style?.color) ?? undefined;
+    ops.push({ kind: "text", x: tx, y: y + fontSize, text, fontSize, bold, color });
     return;
   }
 
@@ -235,12 +278,19 @@ function collectDrawOps(
   }
 
   if (item.type === "Line") {
-    ops.push({ kind: "line", x1: x, y1: y, x2: x + w, y2: y });
+    ops.push({ kind: "line", x1: x, y1: y, x2: x + w, y2: y, width: 0.75 });
     return;
   }
 
   if (item.type === "Box") {
-    ops.push({ kind: "rect", rect: { x, y, w, h: item.placement.height ?? 20 }, stroke: true });
+    const h = item.placement.height ?? 20;
+    const fill = parseCssColor(item.style?.background) ?? undefined;
+    ops.push({
+      kind: "rect",
+      rect: { x, y, w, h },
+      fill,
+      stroke: true,
+    });
     return;
   }
 
@@ -248,24 +298,57 @@ function collectDrawOps(
     const rows = (item.binding ? getByPath(payload, item.binding.path) : []) as Record<string, unknown>[];
     const columns =
       (item.properties?.columns as { key: string; label: string; width?: number; formatter?: string }[]) ?? [];
+    const headerBg =
+      parseCssColor(String(item.properties?.headerBackground ?? ACCENT)) ??
+      parseCssColor(ACCENT)!;
     let colX = x;
     const colOffsets: number[] = [];
     for (const col of columns) {
       colOffsets.push(colX);
       colX += col.width ?? 80;
     }
-    columns.forEach((col, i) => {
-      ops.push({ kind: "text", x: colOffsets[i] + 4, y: y + 12, text: col.label, fontSize: 10, bold: true });
+    const headerH = TABLE_ROW_HEIGHT + 4;
+    ops.push({
+      kind: "rect",
+      rect: { x, y, w: colX - x, h: headerH },
+      fill: headerBg,
+      stroke: false,
     });
-    ops.push({ kind: "line", x1: x, y1: y + TABLE_ROW_HEIGHT, x2: colX, y2: y + TABLE_ROW_HEIGHT });
+    columns.forEach((col, i) => {
+      const label = col.label;
+      const colW = col.width ?? 80;
+      const tw = textWidth(label, 8, true);
+      const right = colRightAligned(col);
+      const tx = right ? colOffsets[i] + colW - 4 - tw : colOffsets[i] + 4;
+      ops.push({
+        kind: "text",
+        x: tx,
+        y: y + 12,
+        text: label,
+        fontSize: 8,
+        bold: true,
+        color: [1, 1, 1],
+      });
+    });
     const dataRows = Array.isArray(rows) ? rows : [];
     dataRows.forEach((row, rIdx) => {
-      const rowY = y + TABLE_ROW_HEIGHT * (rIdx + 1);
+      const rowY = y + headerH + TABLE_ROW_HEIGHT * rIdx;
       columns.forEach((col, i) => {
         const v = formatValue(row[col.key], col.formatter);
-        ops.push({ kind: "text", x: colOffsets[i] + 4, y: rowY + 12, text: v, fontSize: 9 });
+        const colW = col.width ?? 80;
+        const right = colRightAligned(col);
+        const tw = textWidth(v, 9);
+        const tx = right ? colOffsets[i] + colW - 4 - tw : colOffsets[i] + 4;
+        ops.push({ kind: "text", x: tx, y: rowY + 12, text: v, fontSize: 9 });
       });
-      ops.push({ kind: "line", x1: x, y1: rowY + TABLE_ROW_HEIGHT, x2: colX, y2: rowY + TABLE_ROW_HEIGHT, width: 0.5 });
+      ops.push({
+        kind: "line",
+        x1: x,
+        y1: rowY + TABLE_ROW_HEIGHT,
+        x2: colX,
+        y2: rowY + TABLE_ROW_HEIGHT,
+        width: 0.5,
+      });
     });
   }
 }
@@ -280,24 +363,7 @@ export async function renderDocument(
   input: RenderDocumentInput & { publicUrl: string }
 ): Promise<RenderDocumentResult> {
   const { assetRef, definition, payload, outputPath, publicUrl } = input;
-
-  const imageUrls = new Set<string>();
-  for (const item of definition.items) collectImageUrls(item, payload, imageUrls);
-  const resolvedImages = new Map<string, PdfImage | null>();
-  await Promise.all(
-    [...imageUrls].map(async (url) => {
-      resolvedImages.set(url, await resolveImage(url));
-    })
-  );
-
-  const margin = definition.page.margin ?? { top: 40, right: 40, bottom: 40, left: 40 };
-  const ops: DrawOp[] = [];
-  for (const item of definition.items) {
-    collectDrawOps(item, payload, margin.left, margin.top, resolvedImages, ops);
-  }
-  const pageW = definition.page.size === "Letter" ? 612 : 595;
-  const pageH = definition.page.size === "Letter" ? 792 : 842;
-  const buf = buildLayoutPdf(pageW, pageH, ops);
+  const buf = await renderDocumentPdfBytes(definition, payload);
   const checksum = createHash("sha256").update(buf).digest("hex");
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, buf);
@@ -308,6 +374,30 @@ export async function renderDocument(
     mimeType: "application/pdf",
     filePath: outputPath,
   };
+}
+
+/** Same layout as HTML preview — bytes only (Studio download / tests). */
+export async function renderDocumentPdfBytes(
+  definition: DocumentDefinition,
+  payload: Record<string, unknown>
+): Promise<Buffer> {
+  const expanded = expandDocumentDefinition(definition);
+  const imageUrls = new Set<string>();
+  for (const item of expanded.items) collectImageUrls(item, payload, imageUrls);
+  const resolvedImages = new Map<string, PdfImage | null>();
+  await Promise.all(
+    [...imageUrls].map(async (url) => {
+      resolvedImages.set(url, await resolveImage(url));
+    })
+  );
+  const margin = expanded.page.margin ?? { top: 40, right: 40, bottom: 40, left: 40 };
+  const ops: DrawOp[] = [];
+  for (const item of expanded.items) {
+    collectDrawOps(item, payload, margin.left, margin.top, resolvedImages, ops);
+  }
+  const pageW = expanded.page.size === "Letter" ? 612 : 595;
+  const pageH = expanded.page.size === "Letter" ? 792 : 842;
+  return buildLayoutPdf(pageW, pageH, ops);
 }
 
 export function fileStoreRoot(): string {

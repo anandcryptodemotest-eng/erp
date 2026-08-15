@@ -14,8 +14,16 @@ import {
   type FormDefinition,
   type WorkflowDefinition,
 } from "@erp/workflow";
-import { SO_STANDARD_FORMS } from "@/workflow-templates";
-import { CUSTOMER_BUILTIN_FORMS } from "@/lib/customer-forms";
+import {
+  hashFormDefinition,
+  type StarterUpgradeStatus,
+} from "@erp/workflow/starter-hash";
+import {
+  classifyPublishedStarter,
+  getLatestStarterBody,
+  latestStarterForms,
+  STARTER_FORM_LATEST_REVISION,
+} from "@/lib/starter-forms-registry";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma";
 
@@ -25,7 +33,7 @@ export async function ensureFormCatalogSeed(
   opts: { force?: boolean } = {}
 ) {
   if (!opts.force) return;
-  const forms = [...SO_STANDARD_FORMS, ...CUSTOMER_BUILTIN_FORMS];
+  const forms = latestStarterForms();
   for (const form of forms) {
     const formId = form.id ?? form.key;
     const existing = await prisma.workflowFormVersion.findFirst({
@@ -44,6 +52,158 @@ export async function ensureFormCatalogSeed(
       },
     });
   }
+}
+
+export type StarterUpgradeRow = {
+  formId: string;
+  status: StarterUpgradeStatus;
+  publishedVersion: number | null;
+};
+
+/**
+ * Dry-run or confirm upgrade of unmodified starter forms to latest revision.
+ * Never mutates workflow instance pinnedAssets — catalog only.
+ */
+export async function upgradeStarterForms(
+  tenantId: string,
+  opts: { dryRun?: boolean } = {}
+): Promise<{
+  dryRun: boolean;
+  latestRevision: number;
+  rows: StarterUpgradeRow[];
+  summary: {
+    eligible: number;
+    alreadyCurrent: number;
+    customized: number;
+    missing: number;
+    upgraded: number;
+  };
+}> {
+  const dryRun = opts.dryRun !== false;
+  const starters = latestStarterForms();
+  const rows: StarterUpgradeRow[] = [];
+  let upgraded = 0;
+
+  for (const starter of starters) {
+    const formId = starter.id ?? starter.key;
+    const published = await getPublishedForm(tenantId, formId);
+    const status = classifyPublishedStarter(formId, published?.definition ?? null);
+    rows.push({
+      formId,
+      status,
+      publishedVersion: published?.ref.version ?? null,
+    });
+
+    if (dryRun || status !== "eligible") continue;
+
+    const body = getLatestStarterBody(formId);
+    if (!body) continue;
+
+    const max = await prisma.workflowFormVersion.findFirst({
+      where: { tenantId, formId },
+      orderBy: { version: "desc" },
+    });
+    const nextVersion = (max?.version ?? 0) + 1;
+    const def = withFormId(body);
+
+    const created = await prisma.workflowFormVersion.create({
+      data: {
+        tenantId,
+        formId,
+        version: nextVersion,
+        lifecycle: "DRAFT",
+        name: def.title ?? formId,
+        definition: def as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    await prisma.workflowFormVersion.updateMany({
+      where: {
+        tenantId,
+        formId,
+        lifecycle: "PUBLISHED",
+        id: { not: created.id },
+      },
+      data: { lifecycle: "ARCHIVED" },
+    });
+
+    await prisma.workflowFormVersion.update({
+      where: { id: created.id },
+      data: { lifecycle: "PUBLISHED", publishedAt: new Date() },
+    });
+
+    upgraded += 1;
+    const last = rows[rows.length - 1];
+    last.publishedVersion = nextVersion;
+    last.status = "already-current";
+  }
+
+  const summary = {
+    eligible: dryRun ? rows.filter((r) => r.status === "eligible").length : 0,
+    alreadyCurrent: rows.filter((r) => r.status === "already-current").length,
+    customized: rows.filter((r) => r.status === "customized").length,
+    missing: rows.filter((r) => r.status === "missing").length,
+    upgraded,
+  };
+
+  return {
+    dryRun,
+    latestRevision: STARTER_FORM_LATEST_REVISION,
+    rows,
+    summary,
+  };
+}
+
+/**
+ * One-shot catalog override: publish latest starter body for formIds even when
+ * the published version is classified as customized (e.g. Trustwood legacy dispatch).
+ * Archives prior PUBLISHED rows. Does not mutate workflow pinnedAssets.
+ */
+export async function forcePublishStarterForms(
+  tenantId: string,
+  formIds: string[]
+): Promise<{ formId: string; version: number }[]> {
+  const published: { formId: string; version: number }[] = [];
+  for (const formId of formIds) {
+    const body = getLatestStarterBody(formId);
+    if (!body) throw new Error(`Unknown starter form: ${formId}`);
+
+    const max = await prisma.workflowFormVersion.findFirst({
+      where: { tenantId, formId },
+      orderBy: { version: "desc" },
+    });
+    const nextVersion = (max?.version ?? 0) + 1;
+    const def = withFormId(body);
+
+    const created = await prisma.workflowFormVersion.create({
+      data: {
+        tenantId,
+        formId,
+        version: nextVersion,
+        lifecycle: "DRAFT",
+        name: def.title ?? formId,
+        definition: def as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    await prisma.workflowFormVersion.updateMany({
+      where: {
+        tenantId,
+        formId,
+        lifecycle: "PUBLISHED",
+        id: { not: created.id },
+      },
+      data: { lifecycle: "ARCHIVED" },
+    });
+
+    await prisma.workflowFormVersion.update({
+      where: { id: created.id },
+      data: { lifecycle: "PUBLISHED", publishedAt: new Date() },
+    });
+
+    published.push({ formId, version: nextVersion });
+  }
+  return published;
 }
 
 export async function listFormVersions(
@@ -148,7 +308,6 @@ export async function resolveAndValidateWorkflowForms(
       formId = a.formKey.replace(/_form$/, "").replace(/_/g, "-");
     }
     if (!formId) {
-      // try embedded forms[]
       const embedded = (def.forms ?? []).find((f) => f.key === a.formKey);
       if (embedded) {
         formId = embedded.id ?? embedded.key.replace(/_form$/, "").replace(/_/g, "-");
@@ -163,7 +322,11 @@ export async function resolveAndValidateWorkflowForms(
       continue;
     }
 
-    const published = await getPublishedForm(tenantId, formId, wantVersion);
+    // Prefer pinned version; if archived after starter upgrade, fall back to latest PUBLISHED.
+    let published = await getPublishedForm(tenantId, formId, wantVersion);
+    if (!published && wantVersion != null) {
+      published = await getPublishedForm(tenantId, formId);
+    }
     if (!published) {
       errors.push({
         code: "FORM_ASSET_UNPUBLISHED",
@@ -239,3 +402,11 @@ export async function getFormReferencedBy(tenantId: string, formId: string) {
     orderBy: [{ consumerId: "asc" }, { consumerVersion: "desc" }],
   });
 }
+
+/** Test helper — hash of a form body using the same canonicalization as upgrade. */
+export function starterContentHash(def: FormDefinition): string {
+  return hashFormDefinition(def);
+}
+
+// Re-export status type for API consumers
+export type { StarterUpgradeStatus };

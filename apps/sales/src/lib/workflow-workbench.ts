@@ -6,6 +6,7 @@
 import { prisma } from "@/lib/prisma";
 import { resolveStepUiFromSnapshot } from "@/lib/form-ui";
 import { syncTaskReadiness } from "@/lib/workflow-runtime-v5";
+import { buildWorkbenchWorkItems } from "@/lib/workflow-work-items";
 import type { Prisma } from "@/generated/prisma";
 import {
   WorkflowAuthError,
@@ -104,13 +105,14 @@ export async function getWorkbenchForRole(input: {
   };
   if (input.mineOnly && input.userId) {
     where.assignedUserId = input.userId;
+  } else if (
+    ["ADMIN", "MANAGER", "ORG_ADMIN", "SUPER_ADMIN", "BRANCH_ADMIN"].includes(input.role)
+  ) {
+    // Platform admins see all roles' work (ops summary / desk persona not set)
+  } else if (rolesMatch("SALES_EXECUTIVE", input.role) || rolesMatch("SALES_REP", input.role)) {
+    where.assignedRole = { in: ["SALES_EXECUTIVE", "SALES_REP"] };
   } else {
-    // Include sales alias roles so SALES_REP sees SALES_EXECUTIVE tasks
-    if (rolesMatch("SALES_EXECUTIVE", input.role) || rolesMatch("SALES_REP", input.role)) {
-      where.assignedRole = { in: ["SALES_EXECUTIVE", "SALES_REP"] };
-    } else {
-      where.assignedRole = input.role;
-    }
+    where.assignedRole = input.role;
   }
 
   const tasks = await prisma.workflowTask.findMany({
@@ -173,5 +175,37 @@ export async function getWorkbenchForRole(input: {
     orders: new Set(enriched.map((t) => t.salesOrderId)).size,
   };
 
-  return { tasks: enriched, summary };
+  const workItems = buildWorkbenchWorkItems(
+    enriched.map((t) => ({
+      id: t.id,
+      stepKey: t.stepKey,
+      action: t.action,
+      title: t.title,
+      status: t.status,
+      assignedRole: t.assignedRole,
+      kind: t.kind,
+      salesOrderId: t.salesOrderId,
+      dueAt: t.dueAt,
+      blockedBy: t.blockedBy,
+      ui: t.ui,
+      order: {
+        id: t.order.id,
+        orderNumber: t.order.orderNumber,
+        status: t.order.status,
+        customer: t.order.customer,
+        items: t.order.items,
+        salesRequest: t.order.salesRequest,
+      },
+    })),
+    input.role
+  );
+
+  const workItemSummary = {
+    pending: workItems.filter((w) => w.status === "READY").length,
+    inProgress: workItems.filter((w) => w.status === "CLAIMED" || w.status === "IN_PROGRESS").length,
+    overdue: workItems.filter((w) => w.dueAt && new Date(w.dueAt).getTime() < Date.now()).length,
+    orders: new Set(workItems.map((w) => w.salesOrderId)).size,
+  };
+
+  return { tasks: enriched, workItems, summary: workItemSummary, taskSummary: summary };
 }

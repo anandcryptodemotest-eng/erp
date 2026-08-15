@@ -78,3 +78,11 @@ test("Free plan features hide Order Desk from ADMIN", () => {
   assert.equal(canAccessModule(allowed, "order_desk"), false);
   assert.equal(canAccessModule(allowed, "products"), false);
 });
+
+test("Messages (communication) survives plan feature intersection", () => {
+  const free = resolveNavModules("ADMIN", null, null, ["dashboard", "organization", "users"]);
+  assert.equal(canAccessModule(free, "communication"), true);
+  const oms = resolveNavModules("SALES_EXECUTIVE", null, null, ["dashboard", "oms"]);
+  assert.equal(canAccessModule(oms, "communication"), true);
+  assert.equal(canAccessModule(oms, "order_desk"), true);
+});

@@ -2,7 +2,7 @@
 
 import { cn } from "../utils";
 
-/** @maturity beta — formats number or passes through preformatted label */
+/** @maturity beta — prefer preformatted labels from formatPortalPrice; never show ₹0 */
 export function PriceDisplay({
   amount,
   className,
@@ -18,10 +18,26 @@ export function PriceDisplay({
   if (amount == null || amount === "") {
     return <span className={cn("text-[var(--ink-soft)]", className)}>—</span>;
   }
+  if (typeof amount === "number") {
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return (
+        <span className={cn("font-semibold text-[var(--ink-soft)]", size === "sm" && "text-sm", className)}>
+          Price on request
+        </span>
+      );
+    }
+  }
   const text =
     typeof amount === "number"
       ? `₹${amount.toLocaleString("en-IN")}`
       : String(amount);
+  if (/^₹\s*0(\.0+)?$/i.test(text.trim()) || text.trim() === "₹0") {
+    return (
+      <span className={cn("font-semibold text-[var(--ink-soft)]", size === "sm" && "text-sm", className)}>
+        Price on request
+      </span>
+    );
+  }
   return (
     <span
       className={cn(

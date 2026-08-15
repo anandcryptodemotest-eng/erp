@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import type { WidgetProps } from "../types";
+import { buildInvoicesOutstandingHref, buildOutstandingInvoiceHref } from "../charts/hrefs";
 import { WidgetShell, WidgetEmpty, WidgetError } from "./shell";
 
 type DeliveryReport = {
@@ -75,21 +76,25 @@ export function OutstandingInvoicesWidget({ fetchData }: WidgetProps) {
   if (error) return <WidgetError message={error} />;
   const inv = data?.invoices;
   const stats = [
-    { label: "Outstanding", value: money(inv?.outstanding) },
-    { label: "Invoices", value: String(inv?.count ?? 0) },
-    { label: "Mismatches", value: String(inv?.discrepancies?.length ?? 0) },
+    { label: "Outstanding", value: money(inv?.outstanding), href: buildOutstandingInvoiceHref("all") },
+    { label: "Invoices", value: String(inv?.count ?? 0), href: buildInvoicesOutstandingHref() },
+    { label: "Mismatches", value: String(inv?.discrepancies?.length ?? 0), href: buildOutstandingInvoiceHref("all") },
   ];
   return (
-    <WidgetShell title="Outstanding invoices" subtitle="Open receivables" style={{ height: "100%" }}>
+    <WidgetShell title="Outstanding invoices" subtitle="Open receivables — click to collect" style={{ height: "100%" }}>
       {!data ? (
         <WidgetEmpty message="Loading…" />
       ) : (
         <div className="flex h-full flex-col justify-center gap-3">
           {stats.map((c) => (
-            <div key={c.label} className="flex items-center justify-between rounded-lg bg-[var(--mist,#f4f6f5)] px-4 py-3">
+            <a
+              key={c.label}
+              href={c.href}
+              className="flex items-center justify-between rounded-lg bg-[var(--mist,#f4f6f5)] px-4 py-3 transition-colors hover:bg-[color-mix(in_srgb,var(--brand)_12%,var(--mist))]"
+            >
               <span className="text-sm text-[var(--ink-soft,#666)]">{c.label}</span>
               <span className="font-semibold text-[var(--ink,#1a1a1a)]">{c.value}</span>
-            </div>
+            </a>
           ))}
         </div>
       )}

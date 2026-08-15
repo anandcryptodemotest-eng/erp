@@ -1,12 +1,12 @@
 # Tenant GST — E2E validation checklist
 
-Generated: 2026-08-14T11:34:03.530Z
+Generated: 2026-08-15T14:04:11.139Z
 Score: **39/39**
 
 | Section | Check | Status | Detail |
 |---------|-------|--------|--------|
 | Platform | operator login | PASS |  |
-| NonGST | tenant gst-none-mssvcvfa | PASS |  |
+| NonGST | tenant gst-none-msug5sin | PASS |  |
 | NonGST | tax.regime=NONE | PASS |  |
 | NonGST | NONE forces UNREGISTERED scheme | PASS | scheme=UNREGISTERED |
 | NonGST | product with taxRate (ignored when NONE) | PASS |  |
@@ -14,8 +14,8 @@ Score: **39/39**
 | NonGST | Quick Bill commercial | PASS |  |
 | NonGST | documentKind=COMMERCIAL | PASS | got COMMERCIAL |
 | NonGST | tax forced 0% | PASS | tax=0 |
-| NonGST | PDF url present | PASS | /api/invoices/cmssvcx4v000xpi012f533rcr/pdf |
-| GST | tenant gst-reg-mssvcvfa | PASS |  |
+| NonGST | PDF url present | PASS | /api/invoices/cmsug5u9b000dlo015xq19023/pdf |
+| GST | tenant gst-reg-msug5sin | PASS |  |
 | GST | tax profile IN_GST Regular | PASS |  |
 | GST | reject invalid GSTIN checksum | PASS | status=400 Invalid GSTIN checksum |
 | GST | product taxRate 18% | PASS |  |
@@ -32,9 +32,9 @@ Score: **39/39**
 | GST | B2B IGST inter-state | PASS | igst=360 cgst=0 |
 | GST | B2B total 2360 | PASS | total=2360 |
 | GST | snapshot immutability after product 18→12 | PASS | status=200 tax=360 |
-| EInvoice | Generate IRN sandbox | PASS | irn=SANDBOX-5D0342FC66A2… |
+| EInvoice | Generate IRN sandbox | PASS | irn=SANDBOX-2CBA2516877C… |
 | EInvoice | Cancel IRN → CANCELLED | PASS |  |
-| EWay | Generate e-way sandbox | PASS | no=EWBD69807DF3F62 |
+| EWay | Generate e-way sandbox | PASS | no=EWB0DAF0CD3E3F3 |
 | EWay | Cancel e-way | PASS |  |
 | EWay | Commercial bill rejects e-way | PASS | status=400 |
 | GSTR1 | export JSON | PASS | count=2 b2b=1 b2c=1 |

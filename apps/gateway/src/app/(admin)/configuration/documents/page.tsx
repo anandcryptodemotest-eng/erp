@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/admin-api";
 import { Button, PageScaffold, StatusBadge } from "@erp/ui";
-import type { DocumentDefinition } from "@erp/documents";
+import { blankDocumentDefinition, type DocumentDefinition } from "@erp/documents";
 
 type DocRow = {
   id: string;
@@ -76,6 +76,10 @@ export default function DocumentsCatalogPage() {
           documentId: `doc-${Date.now().toString(36)}`,
           name: "New document",
           documentType: "INVOICE",
+          definition: blankDocumentDefinition({
+            name: "New document",
+            documentType: "INVOICE",
+          }),
         }),
       });
       if (r.data?.id) router.push(`/configuration/documents/${r.data.id}`);
@@ -177,7 +181,7 @@ export default function DocumentsCatalogPage() {
               {latest.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-3 py-8 text-center text-sm text-[var(--ink-soft)]">
-                    No documents yet — seed the Tax Invoice starter.
+                    No documents yet — New draft starts a blank page. Seed Tax Invoice only if you want the sample layout.
                   </td>
                 </tr>
               )}

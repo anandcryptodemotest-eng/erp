@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { createLogger, contextFromHeaders, runWithRequestContextAsync } from "@erp/logger";
-import { prisma } from "@/lib/prisma";
-import { getDefaultWorkflow } from "@/lib/order-workflow";
-import { startSalesOrderWorkflowV5, getPublishedDefinition } from "@/lib/workflow-runtime-v5";
-import { notifyPortalCustomer } from "@/lib/notify-customer";
-import { assertSaasEntitlement } from "@/lib/assert-saas-entitlement";
 import { withSpan, recordEvent, captureException } from "@erp/telemetry/helpers";
-import { serviceClient } from "@erp/config";
-import type { Prisma } from "@/generated/prisma";
+import { assertSaasEntitlement } from "@/lib/assert-saas-entitlement";
+import {
+  createConfirmedSalesOrder,
+  CreateConfirmedSalesOrderError,
+  jsonError,
+} from "@/lib/create-confirmed-sales-order";
+import { FulfilmentSourceError } from "@/lib/fulfilment-source";
+import { notifyPortalCustomer } from "@/lib/notify-customer";
+import { prisma } from "@/lib/prisma";
 
 const log = createLogger({ service: "sales" });
 
@@ -19,11 +21,6 @@ const CONVERT_ROLES = new Set([
   "BRANCH_ADMIN",
   "SALES_EXECUTIVE",
 ]);
-
-async function nextOrderNumber(tenantId: string, tx: { salesOrder: { count: typeof prisma.salesOrder.count } }) {
-  const count = await tx.salesOrder.count({ where: { tenantId } });
-  return `SO-${String(count + 1).padStart(5, "0")}`;
-}
 
 // POST /api/sales-requests/:id/convert — SREQ → SO (CONFIRMED) + v5 snapshot workflow
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -50,216 +47,32 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
       const { id } = await params;
 
-      const published = await getPublishedDefinition(tenantId);
-      const warehouses = await serviceClient.call<{ data?: { id: string }[] } | { id: string }[]>(
-        "inventory",
-        "/api/warehouses?limit=1",
-        { method: "GET", tenantId, userId }
-      );
-      const whBody = warehouses.data;
-      const warehouseId = Array.isArray(whBody)
-        ? whBody[0]?.id
-        : whBody && "data" in whBody
-          ? whBody.data?.[0]?.id
-          : undefined;
-      if (!published) {
-        log.warn("convert_blocked_no_template", { tenantId, sreqId: id });
-        return NextResponse.json(
-          {
-            error:
-              "No published SO_STANDARD workflow template. Open Configuration → Workflows and publish before converting.",
-          },
-          { status: 409 }
-        );
-      }
-
       try {
-        const defaultWf = await getDefaultWorkflow(tenantId);
-
-        const result = await prisma.$transaction(async (tx) => {
-          // Row lock — concurrent converts cannot both create an SO
-          await tx.$executeRaw`
-            SELECT id FROM "SalesRequest"
-            WHERE id = ${id} AND "tenantId" = ${tenantId}
-            FOR UPDATE
-          `;
-
-          const sreq = await tx.salesRequest.findFirst({
-            where: { id, tenantId },
-            include: { items: true, customer: true },
-          });
-          if (!sreq) {
-            return { kind: "not_found" as const };
-          }
-
-          // Idempotent: already converted → return existing SO (no second create)
-          if (sreq.salesOrderId) {
-            const existing = await tx.salesOrder.findFirst({
-              where: { id: sreq.salesOrderId, tenantId },
-              include: { items: true, customer: { select: { id: true, name: true } } },
-            });
-            const updatedReq = await tx.salesRequest.findFirst({
-              where: { id: sreq.id },
-              include: {
-                items: true,
-                salesOrder: {
-                  select: {
-                    id: true,
-                    orderNumber: true,
-                    status: true,
-                    paymentStatus: true,
-                    total: true,
-                  },
-                },
-              },
-            });
-            return {
-              kind: "already" as const,
-              order: existing,
-              updatedReq,
-              sreq,
-            };
-          }
-
-          if (sreq.status !== "OPEN") {
-            return { kind: "bad_status" as const, status: sreq.status };
-          }
-          if (sreq.customer.isBlocked) {
-            return {
-              kind: "blocked" as const,
-              reason: sreq.customer.blockedReason ?? "contact support",
-            };
-          }
-
-          // Credit exposure: outstanding AR + this SREQ total vs creditLimit
-          if (sreq.customer.creditLimit > 0) {
-            const credit = await serviceClient.call<{
-              data: { outstanding: number; projected: number };
-            }>("accounting", "/api/ar/credit-check", {
-              method: "POST",
-              tenantId,
-              userId,
-              body: { customerId: sreq.customerId, additionalAmount: sreq.total },
-            });
-            const projected = credit.data?.data?.projected;
-            const outstanding = credit.data?.data?.outstanding;
-            if (typeof projected === "number" && projected > sreq.customer.creditLimit) {
-              return {
-                kind: "credit" as const,
-                outstanding,
-                limit: sreq.customer.creditLimit,
-                projected,
-              };
-            }
-          }
-
-          const orderNumber = await nextOrderNumber(tenantId, tx);
-          const order = await tx.salesOrder.create({
-            data: {
-              tenantId,
-              orderNumber,
-              customerId: sreq.customerId,
-              userId,
-              workflowId: defaultWf?.id,
-              warehouseId: warehouseId ?? undefined,
-              date: new Date(),
-              status: "CONFIRMED",
-              isOnlineOrder: sreq.isOnlineOrder,
-              deliveryAddressId: sreq.deliveryAddressId,
-              deliveryAddressText: sreq.deliveryAddressText,
-              deliveryFee: sreq.deliveryFee,
-              paymentMethod: sreq.paymentMethod,
-              paymentStatus: sreq.paymentStatus,
-              couponId: sreq.couponId,
-              couponDiscount: sreq.couponDiscount,
-              subtotal: sreq.subtotal,
-              tax: sreq.tax,
-              total: sreq.total,
-              notes: sreq.notes,
-              items: {
-                create: sreq.items.map((i) => ({
-                  productId: i.productId,
-                  productName: i.productName,
-                  variantId: i.variantId,
-                  quantity: i.quantity,
-                  unitPrice: i.unitPrice,
-                  taxRate: i.taxRate,
-                  taxTreatment: i.taxTreatment,
-                  total: i.total,
-                  customSnapshot: (i.customSnapshot ?? undefined) as Prisma.InputJsonValue | undefined,
-                })),
-              },
-              modifications: {
-                create: {
-                  tenantId,
-                  userId,
-                  action: "STATUS_CHANGE",
-                  field: "status",
-                  oldValue: "SREQ",
-                  newValue: "CONFIRMED",
-                  remarks: `Converted from ${sreq.requestNumber}`,
-                },
-              },
-            },
-            include: { items: true, customer: { select: { id: true, name: true } } },
-          });
-
-          const updatedReq = await tx.salesRequest.update({
-            where: { id: sreq.id },
-            data: {
-              status: "CONVERTED",
-              salesOrderId: order.id,
-              convertedAt: new Date(),
-              convertedBy: userId,
-            },
-            include: {
-              items: true,
-              salesOrder: {
-                select: {
-                  id: true,
-                  orderNumber: true,
-                  status: true,
-                  paymentStatus: true,
-                  total: true,
-                },
-              },
-            },
-          });
-
-          return { kind: "created" as const, order, updatedReq, sreq };
+        const result = await createConfirmedSalesOrder({
+          tenantId,
+          userId,
+          sourceKind: "SREQ",
+          salesRequestId: id,
         });
 
-        if (result.kind === "not_found") {
-          return NextResponse.json({ error: "Sales request not found" }, { status: 404 });
-        }
-        if (result.kind === "bad_status") {
-          return NextResponse.json(
-            { error: `Request is ${result.status}, cannot convert` },
-            { status: 409 }
-          );
-        }
-        if (result.kind === "blocked") {
-          return NextResponse.json(
-            { error: `Customer is blocked: ${result.reason}` },
-            { status: 403 }
-          );
-        }
-        if (result.kind === "credit") {
-          return NextResponse.json(
-            {
-              error: `Credit limit exceeded: outstanding ₹${result.outstanding ?? 0} + order would be ₹${result.projected} (limit ₹${result.limit})`,
-              code: "CREDIT_LIMIT",
-              outstanding: result.outstanding,
-              projected: result.projected,
-              limit: result.limit,
+        const updatedReq = await prisma.salesRequest.findFirst({
+          where: { id, tenantId },
+          include: {
+            items: true,
+            customer: true,
+            salesOrder: {
+              select: {
+                id: true,
+                orderNumber: true,
+                status: true,
+                paymentStatus: true,
+                total: true,
+              },
             },
-            { status: 403 }
-          );
-        }
-        if (result.kind === "already") {
-          if (!result.order || !result.updatedReq) {
-            return NextResponse.json({ error: "Request already converted" }, { status: 409 });
-          }
+          },
+        });
+
+        if (result.alreadyExisted) {
           log.info("sreq_convert_idempotent", {
             tenantId,
             sreqId: id,
@@ -269,7 +82,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           return NextResponse.json(
             {
               data: {
-                salesRequest: result.updatedReq,
+                salesRequest: updatedReq,
                 salesOrder: result.order,
                 soStatus: result.order.status,
                 soNumber: result.order.orderNumber,
@@ -280,65 +93,29 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           );
         }
 
-        if (!result.order.workflowId) {
-          log.error("convert_missing_workflow", { orderId: result.order.id, tenantId });
-          return NextResponse.json({ error: "Order missing workflow binding" }, { status: 500 });
-        }
-
-        if (warehouseId && result.order.items?.length) {
-          const reserve = await serviceClient.call("inventory", "/api/stock/reserve", {
-            method: "POST",
-            tenantId,
-            userId,
-            body: {
-              reference: result.order.id,
-              items: result.order.items.map((item) => ({
-                productId: item.productId,
-                warehouseId,
-                variantId: item.variantId ?? undefined,
-                quantity: item.quantity,
-              })),
-            },
-          });
-          if (reserve.status !== 201 && reserve.status !== 200) {
-            log.warn("convert_stock_reserve_failed", {
-              tenantId,
-              orderId: result.order.id,
-              status: reserve.status,
-              error: reserve.error,
-            });
-          }
-        }
-
-        await startSalesOrderWorkflowV5({
-          tenantId,
-          salesOrderId: result.order.id,
-          workflowId: result.order.workflowId,
-          orderStatus: result.order.status,
-        });
         recordEvent("WorkflowStarted", {
           orderId: result.order.id,
           tenantId,
-          sreqId: result.sreq.id,
+          sreqId: id,
         });
 
         log.info("sreq_converted", {
           tenantId,
           userId,
-          sreqId: result.sreq.id,
+          sreqId: id,
           orderId: result.order.id,
           orderNumber: result.order.orderNumber,
         });
 
         await notifyPortalCustomer({
           tenantId,
-          portalUserId: result.sreq.customer.portalUserId,
+          portalUserId: result.order.customer.portalUserId,
           type: "ORDER_UPDATED",
           title: "Sales order created",
-          body: `${result.sreq.requestNumber} converted to ${result.order.orderNumber}. Fulfillment has started.`,
+          body: `${updatedReq?.requestNumber ?? "Request"} converted to ${result.order.orderNumber}. Fulfillment has started.`,
           metadata: {
-            salesRequestId: result.sreq.id,
-            requestNumber: result.sreq.requestNumber,
+            salesRequestId: id,
+            requestNumber: updatedReq?.requestNumber,
             orderId: result.order.id,
             orderNumber: result.order.orderNumber,
           },
@@ -347,7 +124,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         return NextResponse.json(
           {
             data: {
-              salesRequest: result.updatedReq,
+              salesRequest: updatedReq,
               salesOrder: result.order,
               soStatus: result.order.status,
               soNumber: result.order.orderNumber,
@@ -356,6 +133,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           { status: 201 }
         );
       } catch (error) {
+        if (error instanceof FulfilmentSourceError || error instanceof CreateConfirmedSalesOrderError) {
+          const mapped = jsonError(error);
+          return NextResponse.json(mapped.body, { status: mapped.status });
+        }
         captureException(error, { message: "convert_failed", tenantId, sreqId: id });
         const message =
           error instanceof Error

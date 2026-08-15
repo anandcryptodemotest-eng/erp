@@ -70,13 +70,17 @@ export const services: Record<ModuleId, ModuleInfo> = {
     subdomain: "delivery",
     dependencies: ["core", "sales", "hr"],
   },
+  /**
+   * Nav/license ModuleId only — not a deployed process.
+   * Chat APIs live on Gateway :3010 (ADR 0017 / 0020). Port 3008 is POS.
+   */
   communication: {
     id: "communication",
-    name: "Communication",
-    description: "Tenant messaging, conversations, presence, and notifications",
-    port: 3008,
+    name: "Communication (Gateway-hosted)",
+    description: "Capability id for Messages nav. Not apps/communication. APIs on Gateway.",
+    port: 3010,
     healthEndpoint: "/health/live",
-    subdomain: "communication",
+    subdomain: "app",
     dependencies: ["core"],
   },
 };

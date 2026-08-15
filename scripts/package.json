@@ -9,6 +9,7 @@
     "e2e:greenfield": "tsx e2e-greenfield.ts",
     "e2e:gst": "tsx e2e-gst-tenants.ts",
     "e2e:saas": "tsx e2e-saas-billing.ts",
+    "e2e:capture": "tsx e2e-capture-channels.ts",
     "seed:demo": "tsx seed-client-demo.ts",
     "clear:catalog": "tsx clear-demo-catalog.ts"
   },

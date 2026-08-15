@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button, EmptyState, PageScaffold, Skeleton, StatusBadge } from "@erp/ui";
 import { api, openAuthenticatedDocument } from "@/lib/admin-api";
 import LeadToCashGuide from "@/components/LeadToCashGuide";
@@ -21,6 +22,16 @@ interface Invoice {
 }
 
 export default function InvoicesPage() {
+  return (
+    <Suspense fallback={<PageScaffold hero={{ title: "Invoices" }}><Skeleton className="h-40 w-full" /></PageScaffold>}>
+      <InvoicesInner />
+    </Suspense>
+  );
+}
+
+function InvoicesInner() {
+  const searchParams = useSearchParams();
+  const statusFilter = (searchParams.get("status") ?? "").trim().toLowerCase();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
@@ -28,6 +39,22 @@ export default function InvoicesPage() {
   const [payAmount, setPayAmount] = useState("");
   const [payMethod, setPayMethod] = useState("BANK_TRANSFER");
   const [payDate, setPayDate] = useState(new Date().toISOString().slice(0, 10));
+
+  const visible = useMemo(() => {
+    if (statusFilter === "outstanding") {
+      return invoices.filter(
+        (inv) =>
+          inv.status !== "DRAFT" &&
+          inv.status !== "CANCELLED" &&
+          inv.status !== "PAID" &&
+          Number(inv.total) - Number(inv.paidAmount) > 0.001
+      );
+    }
+    if (statusFilter) {
+      return invoices.filter((inv) => inv.status.toLowerCase() === statusFilter);
+    }
+    return invoices;
+  }, [invoices, statusFilter]);
 
   async function load() {
     setLoading(true);
@@ -107,8 +134,15 @@ export default function InvoicesPage() {
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />
         </div>
-      ) : invoices.length === 0 ? (
-        <EmptyState title="No invoices yet" subtitle="Invoices appear after fulfilment on Order Desk." />
+      ) : visible.length === 0 ? (
+        <EmptyState
+          title={statusFilter ? "No matching invoices" : "No invoices yet"}
+          subtitle={
+            statusFilter === "outstanding"
+              ? "No open balances in this list."
+              : "Invoices appear after fulfilment on Order Desk."
+          }
+        />
       ) : (
         <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] shadow-[var(--shadow-1)]">
           <table className="w-full text-sm">
@@ -122,7 +156,7 @@ export default function InvoicesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--line)]">
-              {invoices.map((inv) => {
+              {visible.map((inv) => {
                 const party = inv.entityName ?? inv.customer?.name ?? inv.vendor?.name ?? "—";
                 const remaining = inv.total - (inv.paidAmount ?? 0);
                 return (

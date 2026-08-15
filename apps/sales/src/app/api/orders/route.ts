@@ -12,12 +12,31 @@ import {
 import { z } from "zod";
 import type { Prisma } from "@/generated/prisma";
 import { assertSaasEntitlement } from "@/lib/assert-saas-entitlement";
+import {
+  createConfirmedSalesOrder,
+  CreateConfirmedSalesOrderError,
+  jsonError,
+} from "@/lib/create-confirmed-sales-order";
+import { FulfilmentSourceError } from "@/lib/fulfilment-source";
 
 const log = createLogger({ service: "sales" });
 
+const WALK_IN_ROLES = new Set([
+  "ADMIN",
+  "MANAGER",
+  "ORG_ADMIN",
+  "SUPER_ADMIN",
+  "BRANCH_ADMIN",
+  "SALES_EXECUTIVE",
+]);
+
 const createOrderSchema = z.object({
+  sourceKind: z.enum(["WALK_IN", "SREQ", "QUOTE"]).optional(),
   customerId: z.string().optional(),
   quoteId: z.string().optional(),
+  salesRequestId: z.string().optional(),
+  walkInName: z.string().optional(),
+  walkInPhone: z.string().optional(),
   warehouseId: z.string().optional(),
   date: z.string().optional(),
   notes: z.string().optional(),
@@ -82,7 +101,7 @@ export async function GET(request: Request) {
   return NextResponse.json({ data: orders, meta: { page, limit, total, pages: Math.ceil(total / limit) } });
 }
 
-// POST /api/orders — staff / quote conversion only (portal uses POST /api/sales-requests)
+// POST /api/orders — staff DRAFT or walk-in CONFIRMED (portal uses POST /api/sales-requests; quotes use /convert)
 export async function POST(request: Request) {
   const tenantId = request.headers.get("x-tenant-id");
   const userId = request.headers.get("x-user-id");
@@ -118,6 +137,45 @@ export async function POST(request: Request) {
 
     const data = createOrderSchema.parse(body);
 
+    if (data.quoteId || data.sourceKind === "QUOTE") {
+      return NextResponse.json(
+        { error: "Quote conversion uses POST /api/quotes/:id/convert" },
+        { status: 400 }
+      );
+    }
+    if (data.salesRequestId || data.sourceKind === "SREQ") {
+      return NextResponse.json(
+        { error: "SREQ conversion uses POST /api/sales-requests/:id/convert" },
+        { status: 400 }
+      );
+    }
+
+    if (data.sourceKind === "WALK_IN") {
+      if (!role || !WALK_IN_ROLES.has(role)) {
+        return NextResponse.json({ error: "Only sales staff can create walk-in orders" }, { status: 403 });
+      }
+      try {
+        const result = await createConfirmedSalesOrder({
+          tenantId,
+          userId,
+          sourceKind: "WALK_IN",
+          customerId: data.customerId,
+          walkInName: data.walkInName,
+          walkInPhone: data.walkInPhone,
+          warehouseId: data.warehouseId,
+          notes: data.notes,
+          items: data.items,
+        });
+        return NextResponse.json({ data: result.order }, { status: 201 });
+      } catch (error) {
+        if (error instanceof FulfilmentSourceError || error instanceof CreateConfirmedSalesOrderError) {
+          const mapped = jsonError(error);
+          return NextResponse.json(mapped.body, { status: mapped.status });
+        }
+        throw error;
+      }
+    }
+
     const customerId = data.customerId;
     if (!customerId) {
       return NextResponse.json({ error: "customerId is required" }, { status: 400 });
@@ -139,18 +197,28 @@ export async function POST(request: Request) {
       deliveryFee: data.deliveryFee,
     });
 
+    const published = await getPublishedDefinition(tenantId);
+    const defaultWf = await getDefaultWorkflow(tenantId);
+    if (!published || !defaultWf?.id) {
+      return NextResponse.json(
+        {
+          error:
+            "No published SO_STANDARD workflow template. Publish in Configuration → Workflows before creating orders.",
+        },
+        { status: 409 }
+      );
+    }
+
     const count = await prisma.salesOrder.count({ where: { tenantId } });
     const orderNumber = `SO-${String(count + 1).padStart(5, "0")}`;
-    const defaultWf = await getDefaultWorkflow(tenantId);
 
     const order = await prisma.salesOrder.create({
       data: {
         tenantId,
         orderNumber,
         customerId,
-        quoteId: data.quoteId,
         warehouseId: data.warehouseId,
-        workflowId: defaultWf?.id,
+        workflowId: defaultWf.id,
         userId,
         date: new Date(data.date ?? new Date().toISOString()),
         status: "DRAFT",
@@ -187,20 +255,10 @@ export async function POST(request: Request) {
       },
     });
 
-    const published = await getPublishedDefinition(tenantId);
-    if (!published || !order.workflowId) {
-      return NextResponse.json(
-        {
-          error:
-            "No published SO_STANDARD workflow template. Publish in Configuration → Workflows before creating orders.",
-        },
-        { status: 409 }
-      );
-    }
     await startSalesOrderWorkflowV5({
       tenantId,
       salesOrderId: order.id,
-      workflowId: order.workflowId,
+      workflowId: defaultWf.id,
       orderStatus: order.status,
     });
 

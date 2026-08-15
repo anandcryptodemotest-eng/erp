@@ -4,7 +4,7 @@ import { cn } from "../utils";
 export type WorkspaceHeroProps = {
   eyebrow?: string;
   title: string;
-  description?: string;
+  description?: ReactNode;
   badge?: ReactNode;
   actions?: ReactNode;
   className?: string;

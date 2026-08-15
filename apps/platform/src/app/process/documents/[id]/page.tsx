@@ -6,12 +6,13 @@ import { useParams, useRouter } from "next/navigation";
 import { Shell } from "@/components/Shell";
 import {
   api,
+  downloadAuthenticatedDocument,
   getAccessToken,
   getProcessTenant,
   type ProcessTenantRef,
 } from "@/lib/api";
 import type { DocumentDefinition } from "@erp/documents";
-import { DocumentDesigner } from "@erp/document-designer";
+import { DocumentStudio, patchStudio, type SimulateFeed } from "@erp/document-designer";
 
 type DocRow = {
   id: string;
@@ -34,8 +35,12 @@ export default function PlatformDocumentStudioPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [studioKey, setStudioKey] = useState(0);
+  const [feed, setFeed] = useState<SimulateFeed>({ kind: "sample" });
+  const [invoices, setInvoices] = useState<{ id: string; number: string }[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const definitionRef = useRef<DocumentDefinition | null>(null);
+  const feedRef = useRef(feed);
+  feedRef.current = feed;
 
   useEffect(() => {
     if (!getAccessToken()) {
@@ -71,6 +76,16 @@ export default function PlatformDocumentStudioPage() {
     if (tenant?.id) void load();
   }, [tenant, load]);
 
+  useEffect(() => {
+    const t = getProcessTenant();
+    if (!t?.id) return;
+    void api<{ data: { id: string; number: string }[] }>(`/api/invoices?type=RECEIVABLE&limit=30`, {
+      headers: { "x-tenant-id": t.id },
+    })
+      .then((r) => setInvoices(r.data ?? []))
+      .catch(() => setInvoices([]));
+  }, [tenant?.id]);
+
   const readOnly = row?.lifecycle !== "DRAFT";
 
   const runPreview = useCallback(
@@ -83,7 +98,7 @@ export default function PlatformDocumentStudioPage() {
           {
             method: "POST",
             headers: { "x-tenant-id": t.id },
-            body: JSON.stringify({ definition: def, interactive: false }),
+            body: JSON.stringify({ definition: def, interactive: false, feed: feedRef.current }),
           }
         );
         setPreviewHtml(r.data?.html ?? "");
@@ -107,6 +122,11 @@ export default function PlatformDocumentStudioPage() {
   useEffect(() => {
     if (definition) void runPreview(definition);
   }, [studioKey]); // eslint-disable-line react-hooks/exhaustive-deps -- preview on load only
+
+  useEffect(() => {
+    const def = definitionRef.current;
+    if (def) void runPreview(def);
+  }, [feed, runPreview]);
 
   async function save() {
     const t = getProcessTenant();
@@ -166,6 +186,30 @@ export default function PlatformDocumentStudioPage() {
     }
   }
 
+  async function downloadPdf() {
+    const t = getProcessTenant();
+    const def = definitionRef.current;
+    if (!t?.id || !def) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const stem = (def.name || "document").replace(/[^\w.-]+/g, "-");
+      const suffix = feed.kind === "invoice" ? "live" : "sample";
+      await downloadAuthenticatedDocument(
+        `/api/workflow-documents/${id}?action=pdf`,
+        `${stem}-${suffix}.pdf`,
+        {
+          headers: { "x-tenant-id": t.id },
+          body: JSON.stringify({ definition: def, feed: feedRef.current }),
+        }
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Download failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <Shell>
       <div className="flex min-h-[calc(100vh-4rem)] flex-col">
@@ -192,6 +236,17 @@ export default function PlatformDocumentStudioPage() {
               </button>
             ) : (
               <>
+                <button
+                  type="button"
+                  className="rounded border px-3 py-1.5 text-xs font-semibold"
+                  disabled={busy}
+                  onClick={() => {
+                    const def = definitionRef.current;
+                    if (def) onDefinitionChange(patchStudio(def, { tab: "preview" }));
+                  }}
+                >
+                  Preview
+                </button>
                 <button
                   type="button"
                   className="rounded border px-3 py-1.5 text-xs font-semibold"
@@ -223,12 +278,18 @@ export default function PlatformDocumentStudioPage() {
           <p className="p-6 text-sm text-stone-500">Loading template…</p>
         ) : (
           <div className="min-h-0 flex-1">
-            <DocumentDesigner
+            <DocumentStudio
               key={studioKey}
               definition={definition}
               readOnly={readOnly}
               previewHtml={previewHtml}
+              feed={feed}
+              invoices={invoices}
               onChange={onDefinitionChange}
+              onFeedChange={setFeed}
+              onSave={() => void save()}
+              onPublish={() => void publish()}
+              onDownloadPdf={() => void downloadPdf()}
               onUploadImage={async (file) => {
                 const t = getProcessTenant();
                 if (!t?.id) throw new Error("Select a tenant first");

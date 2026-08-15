@@ -13,3 +13,5 @@ export * from "./metrics";
 export * from "./audit";
 export * from "./templates";
 export * from "./metadata";
+export * from "./work-items";
+// starter-hash uses node:crypto — import from `@erp/workflow/starter-hash` (server only)

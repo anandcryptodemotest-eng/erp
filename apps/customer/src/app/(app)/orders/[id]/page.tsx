@@ -44,6 +44,13 @@ interface SalesRequestDetail {
   soStatus?: string | null;
   soNumber?: string | null;
   items: LineItem[];
+  documents?: {
+    id: string;
+    type: string;
+    fileName: string;
+    fileUrl: string;
+    mimeType?: string | null;
+  }[];
   salesOrder?: {
     id: string;
     orderNumber: string;
@@ -76,6 +83,7 @@ function OrderDetailInner({ params }: { params: Promise<{ id: string }> }) {
   const [docBusy, setDocBusy] = useState<string | null>(null);
   const [docErr, setDocErr] = useState("");
   const justPlaced = searchParams.get("placed") === "1";
+  const attachWarn = searchParams.get("attachWarn");
 
   async function downloadInvoice(doc: {
     id: string;
@@ -194,8 +202,13 @@ function OrderDetailInner({ params }: { params: Promise<{ id: string }> }) {
   return (
     <Container layout="wide" className="pb-28 pt-5">
       {justPlaced ? (
-        <div className="mb-4">
+        <div className="mb-4 space-y-2">
           <StatusChip tone="brand">Sales request submitted — awaiting convert to order</StatusChip>
+          {attachWarn ? (
+            <p className="text-xs text-[var(--danger)]">
+              Request placed, but {attachWarn} attachment(s) could not be uploaded. You can message sales with the file.
+            </p>
+          ) : null}
         </div>
       ) : null}
       <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">Sales request</p>
@@ -291,6 +304,28 @@ function OrderDetailInner({ params }: { params: Promise<{ id: string }> }) {
           <div className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] p-4">
             <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--ink-soft)]">Notes</div>
             <p className="whitespace-pre-wrap text-sm text-[var(--ink)]">{row.notes}</p>
+          </div>
+        ) : null}
+
+        {row.documents && row.documents.length > 0 ? (
+          <div className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-raised)] p-4">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
+              Your attachments
+            </div>
+            <ul className="space-y-1">
+              {row.documents.map((d) => (
+                <li key={d.id}>
+                  <button
+                    type="button"
+                    className="text-sm font-medium text-[var(--forest)] underline disabled:opacity-50"
+                    disabled={docBusy === d.id}
+                    onClick={() => void downloadInvoice(d)}
+                  >
+                    {docBusy === d.id ? "Opening…" : d.fileName}
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
         ) : null}
 

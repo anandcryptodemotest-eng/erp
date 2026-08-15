@@ -1,14 +1,14 @@
 # Tenant GST E2E
 
-Started: 2026-08-14T11:33:57.142Z
-Duration: 6.4s
+Started: 2026-08-15T14:04:04.895Z
+Duration: 6.2s
 Result: 39 pass / 0 fail
 
 ## Platform
 ✓ operator login
 
 ## NonGST
-✓ tenant gst-none-mssvcvfa
+✓ tenant gst-none-msug5sin
 ✓ tax.regime=NONE
 ✓ NONE forces UNREGISTERED scheme — scheme=UNREGISTERED
 ✓ product with taxRate (ignored when NONE)
@@ -16,10 +16,10 @@ Result: 39 pass / 0 fail
 ✓ Quick Bill commercial
 ✓ documentKind=COMMERCIAL — got COMMERCIAL
 ✓ tax forced 0% — tax=0
-✓ PDF url present — /api/invoices/cmssvcx4v000xpi012f533rcr/pdf
+✓ PDF url present — /api/invoices/cmsug5u9b000dlo015xq19023/pdf
 
 ## GST
-✓ tenant gst-reg-mssvcvfa
+✓ tenant gst-reg-msug5sin
 ✓ tax profile IN_GST Regular
 ✓ reject invalid GSTIN checksum — status=400 Invalid GSTIN checksum
 ✓ product taxRate 18%
@@ -38,11 +38,11 @@ Result: 39 pass / 0 fail
 ✓ snapshot immutability after product 18→12 — status=200 tax=360
 
 ## EInvoice
-✓ Generate IRN sandbox — irn=SANDBOX-5D0342FC66A2…
+✓ Generate IRN sandbox — irn=SANDBOX-2CBA2516877C…
 ✓ Cancel IRN → CANCELLED
 
 ## EWay
-✓ Generate e-way sandbox — no=EWBD69807DF3F62
+✓ Generate e-way sandbox — no=EWB0DAF0CD3E3F3
 ✓ Cancel e-way
 ✓ Commercial bill rejects e-way — status=400
 

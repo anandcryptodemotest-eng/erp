@@ -26,8 +26,10 @@ import {
 } from "@/lib/pricing-quote";
 import { ScreenController } from "@/lib/ui-runtime/ScreenController";
 import { CommercialLineEditor } from "./commercial/CommercialLineEditor";
-import { buildJourneySteps, JourneyTimeline } from "./panels/JourneyTimeline";
+import { buildJourneySteps, buildWorkItemJourneySteps, JourneyTimeline } from "./panels/JourneyTimeline";
+import { workItemKeyForActivity } from "@erp/workflow";
 import { InboxQueue } from "./panels/InboxQueue";
+import { MessagesQueue } from "./panels/MessagesQueue";
 import { deskTabToStage, StageRail, stageToDeskTab, type DeskStage } from "./panels/StageRail";
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
@@ -43,6 +45,14 @@ interface WorkflowTask {
   order: OrderSummary;
   blockedBy?: string[];
   ui?: StepUi;
+  /** BL-035 Work Item fields when queue returns work items */
+  workItemKey?: string;
+  primaryTaskId?: string | null;
+  primaryAction?: string | null;
+  label?: string;
+  key?: string;
+  actionable?: boolean;
+  activityKeys?: string[];
 }
 
 type StepUi = {
@@ -68,6 +78,9 @@ interface OrderSummary {
   orderNumber: string;
   status: string;
   total: number;
+  date?: string;
+  createdAt?: string;
+  updatedAt?: string;
   marginPercent?: number;
   customer: { name: string } | null;
   items?: OrderItem[];
@@ -118,7 +131,7 @@ interface CatalogVariant {
   sellPrice?: number | null;
 }
 
-interface OrderDetails extends OrderSummary {
+interface OrderDetails extends Omit<OrderSummary, "customer"> {
   salesRemarks?: string | null;
   deliveryDate?: string | null;
   salesRequest?: {
@@ -127,6 +140,35 @@ interface OrderDetails extends OrderSummary {
     status: string;
     createdAt?: string;
   } | null;
+  customer?: {
+    id?: string;
+    name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    creditLimit?: number;
+    paymentTerms?: number;
+    isBlocked?: boolean;
+    blockedReason?: string | null;
+    customerGroup?: string | null;
+    portalUserId?: string | null;
+    wallet?: number;
+  } | null;
+  orderNotes?: {
+    id: string;
+    body: string;
+    authorUserId?: string | null;
+    authorRole?: string | null;
+    sourceStep?: string | null;
+    createdAt: string;
+  }[];
+  documents?: {
+    id: string;
+    type: string;
+    fileName: string;
+    fileUrl: string;
+    mimeType?: string | null;
+    createdAt: string;
+  }[];
   workflow?: { id: string; code: string; name: string; templateId: string } | null;
   nextActions?: {
     action: string;
@@ -136,6 +178,18 @@ interface OrderDetails extends OrderSummary {
     sortOrder: number;
     blockedBy?: string[];
     ui?: StepUi;
+    stepKey?: string;
+    taskId?: string;
+  }[];
+  workItems?: {
+    key: string;
+    label: string;
+    status: string;
+    actionable?: boolean;
+    primaryAction?: string | null;
+    primaryStepKey?: string | null;
+    primaryTaskId?: string | null;
+    activityKeys?: string[];
   }[];
   modifications?: { action: string; remarks?: string; createdAt: string }[];
   fulfillmentMode?: string | null;
@@ -231,6 +285,13 @@ interface SalesRequestRow {
   createdAt: string;
   paymentMethod?: string;
   notes?: string | null;
+  documents?: {
+    id: string;
+    type: string;
+    fileName: string;
+    fileUrl: string;
+    mimeType?: string | null;
+  }[];
   customer: { id?: string; name: string; phone?: string | null; email?: string | null } | null;
   salesOrder?: { id: string; orderNumber: string; status: string } | null;
   items?: SreqItem[];
@@ -250,7 +311,7 @@ type WorkbenchKey =
   | "DELIVERY_EXECUTIVE"
   | "ACCOUNTANT";
 
-type DeskTab = "sreq" | "tasks" | "inflight";
+type DeskTab = "sreq" | "tasks" | "inflight" | "messages";
 
 const WORKBENCH_LABELS: Record<WorkbenchKey, string> = {
   SALES_EXECUTIVE: "Sales",
@@ -299,9 +360,37 @@ function formatMoney(n: number | null | undefined): string {
 
 /** User-facing task copy — same actions, clearer verbs. */
 function friendlyTaskLabel(action: string, fallback: string): string {
-  if (action === "complete-pricing") return "Verify dealer quote";
-  if (action === "verify-stock") return "Confirm reservation";
-  return fallback;
+  const map: Record<string, string> = {
+    review: "Confirm Order",
+    "verify-stock": "Check Stock",
+    "request-vendors": "Procurement Exception",
+    "complete-pricing": "Pricing Review",
+    "warehouse-ready": "Dispatch Order",
+    dispatch: "Dispatch Order",
+    "deliver-oms": "Confirm Delivery",
+    invoice: "Bill & Collect",
+    "collect-payment": "Bill & Collect",
+  };
+  return map[action] ?? fallback;
+}
+
+function workItemKeyForAction(action: string, stepKey?: string | null): string | null {
+  if (stepKey) {
+    const fromStep = workItemKeyForActivity(stepKey);
+    if (fromStep) return fromStep;
+  }
+  const byAction: Record<string, string> = {
+    review: "confirm_order",
+    "verify-stock": "check_stock",
+    "request-vendors": "procurement_exception",
+    "complete-pricing": "pricing_review",
+    "warehouse-ready": "dispatch_order",
+    dispatch: "dispatch_order",
+    "deliver-oms": "confirm_delivery",
+    invoice: "bill_and_collect",
+    "collect-payment": "bill_and_collect",
+  };
+  return byAction[action] ?? null;
 }
 
 /* ─── Page ──────────────────────────────────────────────────────────────── */
@@ -309,9 +398,24 @@ function friendlyTaskLabel(action: string, fallback: string): string {
 export function SalesDeskWorkspace({
   initialSreqId,
   initialSalesOrderId,
+  initialStatus,
+  initialFrom,
+  initialTo,
+  initialTab,
+  initialTaskStatus,
+  initialSreqStatus,
 }: {
   initialSreqId?: string | null;
   initialSalesOrderId?: string | null;
+  /** Dashboard chart deep-link: inflight | CONFIRMED | … */
+  initialStatus?: string | null;
+  /** YYYY-MM-DD — filter inflight orders by day range */
+  initialFrom?: string | null;
+  initialTo?: string | null;
+  /** tasks | sreq | inflight | messages */
+  initialTab?: string | null;
+  initialTaskStatus?: string | null;
+  initialSreqStatus?: string | null;
 } = {}) {
   const toast = useToast();
   const adminUser = getAdminUser();
@@ -327,6 +431,7 @@ export function SalesDeskWorkspace({
     "SUPER_ADMIN",
     "BRANCH_ADMIN",
     "PRICING_EXECUTIVE",
+    "ACCOUNTANT",
   ].includes(currentRole);
   const myTaskRoles = new Set(
     isSalesLocked ? ["SALES_EXECUTIVE", "SALES_REP"] : [currentRole]
@@ -344,6 +449,8 @@ export function SalesDeskWorkspace({
   const [scope, setScope] = useState<"role" | "mine">("role");
   // Non-sales roles don't manage SREQs — start them on their task queue
   const [deskTab, setDeskTab] = useState<DeskTab>(isSalesLocked ? "sreq" : "tasks");
+  const [messageConversationId, setMessageConversationId] = useState<string | null>(null);
+  const [messageCount, setMessageCount] = useState(0);
   const [myWorkFilter, setMyWorkFilter] = useState<"all" | "overdue">("all");
   const [sreqs, setSreqs] = useState<SalesRequestRow[]>([]);
   const [selectedSreq, setSelectedSreq] = useState<SalesRequestRow | null>(null);
@@ -362,6 +469,10 @@ export function SalesDeskWorkspace({
   >({});
   const [porterEnabled, setPorterEnabled] = useState(true);
   const [porterBookUrl, setPorterBookUrl] = useState("https://porter.in/");
+  const [taskLookups, setTaskLookups] = useState<{
+    warehouses: { id: string; label: string }[];
+    drivers: { id: string; label: string }[];
+  }>({ warehouses: [], drivers: [] });
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   /** Sync lock — React state alone cannot block double-clicks before re-render */
   const convertingRef = useRef(false);
@@ -383,6 +494,19 @@ export function SalesDeskWorkspace({
   const [reservedQty, setReservedQty] = useState<number | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [showWalkIn, setShowWalkIn] = useState(false);
+  const [walkInCustomerQuery, setWalkInCustomerQuery] = useState("");
+  const [walkInCustomerHits, setWalkInCustomerHits] = useState<{ id: string; name: string; phone?: string | null }[]>([]);
+  const [walkInCustomerId, setWalkInCustomerId] = useState<string | null>(null);
+  const [walkInCustomerName, setWalkInCustomerName] = useState("");
+  const [walkInName, setWalkInName] = useState("");
+  const [walkInPhone, setWalkInPhone] = useState("");
+  const [walkInNotes, setWalkInNotes] = useState("");
+  const [walkInLines, setWalkInLines] = useState<{ productId: string; productName: string; quantity: number; unitPrice: number }[]>([]);
+  const [walkInProducts, setWalkInProducts] = useState<CatalogProduct[]>([]);
+  const [walkInProductId, setWalkInProductId] = useState("");
+  const [walkInQty, setWalkInQty] = useState("1");
+  const [walkInBusy, setWalkInBusy] = useState(false);
 
   /* Sales review form (SO) */
   const [reviewRemarks, setReviewRemarks] = useState("");
@@ -390,6 +514,8 @@ export function SalesDeskWorkspace({
   const [reviewQty, setReviewQty] = useState<Record<string, string>>({});
   const [reviewUnitPrice, setReviewUnitPrice] = useState<Record<string, string>>({});
   const [reviewLines, setReviewLines] = useState<EditableLine[]>([]);
+  /** MA3: phone = glance; Bill & Collect full edit stays tablet+ */
+  const [phoneOps, setPhoneOps] = useState(false);
   const [productSearch, setProductSearch] = useState("");
   const [productHits, setProductHits] = useState<CatalogProduct[]>([]);
   const [productSearching, setProductSearching] = useState(false);
@@ -465,7 +591,12 @@ export function SalesDeskWorkspace({
   }
 
   async function loadSreqs() {
-    const r = await api("/api/sales-requests?status=OPEN&limit=50");
+    const want = (initialSreqStatus ?? "").trim().replaceAll(" ", "_").toUpperCase();
+    const path =
+      want && want !== "ALL"
+        ? `/api/sales-requests?status=${encodeURIComponent(want)}&limit=50`
+        : `/api/sales-requests?status=OPEN&limit=50`;
+    const r = await api(path);
     setSreqs(r.data ?? []);
   }
 
@@ -479,8 +610,25 @@ export function SalesDeskWorkspace({
 
   async function loadInflight() {
     const r = await api("/api/orders?limit=50");
-    const rows: OrderSummary[] = r.data ?? [];
-    setInflightOrders(rows.filter((o) => IN_FLIGHT_STATUSES.has(o.status)));
+    let rows: OrderSummary[] = r.data ?? [];
+    rows = rows.filter((o) => IN_FLIGHT_STATUSES.has(o.status));
+    const statusFilter = (initialStatus ?? "").trim();
+    if (statusFilter && statusFilter.toLowerCase() !== "inflight") {
+      const want = statusFilter.replaceAll(" ", "_").toUpperCase();
+      rows = rows.filter((o) => o.status === want);
+    }
+    const fromDay = (initialFrom ?? "").trim().slice(0, 10);
+    const toDay = (initialTo ?? initialFrom ?? "").trim().slice(0, 10);
+    if (fromDay) {
+      rows = rows.filter((o) => {
+        const day = String(o.date || o.updatedAt || o.createdAt || "").slice(0, 10);
+        if (!day) return true;
+        if (day < fromDay) return false;
+        if (toDay && day > toDay) return false;
+        return true;
+      });
+    }
+    setInflightOrders(rows);
   }
 
   async function loadAll() {
@@ -503,9 +651,32 @@ export function SalesDeskWorkspace({
       } else if (initialSalesOrderId) {
         setDeskTab("inflight");
         await openOrder(initialSalesOrderId);
+      } else if (initialTab === "tasks" || initialTaskStatus) {
+        setDeskTab("tasks");
+      } else if (initialTab === "sreq" || initialSreqStatus) {
+        setDeskTab("sreq");
+      } else if (
+        initialTab === "inflight" ||
+        initialTab === "messages" ||
+        initialStatus ||
+        initialFrom ||
+        initialTo
+      ) {
+        setDeskTab(
+          initialTab === "messages" ? "messages" : "inflight"
+        );
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => setPhoneOps(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
   }, []);
 
   useEffect(() => {
@@ -540,6 +711,47 @@ export function SalesDeskWorkspace({
         if (url) setPorterBookUrl(url);
       })
       .catch(() => undefined);
+  }, []);
+
+  /** Hydrate WarehousePicker / DriverPicker lookups for OMS task widgets. */
+  useEffect(() => {
+    const tenantId = getTenantId();
+    let alive = true;
+    void (async () => {
+      const warehouses: { id: string; label: string }[] = [];
+      const drivers: { id: string; label: string }[] = [];
+      try {
+        const wh = await api<{ data?: { id: string; name: string }[] }>("/api/warehouses?limit=100");
+        for (const w of wh.data ?? []) {
+          warehouses.push({ id: w.id, label: w.name });
+        }
+      } catch {
+        /* picker shows empty */
+      }
+      if (tenantId) {
+        try {
+          const users = await api<{
+            data?: { userId?: string; id?: string; name?: string | null; email?: string; role?: string }[];
+          }>(`/api/tenants/${tenantId}/users?limit=100`);
+          for (const u of users.data ?? []) {
+            const role = (u.role ?? "").toUpperCase();
+            if (role !== "DELIVERY_EXECUTIVE" && role !== "DISPATCH_EXECUTIVE") continue;
+            const id = u.userId ?? u.id;
+            if (!id) continue;
+            drivers.push({
+              id,
+              label: u.name?.trim() || u.email || id,
+            });
+          }
+        } catch {
+          /* non-admin desks may 403 — DispatchFulfillment still has free-text driver */
+        }
+      }
+      if (alive) setTaskLookups({ warehouses, drivers });
+    })();
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -675,6 +887,99 @@ export function SalesDeskWorkspace({
     }
   }
 
+  async function openWalkInForm() {
+    setShowWalkIn(true);
+    setWalkInCustomerQuery("");
+    setWalkInCustomerHits([]);
+    setWalkInCustomerId(null);
+    setWalkInCustomerName("");
+    setWalkInName("");
+    setWalkInPhone("");
+    setWalkInNotes("");
+    setWalkInLines([]);
+    setWalkInProductId("");
+    setWalkInQty("1");
+    try {
+      const r = await api("/api/products?limit=100");
+      setWalkInProducts(r.data ?? []);
+    } catch (e: unknown) {
+      reportError(e);
+    }
+  }
+
+  async function searchWalkInCustomers(q: string) {
+    setWalkInCustomerQuery(q);
+    if (q.trim().length < 2) {
+      setWalkInCustomerHits([]);
+      return;
+    }
+    try {
+      const r = await api(`/api/customers/search?q=${encodeURIComponent(q.trim())}`);
+      setWalkInCustomerHits(r.data ?? []);
+    } catch {
+      setWalkInCustomerHits([]);
+    }
+  }
+
+  function addWalkInLine() {
+    const p = walkInProducts.find((x) => x.id === walkInProductId);
+    if (!p) {
+      toast.error("Select a product");
+      return;
+    }
+    const quantity = Math.max(1, parseInt(walkInQty, 10) || 1);
+    setWalkInLines((prev) => [
+      ...prev,
+      {
+        productId: p.id,
+        productName: p.name,
+        quantity,
+        unitPrice: Number(p.sellPrice ?? 0),
+      },
+    ]);
+    setWalkInProductId("");
+    setWalkInQty("1");
+  }
+
+  async function submitWalkInOrder() {
+    if (walkInLines.length === 0) {
+      toast.error("Add at least one line");
+      return;
+    }
+    if (!walkInCustomerId && !walkInName.trim()) {
+      toast.error("Select an existing customer or enter a walk-in name");
+      return;
+    }
+    setWalkInBusy(true);
+    try {
+      const r = await api("/api/orders", {
+        method: "POST",
+        body: JSON.stringify({
+          sourceKind: "WALK_IN",
+          customerId: walkInCustomerId ?? undefined,
+          walkInName: walkInCustomerId ? undefined : walkInName.trim() || undefined,
+          walkInPhone: walkInCustomerId ? undefined : walkInPhone.trim() || undefined,
+          notes: walkInNotes.trim() || undefined,
+          items: walkInLines,
+        }),
+      });
+      const orderId = r.data?.id as string | undefined;
+      toast.success(`Walk-in order ${r.data?.orderNumber ?? ""} created`);
+      setShowWalkIn(false);
+      await Promise.all([loadInflight(), loadTasks()]);
+      if (orderId) {
+        setSelectedSreq(null);
+        setDeskTab("tasks");
+        await openOrder(orderId);
+        await loadTasks();
+      }
+    } catch (e: unknown) {
+      reportError(e);
+    } finally {
+      setWalkInBusy(false);
+    }
+  }
+
   async function rejectSreq(id: string) {
     const reason = rejectReason.trim();
     if (reason.length < 3) {
@@ -766,18 +1071,44 @@ export function SalesDeskWorkspace({
     const fromQueue = tasks.find(
       (t) =>
         t.order.id === selected?.id &&
-        t.action === action &&
+        (t.action === action || t.primaryAction === action) &&
         ["READY", "CLAIMED", "IN_PROGRESS", "PENDING"].includes(t.status)
     );
-    return fromQueue?.id;
+    return fromQueue?.primaryTaskId ?? fromQueue?.id;
+  }
+
+  function resolveWorkItemKeyForAction(action: string): string | null {
+    const fromQueue = tasks.find(
+      (t) =>
+        t.order.id === selected?.id &&
+        (t.action === action || t.primaryAction === action || t.workItemKey === action)
+    );
+    if (fromQueue?.workItemKey) return fromQueue.workItemKey;
+    const fromWi = selected?.workItems?.find(
+      (w) => w.primaryAction === action || w.key === action
+    );
+    if (fromWi?.key) return fromWi.key;
+    const stepKey = selected?.nextActions?.find((a) => a.action === action)?.stepKey;
+    return workItemKeyForAction(action, stepKey);
   }
 
   async function completeTaskOrPatch(
     action: string,
     body: Record<string, unknown>
   ): Promise<{ data?: { status?: string } }> {
-    const taskId = resolveTaskId(action);
+    const workItemKey = resolveWorkItemKeyForAction(action);
     const isV5 = Boolean(selected?.workflowRuntime?.snapshot) || selected?.runtimePath === "v5";
+    if (workItemKey && selected && isV5) {
+      return api(`/api/workflow-work-items`, {
+        method: "POST",
+        body: JSON.stringify({
+          salesOrderId: selected.id,
+          workItemKey,
+          ...body,
+        }),
+      });
+    }
+    const taskId = resolveTaskId(action);
     if (taskId && isV5) {
       return api(`/api/workflow-tasks/${taskId}?action=complete`, {
         method: "POST",
@@ -1064,6 +1395,15 @@ export function SalesDeskWorkspace({
         if (raw) body[f.key] = raw;
       }
 
+      // Bill & Collect: always pull payment fields from desk inputs (invoice or payment form)
+      if (action === "invoice" || action === "collect-payment") {
+        for (const key of ["paymentAmount", "paymentMethod", "paymentReference"] as const) {
+          if (body[key] != null && body[key] !== "") continue;
+          const raw = stepInput(key);
+          if (raw) body[key] = key === "paymentAmount" ? Number(raw) : raw;
+        }
+      }
+
       // Normalize inventory payload shape
       if (action === "verify-stock") {
         const hasRows = Array.isArray(body.items) && (body.items as unknown[]).length > 0;
@@ -1277,7 +1617,10 @@ export function SalesDeskWorkspace({
       )
   );
   const canEditLines =
-    needsLineEditor && ["CONFIRMED", "FULFILLING"].includes(selected?.status ?? "");
+    needsLineEditor &&
+    ["CONFIRMED", "FULFILLING", "READY_FOR_DISPATCH", "DISPATCHED", "OUT_FOR_DELIVERY", "DELIVERED", "INVOICED"].includes(
+      selected?.status ?? ""
+    );
 
   /** Group left-queue tasks by Sales Order (parent → child steps) */
   const workOrders = useMemo(() => {
@@ -1320,8 +1663,17 @@ export function SalesDeskWorkspace({
       }),
     }));
     if (myWorkFilter === "overdue") return groups.filter((g) => g.overdue);
+    const want = (initialTaskStatus ?? "").trim().replaceAll(" ", "_").toUpperCase();
+    if (want) {
+      const aliases = new Set([want]);
+      if (want === "PENDING") aliases.add("READY");
+      if (want === "READY") aliases.add("PENDING");
+      return groups.filter((g) =>
+        g.tasks.some((t) => aliases.has(String(t.status ?? "").toUpperCase()))
+      );
+    }
     return groups;
-  }, [tasks, myWorkFilter]);
+  }, [tasks, myWorkFilter, initialTaskStatus]);
 
   const nextMyStep = myPrepTasks.find((t) =>
     ["PENDING", "IN_PROGRESS", "READY", "CLAIMED"].includes(t.status)
@@ -1333,15 +1685,22 @@ export function SalesDeskWorkspace({
   );
 
   const customerSummary = selectedSreq?.customerSummary;
-  const detailOpen = deskTab === "sreq" ? Boolean(selectedSreq) : Boolean(selected);
+  const detailOpen =
+    deskTab === "sreq"
+      ? Boolean(selectedSreq)
+      : deskTab === "messages"
+        ? Boolean(messageConversationId)
+        : Boolean(selected);
   const listLoadingLabel =
     deskTab === "sreq"
       ? `${sreqs.length} open`
       : deskTab === "inflight"
         ? `${inflightOrders.length} in fulfillment`
-        : myWorkFilter === "overdue"
-          ? `${workOrders.length} overdue`
-          : `${workOrders.length} order${workOrders.length === 1 ? "" : "s"}`;
+        : deskTab === "messages"
+          ? `${messageCount} chat${messageCount === 1 ? "" : "s"}`
+          : myWorkFilter === "overdue"
+            ? `${workOrders.length} overdue`
+            : `${workOrders.length} order${workOrders.length === 1 ? "" : "s"}`;
 
   return (
     <PageScaffold
@@ -1349,14 +1708,27 @@ export function SalesDeskWorkspace({
       hero={{
         eyebrow: "Trading operations",
         title: "Order Desk",
-        description: "Process sales requests, complete your tasks, and move orders through fulfillment.",
+        description: "Process sales requests, complete your tasks, and move orders through fulfillment. Counter orders that need pick/dispatch use New walk-in order — pay-and-take stays on Quick Bill.",
         actions: (
-          <a
-            href="/admin/dashboard"
-            className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border border-[var(--line-strong)] bg-[var(--surface-raised)] px-4 py-2 text-sm font-semibold text-[var(--ink)] shadow-[var(--shadow-1)] transition-[background,transform] duration-[var(--motion-fast)] hover:bg-[var(--surface-sunken)] active:scale-[var(--press-scale)]"
-          >
-            ← Dashboard
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            {(canSwitchWorkbench || isSalesLocked) && (
+              <Button type="button" variant="secondary" onClick={() => void openWalkInForm()}>
+                New walk-in order
+              </Button>
+            )}
+            <a
+              href="/admin/quick-bill"
+              className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border border-[var(--line-strong)] bg-[var(--surface-raised)] px-4 py-2 text-sm font-semibold text-[var(--ink)] shadow-[var(--shadow-1)] transition-[background,transform] duration-[var(--motion-fast)] hover:bg-[var(--surface-sunken)] active:scale-[var(--press-scale)]"
+            >
+              Quick Bill
+            </a>
+            <a
+              href="/admin/dashboard"
+              className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border border-[var(--line-strong)] bg-[var(--surface-raised)] px-4 py-2 text-sm font-semibold text-[var(--ink)] shadow-[var(--shadow-1)] transition-[background,transform] duration-[var(--motion-fast)] hover:bg-[var(--surface-sunken)] active:scale-[var(--press-scale)]"
+            >
+              ← Dashboard
+            </a>
+          </div>
         ),
       }}
     >
@@ -1367,6 +1739,7 @@ export function SalesDeskWorkspace({
           inbox: sreqs.length,
           mywork: myWorkOrderCount,
           active: inflightOrders.length,
+          messages: messageCount,
         }}
         onChange={(stage: DeskStage) => {
           const tab = stageToDeskTab(stage);
@@ -1374,6 +1747,10 @@ export function SalesDeskWorkspace({
           setMyWorkFilter("all");
           if (stage === "inbox") setSelected(null);
           if (stage === "active") loadInflight().catch(reportError);
+          if (stage === "messages") {
+            setSelected(null);
+            setSelectedSreq(null);
+          }
         }}
       />
 
@@ -1446,6 +1823,7 @@ export function SalesDeskWorkspace({
         onMobileBack={() => {
           setSelected(null);
           setSelectedSreq(null);
+          setMessageConversationId(null);
         }}
         queue={
           <QueuePanel
@@ -1455,11 +1833,13 @@ export function SalesDeskWorkspace({
                 ? "Inbox"
                 : deskTab === "inflight"
                   ? "Fulfillment"
-                  : myWorkFilter === "overdue"
-                    ? "Overdue orders in my work"
-                    : isSalesLocked
-                      ? "Orders needing your steps"
-                      : `${WORKBENCH_LABELS[workbench]} queue`
+                  : deskTab === "messages"
+                    ? "Messages"
+                    : myWorkFilter === "overdue"
+                      ? "Overdue orders in my work"
+                      : isSalesLocked
+                        ? "Orders needing your steps"
+                        : `${WORKBENCH_LABELS[workbench]} queue`
             }
             actions={
               <span className="text-xs text-[var(--ink-soft)] flex items-center gap-2">
@@ -1487,8 +1867,30 @@ export function SalesDeskWorkspace({
             />
           )}
 
+          {deskTab === "messages" && (
+            <MessagesQueue
+              selectedId={messageConversationId}
+              onCountChange={setMessageCount}
+              onSelect={(id) => {
+                setMessageConversationId(id);
+                window.location.href = `/admin/messages`;
+              }}
+              onOpenFull={() => {
+                window.location.href = `/admin/messages`;
+              }}
+            />
+          )}
+
           {deskTab === "tasks" && (
             <ul className="divide-y divide-[var(--line)] max-h-[72vh] overflow-y-auto">
+              {phoneOps && workOrders.length > 0 ? (
+                <li className="sticky top-0 z-[1] border-b border-[var(--line)] bg-[var(--mist)] px-4 py-2.5 lg:hidden">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--ink-soft)]">Needs action</p>
+                  <p className="text-sm font-semibold text-[var(--ink)]">
+                    {workOrders.length} order{workOrders.length === 1 ? "" : "s"}
+                  </p>
+                </li>
+              ) : null}
               {workOrders.map((group) => {
                 const openTitles = group.tasks
                   .filter((t) => t.status !== "COMPLETED" && t.status !== "CANCELLED")
@@ -1517,57 +1919,82 @@ export function SalesDeskWorkspace({
                         <StatusBadge status={group.order.status} />
                       </div>
 
-                      {/* Child tasks under the SO */}
-                      <ul className="mt-3 ml-1 space-y-1.5 border-l-2 border-[var(--line)] pl-3">
-                        {group.tasks.map((task) => {
-                          const done = task.status === "COMPLETED";
-                          const active = task.status === "IN_PROGRESS";
-                          return (
-                            <li
-                              key={task.id}
-                              className="flex items-center justify-between gap-2 text-xs"
-                            >
-                              <span
-                                className={
-                                  done
-                                    ? "text-[var(--ink-soft)] line-through"
-                                    : active
-                                      ? "font-medium text-[var(--brand)]"
-                                      : "text-[var(--ink-soft)]"
-                                }
-                              >
-                                {done ? "✓ " : active ? "● " : "○ "}
-                                {friendlyTaskLabel(task.action, task.title)}
+                      {/* Phone glance: next action only. Desktop: full task tree. */}
+                      {phoneOps ? (
+                        openTitles.length > 0 ? (
+                          <p className="mt-3 rounded-md bg-[var(--mist)] px-3 py-2 text-sm font-semibold text-[var(--brand)]">
+                            Next: {openTitles[0]}
+                            {openTitles.length > 1 ? (
+                              <span className="ml-1 font-normal text-[var(--ink-soft)]">
+                                · +{openTitles.length - 1} more
                               </span>
-                              <span className="flex flex-col items-end gap-0.5">
-                                <span
-                                  className={
-                                    done
-                                      ? "text-[var(--brand)]"
-                                      : active
-                                        ? "text-[var(--accent)]"
-                                        : task.blockedBy && task.blockedBy.length > 0
-                                          ? "text-[var(--danger)]"
-                                          : "text-[var(--ink-soft)]"
-                                  }
+                            ) : null}
+                          </p>
+                        ) : (
+                          <p className="mt-3 text-xs text-[var(--ink-soft)]">All work items done</p>
+                        )
+                      ) : (
+                        <>
+                          <ul className="mt-3 ml-1 space-y-1.5 border-l-2 border-[var(--line)] pl-3">
+                            {group.tasks.map((task) => {
+                              const done = task.status === "COMPLETED";
+                              const active = task.status === "IN_PROGRESS";
+                              return (
+                                <li
+                                  key={task.id}
+                                  className="flex items-center justify-between gap-2 text-xs"
                                 >
-                                  {done ? "Done" : active ? "In progress" : task.blockedBy && task.blockedBy.length > 0 ? "Blocked" : "To do"}
-                                </span>
-                                {!done && task.blockedBy && task.blockedBy.length > 0 && (
-                                  <span className="text-[10px] text-[var(--danger)] max-w-[140px] truncate" title={`Waiting for: ${task.blockedBy.join(", ")}`}>
-                                    Waiting: {task.blockedBy.join(", ")}
+                                  <span
+                                    className={
+                                      done
+                                        ? "text-[var(--ink-soft)] line-through"
+                                        : active
+                                          ? "font-medium text-[var(--brand)]"
+                                          : "text-[var(--ink-soft)]"
+                                    }
+                                  >
+                                    {done ? "✓ " : active ? "● " : "○ "}
+                                    {friendlyTaskLabel(task.action, task.title)}
                                   </span>
-                                )}
-                              </span>
-                            </li>
-                          );
-                        })}
-                      </ul>
-
-                      {openTitles.length > 0 && (
-                        <p className="mt-2 text-[11px] text-[var(--ink-soft)]">
-                          Open in detail to complete · {openTitles.join(" · ")}
-                        </p>
+                                  <span className="flex flex-col items-end gap-0.5">
+                                    <span
+                                      className={
+                                        done
+                                          ? "text-[var(--brand)]"
+                                          : active
+                                            ? "text-[var(--accent)]"
+                                            : task.blockedBy && task.blockedBy.length > 0
+                                              ? "text-[var(--danger)]"
+                                              : "text-[var(--ink-soft)]"
+                                      }
+                                    >
+                                      {done
+                                        ? "Done"
+                                        : active
+                                          ? "In progress"
+                                          : task.blockedBy && task.blockedBy.length > 0
+                                            ? "Blocked"
+                                            : "To do"}
+                                    </span>
+                                    {!done && task.blockedBy && task.blockedBy.length > 0 && (
+                                      <span
+                                        className="text-[10px] text-[var(--danger)] max-w-[140px] truncate"
+                                        title={`Waiting for: ${task.blockedBy.join(", ")}`}
+                                      >
+                                        Waiting: {task.blockedBy.join(", ")}
+                                      </span>
+                                    )}
+                                  </span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                          {openTitles.length > 0 && (
+                            <p className="mt-2 text-[11px] text-[var(--ink-soft)]">
+                              Open in detail to complete · {openTitles.join(" · ")}
+                            </p>
+                          )}
+                        </>
                       )}
                     </button>
                   </li>
@@ -1597,6 +2024,14 @@ export function SalesDeskWorkspace({
 
           {deskTab === "inflight" && (
             <ul className="divide-y divide-[var(--line)] max-h-[72vh] overflow-y-auto">
+              {phoneOps && inflightOrders.length > 0 ? (
+                <li className="sticky top-0 z-[1] border-b border-[var(--line)] bg-[var(--mist)] px-4 py-2.5 lg:hidden">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--ink-soft)]">In flight</p>
+                  <p className="text-sm font-semibold text-[var(--ink)]">
+                    {inflightOrders.length} order{inflightOrders.length === 1 ? "" : "s"}
+                  </p>
+                </li>
+              ) : null}
               {inflightOrders.map((order) => (
                 <li key={order.id}>
                   <button
@@ -1766,16 +2201,36 @@ export function SalesDeskWorkspace({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[var(--ink-soft)] mb-1">
-                    Sales remarks
+                    Buyer / sales notes
                   </label>
                   <textarea
                     className="w-full rounded-lg border border-[var(--line)] px-3 py-2 text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-slate-300 min-h-[80px]"
                     value={sreqNotes}
                     onChange={(e) => setSreqNotes(e.target.value)}
                     disabled={selectedSreq.status !== "OPEN"}
-                    placeholder="Internal sales notes for this request…"
+                    placeholder="Checkout delivery notes and internal sales remarks…"
                   />
                 </div>
+                {(selectedSreq.documents?.length ?? 0) > 0 ? (
+                  <div className="rounded-lg border border-[var(--line)] p-3 text-sm">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-soft)] mb-2">
+                      Buyer attachments
+                    </h3>
+                    <ul className="space-y-1">
+                      {selectedSreq.documents!.map((d) => (
+                        <li key={d.id}>
+                          <button
+                            type="button"
+                            className="text-[var(--brand)] underline"
+                            onClick={() => void openAuthenticatedDocument(d.fileUrl, d.fileName)}
+                          >
+                            {d.fileName}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
 
               {/* Commercial lines */}
@@ -1891,14 +2346,18 @@ export function SalesDeskWorkspace({
                   ? "Select a request from Inbox"
                   : deskTab === "inflight"
                     ? "Select a fulfillment order"
-                    : "Select an order from My Work"
+                    : deskTab === "messages"
+                      ? "Select a chat from Messages"
+                      : "Select an order from My Work"
               }
               subtitle={
                 deskTab === "sreq"
                   ? "Review commercial lines, then use Convert in the action bar below."
                   : deskTab === "inflight"
                     ? "Track picking, dispatch, invoice, and payment on the journey."
-                    : "Complete your workflow step using the action bar below."
+                    : deskTab === "messages"
+                      ? "WhatsApp-style threads live here. Pick a conversation or open full Messages."
+                      : "Complete your workflow step using the action bar below."
               }
             />
           ) : (
@@ -1923,17 +2382,117 @@ export function SalesDeskWorkspace({
               </div>
 
               <JourneyTimeline
-                steps={buildJourneySteps({
-                  status: selected.status,
-                  converted: true,
-                  highlight:
-                    myVisibleActions[0]?.action === "complete-pricing"
-                      ? "pricing"
-                      : myVisibleActions[0]?.action === "verify-stock"
-                        ? "inventory"
-                        : null,
-                })}
+                steps={
+                  selected.workItems?.length
+                    ? buildWorkItemJourneySteps(selected.workItems)
+                    : buildJourneySteps({
+                        status: selected.status,
+                        converted: true,
+                        highlight:
+                          myVisibleActions[0]?.action === "complete-pricing"
+                            ? "pricing"
+                            : myVisibleActions[0]?.action === "verify-stock"
+                              ? "inventory"
+                              : null,
+                      })
+                }
               />
+
+              {/* Phase 1 host chrome: Customer + Messages (not form widgets) */}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-raised)] p-3 space-y-1.5">
+                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-soft)]">
+                    Customer
+                  </h3>
+                  <p className="text-sm font-semibold text-[var(--ink)]">
+                    {selected.customer?.name ?? "—"}
+                  </p>
+                  {selected.customer?.phone ? (
+                    <p className="text-xs text-[var(--ink-soft)]">📞 {selected.customer.phone}</p>
+                  ) : null}
+                  {selected.customer?.email ? (
+                    <p className="text-xs text-[var(--ink-soft)]">✉ {selected.customer.email}</p>
+                  ) : null}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {selected.customer?.isBlocked ? (
+                      <span className="rounded-full bg-[color-mix(in_srgb,var(--danger)_12%,white)] px-2 py-0.5 text-[10px] font-semibold text-[var(--danger)]">
+                        Blocked
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-[var(--mist)] px-2 py-0.5 text-[10px] font-semibold text-[var(--ink-soft)]">
+                        Active
+                      </span>
+                    )}
+                    {typeof selected.customer?.creditLimit === "number" ? (
+                      <span className="text-[10px] text-[var(--ink-soft)]">
+                        Credit {formatMoney(selected.customer.creditLimit)}
+                      </span>
+                    ) : null}
+                  </div>
+                  {(selected.orderNotes?.length ?? 0) > 0 || (selected.documents?.length ?? 0) > 0 ? (
+                    <p className="text-[10px] text-[var(--ink-soft)] pt-1 border-t border-[var(--line)] mt-2">
+                      {(selected.orderNotes?.length ?? 0) > 0
+                        ? `${selected.orderNotes!.length} note${selected.orderNotes!.length === 1 ? "" : "s"}`
+                        : null}
+                      {(selected.orderNotes?.length ?? 0) > 0 && (selected.documents?.length ?? 0) > 0
+                        ? " · "
+                        : null}
+                      {(selected.documents?.length ?? 0) > 0
+                        ? `${selected.documents!.length} attachment${selected.documents!.length === 1 ? "" : "s"}`
+                        : null}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-raised)] p-3 space-y-2">
+                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-soft)]">
+                    Messages
+                  </h3>
+                  <p className="text-xs text-[var(--ink-soft)]">
+                    WhatsApp-style chat is under{" "}
+                    <strong className="font-semibold text-[var(--ink)]">Communication → Messages</strong>{" "}
+                    in the left sidebar (not task notes).
+                  </p>
+                  <a
+                    href={`/admin/messages`}
+                    className="inline-flex text-sm font-semibold text-[var(--brand)] hover:underline"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.location.href = `/admin/messages`;
+                    }}
+                  >
+                    Open Messages
+                  </a>
+                  <button
+                    type="button"
+                    className="block text-xs font-medium text-[var(--ink-soft)] hover:text-[var(--ink)]"
+                    onClick={async () => {
+                      try {
+                        const q = new URLSearchParams({
+                          contextModule: "sales",
+                          contextEntity: "SalesOrder",
+                          contextId: selected.orderNumber,
+                          status: "OPEN",
+                        });
+                        const r = await api(`/api/communication/conversations?${q}`);
+                        const rows = (r.data ?? []) as Array<{ id?: string; title?: string | null }>;
+                        if (rows[0]?.id) {
+                          window.location.href = `/admin/messages`;
+                          toast.success(`Found conversation for ${selected.orderNumber}`);
+                        } else {
+                          toast.success(
+                            `No thread yet for ${selected.orderNumber} — open Messages to start one with SalesOrder context.`
+                          );
+                          window.location.href = `/admin/messages`;
+                        }
+                      } catch (err: unknown) {
+                        reportError(err);
+                      }
+                    }}
+                  >
+                    Find / open order thread
+                  </button>
+                </div>
+              </div>
 
               {/* Delivery tracking — shown for READY_FOR_DISPATCH and beyond */}
               {["READY_FOR_DISPATCH", "DISPATCHED", "DELIVERED", "INVOICED", "PAID", "CLOSED"].includes(selected.status) && (() => {
@@ -2152,14 +2711,43 @@ export function SalesDeskWorkspace({
                       );
                     }
 
+                    const isBillCollect =
+                      act.action === "invoice" || act.action === "collect-payment";
+                    const phoneBillReadOnly = phoneOps && isBillCollect;
+
                     const useDraftLines =
-                      act.action === "review" ||
-                      (ui?.layout ?? []).some(
-                        (w) =>
-                          w.widget === "CatalogSearch" ||
-                          (w.widget === "ProductList" &&
-                            (Boolean(w.props?.editable) || Boolean(w.props?.allowRemove)))
-                      );
+                      !phoneBillReadOnly &&
+                      (act.action === "review" ||
+                        (ui?.layout ?? []).some(
+                          (w) =>
+                            w.widget === "CatalogSearch" ||
+                            (w.widget === "ProductList" &&
+                              (Boolean(w.props?.editable) || Boolean(w.props?.allowRemove)))
+                        ));
+
+                    const phoneUi =
+                      phoneBillReadOnly && ui
+                        ? {
+                            ...ui,
+                            layout: (ui.layout ?? []).map((w) => {
+                              if (w.widget === "ProductList") {
+                                return {
+                                  ...w,
+                                  props: { ...w.props, editable: false, allowRemove: false },
+                                };
+                              }
+                              // Defer generate / line edit widgets — status + download still ok
+                              if (
+                                w.widget === "InvoiceGenerate" ||
+                                w.widget === "InvoiceLines" ||
+                                w.widget === "CatalogSearch"
+                              ) {
+                                return { ...w, props: { ...w.props, phoneDeferred: true } };
+                              }
+                              return w;
+                            }),
+                          }
+                        : ui;
 
                     const items = useDraftLines
                       ? reviewLines.map((line) => ({
@@ -2194,17 +2782,26 @@ export function SalesDeskWorkspace({
                       : stepInputs;
 
                     return (
+                      <div key={act.action} className="space-y-3">
+                        {phoneBillReadOnly ? (
+                          <div className="rounded-xl border border-[var(--line)] bg-[var(--mist)] p-3 text-sm text-[var(--ink)]">
+                            <p className="font-semibold">Bill &amp; Collect on phone</p>
+                            <p className="mt-1 text-[var(--ink-soft)]">
+                              View status and invoice here. Edit lines, generate PDF, and record advance on a tablet or desktop.
+                            </p>
+                          </div>
+                        ) : null}
                       <ScreenController
-                        key={act.action}
                         action={act.action}
                         label={act.label}
-                        ui={ui}
+                        ui={phoneUi}
                         variables={{ porterEnabled, porterBookUrl }}
                         order={selected as unknown as Record<string, unknown>}
                         customer={selected.customer}
                         items={items}
-                        canComplete={!actionBusy}
+                        canComplete={!actionBusy && !phoneBillReadOnly}
                         fieldValues={fieldValues}
+                        lookups={taskLookups}
                         documents={taskDocuments}
                         setFieldValue={(key, value, itemId) => {
                           if (key === "remarks") {
@@ -2241,14 +2838,18 @@ export function SalesDeskWorkspace({
                           actor: ev.actorRole,
                           remarks: ev.remarks,
                         }))}
-                        comments={(selected.modifications ?? [])
-                          .filter((m) => m.remarks)
-                          .map((m, i) => ({
-                            id: `${m.action}-${m.createdAt}-${i}`,
-                            body: m.remarks ?? "",
-                            author: m.action,
-                            at: m.createdAt,
-                          }))}
+                        comments={(selected.orderNotes ?? []).map((n) => ({
+                          id: n.id,
+                          body: n.body,
+                          author: n.authorRole ?? n.authorUserId ?? "note",
+                          at: n.createdAt,
+                        }))}
+                        attachments={(selected.documents ?? []).map((d) => ({
+                          id: d.id,
+                          name: d.fileName,
+                          url: d.fileUrl,
+                          mimeType: d.mimeType ?? undefined,
+                        }))}
                         hostApis={{
                           uploadFile: async (file) => {
                             const fd = new FormData();
@@ -2273,7 +2874,45 @@ export function SalesDeskWorkspace({
                             };
                           },
                           addComment: async (body) => {
-                            setStepInput("commentsAppend", body);
+                            const text = String(body ?? "").trim();
+                            if (!text || !selected) return;
+                            const primary =
+                              myVisibleActions[0]?.action ??
+                              selected.workItems?.find((w) => w.actionable)?.primaryAction ??
+                              null;
+                            await api(`/api/orders/${selected.id}/notes`, {
+                              method: "POST",
+                              body: JSON.stringify({
+                                body: text,
+                                sourceStep: primary,
+                              }),
+                            });
+                            await openOrder(selected.id);
+                          },
+                          updateComment: async (noteId, body) => {
+                            const text = String(body ?? "").trim();
+                            if (!text || !selected) return;
+                            await api(`/api/orders/${selected.id}/notes/${noteId}`, {
+                              method: "PATCH",
+                              body: JSON.stringify({ body: text }),
+                            });
+                            await openOrder(selected.id);
+                          },
+                          deleteComment: async (noteId) => {
+                            if (!selected) return;
+                            await api(`/api/orders/${selected.id}/notes/${noteId}`, {
+                              method: "DELETE",
+                            });
+                            await openOrder(selected.id);
+                          },
+                          deleteAttachment: async (docId) => {
+                            if (!selected) return;
+                            const persisted = (selected.documents ?? []).some((d) => d.id === docId);
+                            if (!persisted) return;
+                            await api(`/api/orders/${selected.id}/documents/${docId}`, {
+                              method: "DELETE",
+                            });
+                            await openOrder(selected.id);
                           },
                           openDocument: async (url, fileName) => {
                             await openAuthenticatedDocument(url, fileName ?? "invoice.pdf");
@@ -2285,6 +2924,18 @@ export function SalesDeskWorkspace({
                             const orderId = String(selected.id ?? "");
                             if (!orderId) return { ok: false, error: "No sales order" };
                             try {
+                              // Persist desk line edits so invoice PDF uses updated qty/price
+                              const linePayload = reviewLines.map((line) => ({
+                                id: line.id,
+                                quantity: Number(reviewQty[line.key] ?? line.quantity),
+                                unitPrice: Number(reviewUnitPrice[line.key] ?? line.unitPrice),
+                              })).filter((l) => l.id);
+                              if (linePayload.length > 0) {
+                                await api(`/api/orders/${orderId}/invoice-lines`, {
+                                  method: "PUT",
+                                  body: JSON.stringify({ items: linePayload }),
+                                });
+                              }
                               const r = await api("/api/invoices/generate", {
                                 method: "POST",
                                 body: JSON.stringify({
@@ -2321,6 +2972,7 @@ export function SalesDeskWorkspace({
                               if (pdfUrl) setStepInput("invoicePdfUrl", pdfUrl);
                               if (invoiceId) setStepInput("invoiceId", invoiceId);
                               if (invoiceNumber) setStepInput("invoiceNumber", invoiceNumber);
+                              await openOrder(orderId);
                               return {
                                 ok: true,
                                 invoiceId,
@@ -2358,6 +3010,7 @@ export function SalesDeskWorkspace({
                             : undefined
                         }
                       />
+                      </div>
                     );
                   })}
 
@@ -2542,6 +3195,138 @@ export function SalesDeskWorkspace({
           </WorkspaceBottomBar>
         }
       />
+
+      {showWalkIn && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
+              <div>
+                <h3 className="text-sm font-semibold text-[var(--ink)]">New walk-in order</h3>
+                <p className="text-xs text-[var(--ink-soft)]">
+                  Creates a confirmed sales order and starts fulfilment. For pay-and-take now, use Quick Bill.
+                </p>
+              </div>
+              <button type="button" className="text-[var(--ink-soft)]" onClick={() => setShowWalkIn(false)} aria-label="Close">
+                ×
+              </button>
+            </div>
+            <div className="space-y-3 p-4">
+              <label className="block text-xs text-[var(--ink-soft)]">
+                Existing customer
+                <input
+                  className="mt-0.5 w-full rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
+                  value={walkInCustomerQuery}
+                  onChange={(e) => void searchWalkInCustomers(e.target.value)}
+                  placeholder="Search name or phone"
+                />
+              </label>
+              {walkInCustomerHits.length > 0 && (
+                <ul className="max-h-32 overflow-y-auto rounded-lg border border-[var(--line)] text-sm">
+                  {walkInCustomerHits.map((c) => (
+                    <li key={c.id}>
+                      <button
+                        type="button"
+                        className="w-full px-3 py-2 text-left hover:bg-[var(--mist)]"
+                        onClick={() => {
+                          setWalkInCustomerId(c.id);
+                          setWalkInCustomerName(c.name);
+                          setWalkInCustomerQuery(c.name);
+                          setWalkInCustomerHits([]);
+                        }}
+                      >
+                        {c.name}{c.phone ? ` · ${c.phone}` : ""}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {walkInCustomerId ? (
+                <p className="text-xs text-[var(--success)]">
+                  Using {walkInCustomerName}.{" "}
+                  <button type="button" className="underline" onClick={() => { setWalkInCustomerId(null); setWalkInCustomerName(""); setWalkInCustomerQuery(""); }}>
+                    Clear
+                  </button>
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block text-xs text-[var(--ink-soft)]">
+                    Walk-in name
+                    <input
+                      className="mt-0.5 w-full rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
+                      value={walkInName}
+                      onChange={(e) => setWalkInName(e.target.value)}
+                      placeholder="Required if no existing customer"
+                    />
+                  </label>
+                  <label className="block text-xs text-[var(--ink-soft)]">
+                    Phone
+                    <input
+                      className="mt-0.5 w-full rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
+                      value={walkInPhone}
+                      onChange={(e) => setWalkInPhone(e.target.value)}
+                    />
+                  </label>
+                </div>
+              )}
+              <label className="block text-xs text-[var(--ink-soft)]">
+                Product
+                <select
+                  className="mt-0.5 w-full rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
+                  value={walkInProductId}
+                  onChange={(e) => setWalkInProductId(e.target.value)}
+                >
+                  <option value="">Select product</option>
+                  {walkInProducts.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}{p.sellPrice != null ? ` · ₹${p.sellPrice}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  className="w-24 rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
+                  type="number"
+                  min={1}
+                  value={walkInQty}
+                  onChange={(e) => setWalkInQty(e.target.value)}
+                />
+                <Button type="button" variant="secondary" onClick={addWalkInLine}>
+                  Add line
+                </Button>
+              </div>
+              {walkInLines.length > 0 && (
+                <ul className="divide-y rounded-lg border border-[var(--line)] text-sm">
+                  {walkInLines.map((line, idx) => (
+                    <li key={`${line.productId}-${idx}`} className="flex items-center justify-between px-3 py-2">
+                      <span>{line.productName} × {line.quantity}</span>
+                      <button type="button" className="text-xs text-[var(--danger)]" onClick={() => setWalkInLines((ls) => ls.filter((_, i) => i !== idx))}>
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <label className="block text-xs text-[var(--ink-soft)]">
+                Notes
+                <textarea
+                  className="mt-0.5 w-full rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
+                  value={walkInNotes}
+                  onChange={(e) => setWalkInNotes(e.target.value)}
+                />
+              </label>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setShowWalkIn(false)}>
+                  Cancel
+                </Button>
+                <Button type="button" loading={walkInBusy} onClick={() => void submitWalkInOrder()}>
+                  Create order
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {variantPicker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

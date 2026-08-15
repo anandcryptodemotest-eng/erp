@@ -653,6 +653,30 @@
   gap: 0.5rem;
 }
 
+.ws-hero__actions a {
+  color: var(--ink-inverse);
+}
+
+/* BL-039 — phone operational dashboard hero stays compact */
+@media (max-width: 767px) {
+  .admin-shell[data-admin-mode="operational"] .ws-hero {
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .admin-shell[data-admin-mode="operational"] .ws-hero__desc {
+    margin-top: 0.35rem;
+    max-width: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .admin-shell[data-admin-mode="operational"] .dashboard-grid[data-dash-presentation="phone-ops"] .dashboard-grid__cell {
+    min-height: 0;
+  }
+}
+
 /* StatusChip — Design System v2 */
 .erp-status-chip {
   display: inline-flex;
@@ -1000,3 +1024,42 @@
     grid-row: unset !important;
   }
 }
+
+/* ── MA3 Admin Mobile Operational Mode ─────────────────────────
+   Phone: glance + urgent actions. Do not shrink dense ERP chrome. */
+.admin-shell[data-admin-mode="operational"] .admin-main__header {
+  min-height: 3.25rem;
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+.admin-shell[data-admin-mode="operational"] .admin-shell__menu-btn {
+  min-height: 2.85rem;
+  min-width: 2.85rem;
+}
+
+.admin-shell[data-admin-mode="operational"] .ws-mobile-back {
+  min-height: var(--touch-min, 2.75rem);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.5rem 0.25rem;
+}
+
+/* Operational queue cards — larger tap targets, no table feel */
+@media (max-width: 767px) {
+  .admin-shell[data-admin-mode="operational"] [role="region"] ul.divide-y > li > button {
+    padding: 1rem 1rem;
+    min-height: 4.5rem;
+  }
+
+  .admin-shell[data-admin-mode="operational"] [role="toolbar"] {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    box-shadow: 0 -8px 24px rgba(12, 20, 17, 0.08);
+  }
+
+  .admin-shell[data-admin-mode="operational"] [role="toolbar"] button {
+    min-height: var(--touch-min, 2.75rem);
+  }
+}
+

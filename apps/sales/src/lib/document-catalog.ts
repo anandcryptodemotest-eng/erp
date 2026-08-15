@@ -3,10 +3,25 @@
  * Runtime pins published bodies via AssetRef { type: DOCUMENT, id, version }.
  */
 
-import { TAX_INVOICE_SEED, type DocumentDefinition } from "@erp/documents";
+import {
+  TAX_INVOICE_SEED,
+  COMMERCIAL_INVOICE_SEED,
+  BILL_OF_SUPPLY_SEED,
+  type DocumentDefinition,
+} from "@erp/documents";
 import { assetKey, type AssetRef } from "@erp/workflow";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma";
+
+const STARTER_DOCUMENTS: { documentId: string; seed: DocumentDefinition }[] = [
+  { documentId: "tax-invoice", seed: TAX_INVOICE_SEED },
+  { documentId: "commercial-invoice", seed: COMMERCIAL_INVOICE_SEED },
+  { documentId: "bill-of-supply", seed: BILL_OF_SUPPLY_SEED },
+];
+
+function seedForDocumentId(documentId: string): DocumentDefinition | null {
+  return STARTER_DOCUMENTS.find((d) => d.documentId === documentId)?.seed ?? null;
+}
 
 export async function ensureDocumentCatalogSeed(
   tenantId: string,
@@ -29,6 +44,57 @@ export async function ensureDocumentCatalogSeed(
       publishedAt: new Date(),
     },
   });
+}
+
+/**
+ * Force-publish latest starter document bodies for a tenant (archives prior PUBLISHED).
+ * Use after seed redesign so Generate picks up chrome without Studio republish.
+ */
+export async function forcePublishStarterDocuments(
+  tenantId: string,
+  documentIds: string[] = STARTER_DOCUMENTS.map((d) => d.documentId)
+): Promise<{ documentId: string; version: number }[]> {
+  const published: { documentId: string; version: number }[] = [];
+  for (const documentId of documentIds) {
+    const seed = seedForDocumentId(documentId);
+    if (!seed) throw new Error(`Unknown starter document: ${documentId}`);
+
+    const max = await prisma.documentTemplateVersion.findFirst({
+      where: { tenantId, documentId },
+      orderBy: { version: "desc" },
+    });
+    const nextVersion = (max?.version ?? 0) + 1;
+
+    const created = await prisma.documentTemplateVersion.create({
+      data: {
+        tenantId,
+        documentId,
+        version: nextVersion,
+        lifecycle: "DRAFT",
+        name: seed.name,
+        documentType: seed.documentType,
+        definition: seed as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    await prisma.documentTemplateVersion.updateMany({
+      where: {
+        tenantId,
+        documentId,
+        lifecycle: "PUBLISHED",
+        id: { not: created.id },
+      },
+      data: { lifecycle: "ARCHIVED" },
+    });
+
+    await prisma.documentTemplateVersion.update({
+      where: { id: created.id },
+      data: { lifecycle: "PUBLISHED", publishedAt: new Date() },
+    });
+
+    published.push({ documentId, version: nextVersion });
+  }
+  return published;
 }
 
 export async function listDocumentVersions(

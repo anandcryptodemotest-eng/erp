@@ -164,6 +164,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [query, setQuery] = useState("");
+  const [phoneOps, setPhoneOps] = useState(false);
   const [sessionUser, setSessionUser] = useState<ReturnType<typeof getAdminUser>>(null);
   const [tenantDisplayName, setTenantDisplayName] = useState("TrustWood");
   const [planFeatures, setPlanFeatures] = useState<string[] | null>(null);
@@ -172,6 +173,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     () => resolveNavModules(sessionUser?.role, sessionUser?.navModules, sessionUser?.capabilities, planFeatures),
     [sessionUser?.role, sessionUser?.navModules, sessionUser?.capabilities, planFeatures]
   );
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => setPhoneOps(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
   useEffect(() => {
     if (!getToken()) {
@@ -225,17 +235,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const normalizedQuery = query.trim().toLowerCase();
 
   const filteredGroups: AdminNavGroup[] = useMemo(() => {
-    return NAV_GROUPS.map((group) => ({
-      key: group.key,
-      title: group.title,
-      items: group.items.filter((item) => {
-        if (!canAccessModule(allowed, item.module)) return false;
-        if (!normalizedQuery) return true;
-        const hay = `${item.label} ${item.href} ${item.keywords.join(" ")}`.toLowerCase();
-        return hay.includes(normalizedQuery);
-      }),
-    })).filter((group) => group.items.length > 0);
-  }, [normalizedQuery, allowed]);
+    return NAV_GROUPS.map((group) => {
+      // MA3: Process Studio / workflows are desktop-config — hide on phone operational mode
+      if (phoneOps && group.key === "processStudio") {
+        return { key: group.key, title: group.title, items: [] };
+      }
+      return {
+        key: group.key,
+        title: group.title,
+        items: group.items.filter((item) => {
+          if (!canAccessModule(allowed, item.module)) return false;
+          if (phoneOps && (item.module === "configuration" || item.module === "workflows")) {
+            return false;
+          }
+          if (!normalizedQuery) return true;
+          const hay = `${item.label} ${item.href} ${item.keywords.join(" ")}`.toLowerCase();
+          return hay.includes(normalizedQuery);
+        }),
+      };
+    }).filter((group) => group.items.length > 0);
+  }, [normalizedQuery, allowed, phoneOps]);
 
   const visibleQuickActions = useMemo(
     () =>

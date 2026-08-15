@@ -2,15 +2,16 @@
 
 import { cn } from "@erp/ui";
 
-export type DeskStage = "inbox" | "mywork" | "active";
+export type DeskStage = "inbox" | "mywork" | "active" | "messages";
 
 const STAGES: { id: DeskStage; label: string; hint: string }[] = [
   { id: "inbox", label: "Inbox", hint: "Dealer sales requests" },
   { id: "mywork", label: "My Work", hint: "Your prep steps" },
   { id: "active", label: "Fulfillment", hint: "Dispatch & delivery" },
+  { id: "messages", label: "Messages", hint: "WhatsApp-style chat" },
 ];
 
-/** Hero stage rail — Inbox → My Work → Fulfillment. */
+/** Hero stage rail — Inbox → My Work → Fulfillment → Messages. */
 export function StageRail({
   stage,
   counts,
@@ -43,14 +44,16 @@ export function StageRail({
   );
 }
 
-export function deskTabToStage(tab: "sreq" | "tasks" | "inflight"): DeskStage {
+export function deskTabToStage(tab: "sreq" | "tasks" | "inflight" | "messages"): DeskStage {
   if (tab === "sreq") return "inbox";
   if (tab === "inflight") return "active";
+  if (tab === "messages") return "messages";
   return "mywork";
 }
 
-export function stageToDeskTab(stage: DeskStage): "sreq" | "tasks" | "inflight" {
+export function stageToDeskTab(stage: DeskStage): "sreq" | "tasks" | "inflight" | "messages" {
   if (stage === "inbox") return "sreq";
   if (stage === "active") return "inflight";
+  if (stage === "messages") return "messages";
   return "tasks";
 }

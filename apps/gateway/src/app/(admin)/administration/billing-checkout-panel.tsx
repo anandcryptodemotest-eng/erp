@@ -30,8 +30,42 @@ type SubRow = {
   invoices: Invoice[];
 };
 
+type RazorpayCheckoutSuccess = {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+};
+
+type RazorpayConstructor = new (options: Record<string, unknown>) => { open: () => void };
+
+declare global {
+  interface Window {
+    Razorpay?: RazorpayConstructor;
+  }
+}
+
 function rupees(paise: number) {
   return `₹${(paise / 100).toFixed(2)}`;
+}
+
+function loadRazorpayScript(): Promise<void> {
+  if (typeof window === "undefined") return Promise.reject(new Error("No window"));
+  if (window.Razorpay) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[data-razorpay-checkout="1"]');
+    if (existing) {
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error("Razorpay script failed")), { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.dataset.razorpayCheckout = "1";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Could not load Razorpay Checkout"));
+    document.body.appendChild(script);
+  });
 }
 
 export function BillingCheckoutPanel() {
@@ -80,7 +114,7 @@ export function BillingCheckoutPanel() {
     }
   }, [planId, refresh]);
 
-  const pay = useCallback(
+  const payDemo = useCallback(
     async (invoiceId: string) => {
       setBusy(true);
       setError(null);
@@ -101,7 +135,76 @@ export function BillingCheckoutPanel() {
     [refresh]
   );
 
+  const payLive = useCallback(
+    async (invoice: Invoice) => {
+      setBusy(true);
+      setError(null);
+      setMessage(null);
+      try {
+        const order = await api<{
+          order_id: string;
+          amount: number;
+          currency: string;
+          key_id: string;
+          billingInvoiceId: string | null;
+        }>("/api/create-order", {
+          method: "POST",
+          body: JSON.stringify({ billingInvoiceId: invoice.id }),
+        });
+
+        await loadRazorpayScript();
+        if (!window.Razorpay) throw new Error("Razorpay Checkout unavailable");
+
+        await new Promise<void>((resolve, reject) => {
+          const rzp = new window.Razorpay!({
+            key: order.key_id,
+            amount: order.amount,
+            currency: order.currency,
+            name: "Sankalp",
+            description: `SaaS invoice ${invoice.invoiceNumber}`,
+            order_id: order.order_id,
+            theme: { color: "#1f4d3a" },
+            handler: (response: RazorpayCheckoutSuccess) => {
+              void (async () => {
+                try {
+                  const r = await api<{ data: { duplicate?: boolean } }>("/api/billing/verify-payment", {
+                    method: "POST",
+                    body: JSON.stringify({
+                      invoiceId: invoice.id,
+                      razorpay_order_id: response.razorpay_order_id,
+                      razorpay_payment_id: response.razorpay_payment_id,
+                      razorpay_signature: response.razorpay_signature,
+                    }),
+                  });
+                  setMessage(
+                    r.data.duplicate
+                      ? "Payment already applied"
+                      : `Paid ${rupees(invoice.totalPaise)}. Subscription active.`
+                  );
+                  await refresh();
+                  resolve();
+                } catch (e: unknown) {
+                  reject(e instanceof Error ? e : new Error("Verify payment failed"));
+                }
+              })();
+            },
+            modal: {
+              ondismiss: () => reject(new Error("Checkout closed before payment")),
+            },
+          });
+          rzp.open();
+        });
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "Razorpay pay failed");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [refresh]
+  );
+
   const openInvoices = subscription?.invoices.filter((i) => i.status === "OPEN" || i.status === "OVERDUE") ?? [];
+  const starter = plans.find((p) => p.code === "starter_monthly");
 
   return (
     <div className="space-y-4">
@@ -121,6 +224,12 @@ export function BillingCheckoutPanel() {
         Subscription: <strong>{subscription?.status ?? "NONE"}</strong>
         {subscription ? ` · ${subscription.seatLimit} seats · ${subscription.featureCodes.join(", ")}` : null}
       </p>
+      {mode === "LIVE" ? (
+        <p className="rounded-lg border border-[var(--line)] bg-[var(--mist)] px-3 py-2 text-xs text-[var(--ink-soft)]">
+          LIVE Checkout uses Razorpay keys from the Gateway env. With <code>rzp_test_</code> keys, use Razorpay
+          test cards (no real bank debit). Starter is {starter ? rupees(starter.amountPaise) : "₹100.00"} / month.
+        </p>
+      ) : null}
 
       <div className="flex flex-wrap items-end gap-3">
         <label className="text-sm space-y-1">
@@ -133,6 +242,7 @@ export function BillingCheckoutPanel() {
             {plans.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name} — {rupees(p.amountPaise)} / {p.billingInterval.toLowerCase()} ({p.includedSeats} seats)
+                {p.code === "starter_monthly" ? " · recommended test" : ""}
               </option>
             ))}
           </select>
@@ -151,10 +261,14 @@ export function BillingCheckoutPanel() {
                 {inv.invoiceNumber} · {rupees(inv.totalPaise)} · {inv.billingPeriodKey}
               </span>
               {mode === "DEMO" ? (
-                <Button type="button" disabled={busy} onClick={() => void pay(inv.id)}>
+                <Button type="button" disabled={busy} onClick={() => void payDemo(inv.id)}>
                   Pay (DEMO)
                 </Button>
-              ) : null}
+              ) : (
+                <Button type="button" disabled={busy} onClick={() => void payLive(inv)}>
+                  {busy ? "Opening…" : "Pay with Razorpay"}
+                </Button>
+              )}
             </div>
           ))}
         </div>

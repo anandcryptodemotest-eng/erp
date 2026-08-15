@@ -8,6 +8,7 @@ import { TopProductsWidget, RecentMovementsWidget } from "./products-movements";
 import { MyOrdersWidget, MonthlySpendingWidget } from "./customer";
 import {
   OpsKpiRowWidget,
+  TodayAttentionWidget,
   RecentActivityWidget,
   SreqOrderTableWidget,
   MyTasksListWidget,
@@ -138,6 +139,16 @@ export function registerDashboardWidgets() {
     defaultHeight: 4,
   });
   registerWidget({
+    id: "today-attention",
+    name: "Today",
+    description: "What needs your attention right now",
+    category: "summary",
+    dataSource: "/api/dashboard/ops-summary",
+    component: TodayAttentionWidget,
+    defaultWidth: 12,
+    defaultHeight: 2,
+  });
+  registerWidget({
     id: "ops-kpi-row",
     name: "Role KPIs",
     description: "Attention metrics for the signed-in role",
@@ -172,7 +183,7 @@ export function registerDashboardWidgets() {
     requiredModule: "sales",
     dataSource: "/api/dashboard/ops-summary",
     component: RecentActivityWidget,
-    defaultWidth: 12,
+    defaultWidth: 6,
     defaultHeight: 3,
   });
   registerWidget({

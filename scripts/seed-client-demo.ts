@@ -33,9 +33,13 @@ const BUYER = {
 
 const MEDIA = {
   plywood: "/media/products/plywood-marine.jpg",
+  blockboard: "/media/products/blockboard.jpg",
   timber: "/media/products/timber.jpg",
   laminate: "/media/products/laminate.jpg",
-  warehouse: "/media/products/warehouse.jpg",
+  adhesive: "/media/products/adhesive.jpg",
+  phone: "/media/products/phone.jpg",
+  hardware: "/media/products/hardware.jpg",
+  warehouse: "/media/products/hardware.jpg",
   hero: "/media/products/hero-yard.jpg",
 } as const;
 
@@ -317,6 +321,10 @@ async function ensureSimpleAdhesive(
     }
   }
   if (existing) {
+    await api("PATCH", `/api/products/${existing.id}`, {
+      ...auth,
+      body: { imageUrls: [MEDIA.adhesive], isActive: true },
+    });
     log("Adhesive exists", "TW-ADH-1L");
     return existing;
   }
@@ -332,7 +340,7 @@ async function ensureSimpleAdhesive(
       pricingBasis: "PER_EACH",
       sellPrice: 350,
       costPrice: 220,
-      imageUrls: [MEDIA.warehouse],
+      imageUrls: [MEDIA.adhesive],
       reorderLevel: 10,
     },
   });
@@ -363,10 +371,16 @@ async function ensureSimpleAdhesive(
 async function reactivateDemoSkus(auth: Auth, warehouseId: string) {
   const list = await api("GET", "/api/products?limit=100&includeInactive=true", auth);
   const rows =
-    (list.json.data as { id: string; sku: string; isActive?: boolean; groupCode?: string | null }[]) ??
-    [];
+    (list.json.data as {
+      id: string;
+      sku: string;
+      name?: string;
+      isActive?: boolean;
+      groupCode?: string | null;
+    }[]) ?? [];
   const stock: { productId: string; quantity: number }[] = [];
   let n = 0;
+  let images = 0;
   for (const p of rows) {
     const demo =
       p.sku.startsWith("TW-") ||
@@ -382,11 +396,31 @@ async function reactivateDemoSkus(auth: Auth, warehouseId: string) {
         log("Reactivated", p.sku);
       } else warn(`Reactivate ${p.sku}`, `${patched.status}`);
     }
+    const img = demoImageForSku(p.sku, p.name);
+    if (img) {
+      const patched = await api("PATCH", `/api/products/${p.id}`, {
+        ...auth,
+        body: { imageUrls: [img] },
+      });
+      if (patched.status === 200) images++;
+    }
     stock.push({ productId: p.id, quantity: 50 });
   }
   if (n) log("Reactivated demo SKUs", String(n));
+  if (images) log("Refreshed demo images", String(images));
   if (stock.length) await receiveStock(auth, warehouseId, stock);
   return n;
+}
+
+function demoImageForSku(sku: string, name?: string): string | null {
+  const hay = `${sku} ${name ?? ""}`;
+  if (/ADH|adhesive/i.test(hay)) return MEDIA.adhesive;
+  if (/PHONE|phone/i.test(hay)) return MEDIA.phone;
+  if (/LAM|laminate/i.test(hay)) return MEDIA.laminate;
+  if (/BLK|blockboard/i.test(hay)) return MEDIA.blockboard;
+  if (/BWP|BWR|ply/i.test(hay)) return MEDIA.plywood;
+  if (/TW-/i.test(sku)) return MEDIA.plywood;
+  return null;
 }
 
 async function seedBuyer(auth: Auth) {
@@ -616,7 +650,7 @@ async function main() {
           attributes: sizeOrder,
           values: {
             [buildVariationKey(sizeOrder, { size: "8x4" })]: [MEDIA.plywood],
-            [buildVariationKey(sizeOrder, { size: "7x3" })]: [MEDIA.timber],
+            [buildVariationKey(sizeOrder, { size: "7x3" })]: [MEDIA.plywood],
           },
         },
       },
@@ -642,13 +676,13 @@ async function main() {
       pricingUom: "sq_ft",
       baseRate: 50,
       media: {
-        images: [MEDIA.timber],
+        images: [MEDIA.blockboard],
         variation: {
           type: "CONFIGURATION",
           attributes: sizeOrder,
           values: {
-            [buildVariationKey(sizeOrder, { size: "8x4" })]: [MEDIA.timber],
-            [buildVariationKey(sizeOrder, { size: "6x3" })]: [MEDIA.warehouse],
+            [buildVariationKey(sizeOrder, { size: "8x4" })]: [MEDIA.blockboard],
+            [buildVariationKey(sizeOrder, { size: "6x3" })]: [MEDIA.blockboard],
           },
         },
       },
@@ -680,7 +714,7 @@ async function main() {
           attributes: finishOrder,
           values: {
             [buildVariationKey(finishOrder, { finish: "Glossy" })]: [MEDIA.laminate],
-            [buildVariationKey(finishOrder, { finish: "Matt" })]: [MEDIA.hero],
+            [buildVariationKey(finishOrder, { finish: "Matt" })]: [MEDIA.laminate],
           },
         },
       },
@@ -711,13 +745,13 @@ async function main() {
         values: { "128": 49999, "256": 59999 },
       },
       media: {
-        images: [MEDIA.warehouse],
+        images: [MEDIA.phone],
         variation: {
           type: "CONFIGURATION",
           attributes: colorOrder,
           values: {
-            [buildVariationKey(colorOrder, { color: "Black" })]: [MEDIA.warehouse],
-            [buildVariationKey(colorOrder, { color: "Blue" })]: [MEDIA.hero],
+            [buildVariationKey(colorOrder, { color: "Black" })]: [MEDIA.phone],
+            [buildVariationKey(colorOrder, { color: "Blue" })]: [MEDIA.phone],
           },
         },
       },
@@ -784,6 +818,15 @@ async function main() {
     body: { templateId: "workflow.oms_trading", setDefault: true },
   });
   log("Workflow + forms seeded");
+
+  await api("PUT", `/api/tenants/${auth.tenantId}/settings`, {
+    ...auth,
+    body: {
+      "logistics.porter.enabled": "true",
+      "logistics.porter.bookUrl": "https://porter.in/",
+    },
+  });
+  log("Porter logistics settings");
 
   console.log(`\n--- seed summary ---`);
   console.log(`Groups touched:   ${groupsCreated}`);

@@ -79,11 +79,29 @@ model SalesRequest {
   customer   Customer           @relation(fields: [customerId], references: [id])
   salesOrder SalesOrder?        @relation(fields: [salesOrderId], references: [id])
   items      SalesRequestItem[]
+  documents  SalesRequestDocument[]
 
   @@unique([tenantId, requestNumber])
   @@index([tenantId])
   @@index([tenantId, status])
   @@index([customerId])
+}
+
+/// Buyer attachment on a Sales Request (PO PDF, site photo, drawing). Copied to OrderDocument on convert.
+model SalesRequestDocument {
+  id             String   @id @default(cuid())
+  tenantId       String
+  salesRequestId String
+  type           String   @default("OTHER") // PO | SITE_PHOTO | DRAWING | OTHER
+  fileName       String
+  fileUrl        String
+  mimeType       String?
+  uploadedBy     String
+  createdAt      DateTime @default(now())
+
+  salesRequest SalesRequest @relation(fields: [salesRequestId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, salesRequestId])
 }
 
 model SalesRequestItem {
@@ -246,7 +264,7 @@ model SalesOrder {
   date                 DateTime
   deliveryDate         DateTime?
   status               String    @default("DRAFT")
-  sourceKind           String    @default("SALES_ORDER") // SALES_ORDER | QUICK_BILL
+  sourceKind           String    @default("SALES_ORDER") // SREQ | WALK_IN | QUOTE | QUICK_BILL | SALES_ORDER (legacy DRAFT)
   placeOfSupply        String?
   // Trading OMS coarse statuses: DRAFT | CONFIRMED | FULFILLING | READY_FOR_DISPATCH |
   // DISPATCHED | DELIVERED | INVOICED | PAID | CLOSED | CANCELLED
@@ -296,12 +314,14 @@ model SalesOrder {
   returns          SalesReturn[]
   modifications    OrderModification[]
   documents        OrderDocument[]
+  orderNotes       OrderNote[]
   workflowTasks    WorkflowTask[]
   workflowEvents   WorkflowEvent[]
 
   @@unique([tenantId, orderNumber])
   @@index([tenantId])
   @@index([customerId])
+  @@index([quoteId])
   @@index([tenantId, status])
   @@index([tenantId, paymentStatus])
   @@index([tenantId, branchId])
@@ -509,6 +529,23 @@ model OrderDocument {
   order SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, salesOrderId])
+}
+
+/// Human operational note on an SO (not OrderModification audit, not Gateway chat).
+model OrderNote {
+  id           String   @id @default(cuid())
+  tenantId     String
+  salesOrderId String
+  body         String
+  authorUserId String?
+  authorRole   String?
+  /// Activity key or Work Item key when posted from a task form
+  sourceStep   String?
+  createdAt    DateTime @default(now())
+
+  order SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, salesOrderId, createdAt])
 }
 
 model SalesReturn {

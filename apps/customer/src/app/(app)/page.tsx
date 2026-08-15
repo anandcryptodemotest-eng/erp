@@ -11,7 +11,9 @@ import {
   Skeleton,
 } from "@erp/ui";
 import { api } from "@/lib/api-client";
+import { addToCart } from "@/lib/cart-store";
 import { categoryImageUrl, heroImageUrl, productImageUrl } from "@/lib/media";
+import { formatPortalPrice } from "@/lib/pricing-display";
 import { useTenantDisplayName } from "@/components/TenantBrandingProvider";
 
 interface Banner {
@@ -23,10 +25,15 @@ interface Banner {
 interface Product {
   id: string;
   name: string;
-  sellPrice: number;
+  sku?: string;
+  sellPrice?: number | null;
+  baseRate?: number | null;
+  pricingBasis?: string | null;
+  pricingUom?: string | null;
+  unit?: string;
   imageUrl?: string;
   imageUrls?: string[];
-  unit?: string;
+  category?: { name?: string } | null;
   isFeatured?: boolean;
 }
 interface Category {
@@ -44,6 +51,36 @@ function readRecent(): Product[] {
   } catch {
     return [];
   }
+}
+
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+function cardPrice(p: Product) {
+  return formatPortalPrice({
+    sellPrice: p.sellPrice,
+    baseRate: p.baseRate,
+    pricingBasis: p.pricingBasis,
+    pricingUom: p.pricingUom,
+    unit: p.unit,
+  });
+}
+
+function quickAddFixed(p: Product) {
+  const price = cardPrice(p);
+  if (!price.quickAdd || price.amount == null) return;
+  addToCart({
+    productId: p.id,
+    name: p.name,
+    sku: p.sku ?? "",
+    price: price.amount,
+    qty: 1,
+    imageUrl: productImageUrl(p),
+  });
 }
 
 export default function HomePage() {
@@ -77,7 +114,6 @@ export default function HomePage() {
 
   return (
     <div className="pb-4">
-      {/* Compact promo strip */}
       <section className="relative overflow-hidden bg-[var(--forest)] text-white">
         <div
           className="absolute inset-0 bg-cover bg-center opacity-30"
@@ -90,10 +126,10 @@ export default function HomePage() {
               {orgName}
             </p>
             <h1 className="mt-0.5 text-lg font-bold leading-tight md:text-xl">
-              Plywood & timber, ready to order
+              {greeting()}
             </h1>
             <p className="mt-0.5 text-xs text-white/75">
-              Configure · Request · Track
+              Browse · Configure · Track orders
             </p>
           </div>
           <Link href="/shop" className="shrink-0">
@@ -163,7 +199,7 @@ export default function HomePage() {
 
         <section>
           <SectionHeader
-            title="Featured"
+            title="Featured products"
             action={
               <Link href="/shop" className="text-sm font-semibold text-[var(--forest)]">
                 Shop all
@@ -178,15 +214,23 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
-              {featured.map((p) => (
-                <ProductCard
-                  key={p.id}
-                  href={`/shop/p/${p.id}`}
-                  title={p.name}
-                  imageUrl={productImageUrl(p)}
-                  priceLabel={`₹${Number(p.sellPrice ?? 0).toLocaleString("en-IN")}`}
-                />
-              ))}
+              {featured.map((p) => {
+                const price = cardPrice(p);
+                return (
+                  <ProductCard
+                    key={p.id}
+                    href={`/shop/p/${p.id}`}
+                    title={p.name}
+                    imageUrl={productImageUrl({
+                      ...p,
+                      categoryName: p.category?.name,
+                    })}
+                    priceLabel={price.label}
+                    purchaseMode={price.quickAdd ? "fixed" : "configure"}
+                    onQuickAdd={price.quickAdd ? () => quickAddFixed(p) : undefined}
+                  />
+                );
+              })}
             </div>
           )}
         </section>
@@ -195,19 +239,20 @@ export default function HomePage() {
           <section>
             <SectionHeader title="Recently viewed" />
             <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
-              {recent.slice(0, 4).map((p) => (
-                <ProductCard
-                  key={p.id}
-                  href={`/shop/p/${p.id}`}
-                  title={p.name}
-                  imageUrl={productImageUrl(p)}
-                  priceLabel={
-                    p.sellPrice != null
-                      ? `₹${Number(p.sellPrice).toLocaleString("en-IN")}`
-                      : "Configure"
-                  }
-                />
-              ))}
+              {recent.slice(0, 4).map((p) => {
+                const price = cardPrice(p);
+                return (
+                  <ProductCard
+                    key={p.id}
+                    href={`/shop/p/${p.id}`}
+                    title={p.name}
+                    imageUrl={productImageUrl(p)}
+                    priceLabel={price.label}
+                    purchaseMode={price.quickAdd ? "fixed" : "configure"}
+                    onQuickAdd={price.quickAdd ? () => quickAddFixed(p) : undefined}
+                  />
+                );
+              })}
             </div>
           </section>
         ) : null}

@@ -1,13 +1,13 @@
 # Greenfield OMS E2E
 
-Tenant: gf-mssvckdd
-Started: 2026-08-14T11:33:42.817Z
-Duration: 10.5s
-Result: 166 pass / 0 fail
+Tenant: gf-msumsabo
+Started: 2026-08-15T17:09:32.100Z
+Duration: 12.4s
+Result: 187 pass / 0 fail
 
 ## Platform
 ✓ operator login
-✓ tenant created gf-mssvckdd
+✓ tenant created gf-msumsabo
 ✓ licenses enabled
 ✓ Growth billing granted
 ✓ Process Studio enabled
@@ -91,27 +91,42 @@ Result: 166 pass / 0 fail
 ✓ Sales has ops-kpi-row
 ✓ Sales has my-tasks-list
 ✓ Sales has sreq-order-table
+✓ Sales has revenue-trend
+✓ Sales has recent-customers
 ✓ Sales KPI variant sales
 ✓ Sales no Order Desk widget
 ✓ Pricing dashboard loaded
 ✓ Pricing has ops-kpi-row
+✓ Pricing has my-tasks-list
 ✓ Pricing has price-ops
 ✓ Pricing KPI variant pricing
 ✓ Pricing no Order Desk widget
 ✓ Dispatch dashboard loaded
 ✓ Dispatch has ops-kpi-row
+✓ Dispatch has my-tasks-list
+✓ Dispatch has delivery-performance
+✓ Dispatch has order-status
 ✓ Dispatch KPI variant dispatch
 ✓ Dispatch no Order Desk widget
 ✓ Delivery dashboard loaded
 ✓ Delivery has ops-kpi-row
+✓ Delivery has my-tasks-list
+✓ Delivery has delivery-performance
 ✓ Delivery KPI variant delivery
 ✓ Delivery no Order Desk widget
 ✓ Accountant dashboard loaded
 ✓ Accountant has ops-kpi-row
+✓ Accountant has my-tasks-list
+✓ Accountant has outstanding-invoices
 ✓ Accountant KPI variant accountant
 ✓ Accountant no Order Desk widget
 ✓ Admin dashboard loaded
+✓ Admin has today-attention
 ✓ Admin has ops-kpi-row
+✓ Admin has my-tasks-list
+✓ Admin has recent-activity
+✓ Admin has order-status
+✓ Admin has revenue-trend
 ✓ Admin KPI variant admin
 ✓ Admin no Order Desk widget
 
@@ -157,9 +172,15 @@ Result: 166 pass / 0 fail
 ## OMS
 ✓ buyer 10-line SREQ
 ✓ SREQ subtotal ≈ cart
+✓ SREQ attachment linked
 ✓ convert SREQ → SO
 ✓ convert idempotent — 200 already=true
 ✓ SO v5 snapshot
+✓ workItems labels — n=6
+✓ no Procurement Exception (full stock)
+✓ Confirm Order READY — READY actionable=true
+✓ checkout note → OrderNote — notes=1
+✓ checkout file → OrderDocument — OTHER:gf-site-photo-gf-msumsabo.jpg
 ✓ Sales review
 ✓ Inventory verify-stock
 ✓ Pricing complete-pricing

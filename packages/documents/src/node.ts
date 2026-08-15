@@ -3,6 +3,7 @@
 export {
   renderDocument,
   renderDocumentHtml,
+  renderDocumentPdfBytes,
   fileStoreRoot,
   invoicePdfPath,
 } from "./render";

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Chip, ProductCard, SearchBar, SectionHeader, Skeleton, Container } from "@erp/ui";
 import { api } from "@/lib/api-client";
 import { productImageUrl } from "@/lib/media";
+import { formatPortalPrice } from "@/lib/pricing-display";
 
 interface CatalogGroup {
   groupCode: string;
@@ -51,14 +52,6 @@ function ShopContent() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  function priceLabel(g: CatalogGroup): string {
-    if (g.pricingBasis && g.pricingBasis !== "PER_EACH" && g.baseRate != null) {
-      return `From ₹${g.baseRate}/${g.pricingUom || "unit"}`;
-    }
-    if (g.startingSellPrice != null) return `From ₹${Number(g.startingSellPrice).toLocaleString("en-IN")}`;
-    return "Configure for price";
-  }
 
   return (
     <Container layout="wide" className="py-4 md:py-6">
@@ -112,20 +105,31 @@ function ShopContent() {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-4 md:gap-3">
-          {groups.map((g) => (
-            <ProductCard
-              key={g.groupCode}
-              href={`/shop/g/${encodeURIComponent(g.groupCode)}`}
-              title={g.groupName}
-              subtitle={[g.brandName, g.categoryName].filter(Boolean).join(" · ")}
-              imageUrl={productImageUrl({
-                name: g.groupName,
-                imageUrls: g.imageUrls.length ? g.imageUrls : undefined,
-              })}
-              priceLabel={priceLabel(g)}
-              meta={`${g.productCount} option${g.productCount === 1 ? "" : "s"}`}
-            />
-          ))}
+          {groups.map((g) => {
+            const price = formatPortalPrice({
+              startingSellPrice: g.startingSellPrice,
+              baseRate: g.baseRate,
+              pricingBasis: g.pricingBasis,
+              pricingUom: g.pricingUom,
+            });
+            const specs = [g.brandName, g.categoryName].filter(Boolean) as string[];
+            return (
+              <ProductCard
+                key={g.groupCode}
+                href={`/shop/g/${encodeURIComponent(g.groupCode)}`}
+                title={g.groupName}
+                specs={specs.length ? [specs.join(" · ")] : undefined}
+                imageUrl={productImageUrl({
+                  name: g.groupName,
+                  imageUrls: g.imageUrls.length ? g.imageUrls : undefined,
+                  categoryName: g.categoryName,
+                })}
+                priceLabel={price.label}
+                purchaseMode="configure"
+                meta={`${g.productCount} option${g.productCount === 1 ? "" : "s"}`}
+              />
+            );
+          })}
         </div>
       )}
     </Container>

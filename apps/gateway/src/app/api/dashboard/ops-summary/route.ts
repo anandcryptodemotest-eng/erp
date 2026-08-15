@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { extractToken, getServiceSecret, verifyToken } from "@erp/auth";
+import { buildOpsAttention } from "@erp/ui/ops-attention";
 
 const SALES_URL = process.env.SALES_SERVICE_URL ?? "http://127.0.0.1:3001";
 const INVENTORY_URL = process.env.INVENTORY_SERVICE_URL ?? "http://127.0.0.1:3002";
@@ -37,6 +38,24 @@ function statusCount(
   status: string
 ): number {
   return rows?.find((r) => r.status === status)?._count?.id ?? 0;
+}
+
+function countStatuses(
+  rows: Array<{ status?: string }>,
+  exclude: string[] = []
+): Array<{ status: string; count: number }> {
+  const skip = new Set(exclude.map((s) => s.toUpperCase()));
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    const key = String(row.status ?? "")
+      .trim()
+      .toUpperCase();
+    if (!key || skip.has(key)) continue;
+    map.set(key, (map.get(key) ?? 0) + 1);
+  }
+  return [...map.entries()]
+    .map(([status, count]) => ({ status, count }))
+    .sort((a, b) => b.count - a.count || a.status.localeCompare(b.status));
 }
 
 /**
@@ -82,12 +101,13 @@ export async function GET(request: Request) {
     deliveryReport,
     todayDelivery,
     recon,
+    ageing,
   ] = await Promise.all([
     serviceGet<{ data?: JsonRecord }>(SALES_URL, "/api/reports/sales", headers),
     serviceGet<{ data?: JsonRecord }>(SALES_URL, `/api/reports/sales?${todayQs}`, headers),
     serviceGet<{ data?: JsonRecord[]; meta?: { total?: number } }>(
       SALES_URL,
-      "/api/sales-requests?limit=8",
+      "/api/sales-requests?limit=100",
       headers
     ),
     serviceGet<{ meta?: { total?: number } }>(
@@ -97,10 +117,10 @@ export async function GET(request: Request) {
     ),
     serviceGet<{ data?: JsonRecord[]; meta?: { total?: number } }>(
       SALES_URL,
-      "/api/orders?limit=8",
+      "/api/orders?limit=100",
       headers
     ),
-    serviceGet<{ data?: JsonRecord[]; meta?: JsonRecord }>(
+    serviceGet<{ data?: JsonRecord[]; tasks?: JsonRecord[]; meta?: JsonRecord }>(
       SALES_URL,
       "/api/workflow-tasks",
       headers
@@ -130,6 +150,7 @@ export async function GET(request: Request) {
     serviceGet<{ data?: JsonRecord }>(DELIVERY_URL, "/api/reports", headers),
     serviceGet<{ data?: JsonRecord }>(DELIVERY_URL, `/api/reports?${todayQs}`, headers),
     serviceGet<{ data?: JsonRecord }>(ACCOUNTING_URL, "/api/reports/reconciliation", headers),
+    serviceGet<{ data?: JsonRecord }>(ACCOUNTING_URL, "/api/ar/ageing", headers),
   ]);
 
   const salesSummary = (salesReport?.data?.summary ?? {}) as JsonRecord;
@@ -142,6 +163,14 @@ export async function GET(request: Request) {
     _count?: { id?: number };
   }>;
   const invoices = (recon?.data?.invoices ?? {}) as JsonRecord;
+  const ageingData = (ageing?.data ?? {}) as JsonRecord;
+  const ageingBuckets = (ageingData.buckets ?? {}) as JsonRecord;
+  const toCollect = num(ageingData.totalOutstanding) || num(invoices.outstanding);
+  const overdueReceivables =
+    num(ageingBuckets.d1_30) +
+    num(ageingBuckets.d31_60) +
+    num(ageingBuckets.d61_90) +
+    num(ageingBuckets.d90_plus);
 
   const sreqs = (sreqList?.data ?? []).map((row) => {
     const customer = (row.customer ?? {}) as JsonRecord;
@@ -169,18 +198,55 @@ export async function GET(request: Request) {
     };
   });
 
-  const tasks = (taskList?.data ?? []).slice(0, 12).map((row) => {
+  // Prefer workItems (operational queue) — complete open set for status bars.
+  const allTasksRaw = (taskList?.data ?? taskList?.tasks ?? []) as JsonRecord[];
+  const allTasks = allTasksRaw.map((row) => {
     const order = (row.order ?? {}) as JsonRecord;
+    const customer = (order.customer ?? row.customer ?? {}) as JsonRecord;
     return {
       id: String(row.id ?? ""),
-      title: String(row.title ?? row.action ?? "Task"),
+      title: String(row.title ?? row.label ?? row.action ?? "Task"),
       status: String(row.status ?? ""),
       action: String(row.action ?? ""),
-      salesOrderId: typeof row.salesOrderId === "string" ? row.salesOrderId : undefined,
-      orderNumber: typeof order.orderNumber === "string" ? order.orderNumber : undefined,
+      salesOrderId:
+        typeof row.salesOrderId === "string"
+          ? row.salesOrderId
+          : typeof order.id === "string"
+            ? order.id
+            : undefined,
+      orderNumber:
+        typeof order.orderNumber === "string"
+          ? order.orderNumber
+          : typeof row.orderNumber === "string"
+            ? row.orderNumber
+            : undefined,
+      customerName: typeof customer.name === "string" ? customer.name : undefined,
       dueAt: typeof row.dueAt === "string" ? row.dueAt : undefined,
     };
   });
+  const taskStatusCounts = countStatuses(allTasks, ["COMPLETED", "CANCELLED", "SKIPPED", "DONE"]);
+  const tasks = allTasks
+    .filter((t) => !["COMPLETED", "CANCELLED", "SKIPPED", "DONE"].includes(t.status.toUpperCase()))
+    .slice(0, 5);
+
+  const sreqStatusCounts = countStatuses(sreqs);
+  const reportOrderStatus = (salesReport?.data?.ordersByStatus ?? []) as Array<{
+    status?: string;
+    _count?: { id?: number };
+  }>;
+  const orderStatusCounts =
+    reportOrderStatus.length > 0
+      ? reportOrderStatus
+          .map((r) => ({
+            status: String(r.status ?? "").toUpperCase(),
+            count: num(r._count?.id),
+          }))
+          .filter((r) => r.status && r.count > 0)
+          .sort((a, b) => b.count - a.count || a.status.localeCompare(b.status))
+      : countStatuses(orders);
+
+  const sreqsRecent = sreqs.slice(0, 6);
+  const ordersRecent = orders.slice(0, 6);
 
   const customers = (customerList?.data ?? []).map((row) => ({
     id: String(row.id ?? ""),
@@ -206,8 +272,19 @@ export async function GET(request: Request) {
     .length;
 
   const openTasks = num(taskMeta.pending) + num(taskMeta.inProgress);
+  const pendingDispatches = statusCount(deliveryByStatus, "ASSIGNED");
+  const outForDelivery =
+    statusCount(deliveryByStatus, "PICKED_UP") + statusCount(deliveryByStatus, "ACCEPTED");
+  const sreqsOpen = num(sreqOpen?.meta?.total);
+  const attention = buildOpsAttention({
+    sreqsOpen,
+    pendingFulfilment: pendingDispatches,
+    deliveriesPending: outForDelivery,
+    overdueReceivables,
+    openTasks,
+  });
   const activity = [
-    ...sreqs.slice(0, 4).map((s) => ({
+    ...sreqsRecent.slice(0, 4).map((s) => ({
       id: `sreq-${s.id}`,
       kind: "sreq",
       title: s.requestNumber || "Sales request",
@@ -215,7 +292,7 @@ export async function GET(request: Request) {
       href: `/admin/sales-desk?sreqId=${encodeURIComponent(s.id)}`,
       at: s.createdAt,
     })),
-    ...orders.slice(0, 3).map((o) => ({
+    ...ordersRecent.slice(0, 3).map((o) => ({
       id: `so-${o.id}`,
       kind: "order",
       title: o.orderNumber || "Sales order",
@@ -233,7 +310,7 @@ export async function GET(request: Request) {
         : "/admin/sales-desk",
       at: t.dueAt,
     })),
-  ];
+  ].slice(0, 8);
 
   return NextResponse.json({
     data: {
@@ -241,25 +318,26 @@ export async function GET(request: Request) {
         revenue: num(salesSummary.revenue),
         salesOrders: num(salesSummary.totalOrders),
         sreqs: num(sreqList?.meta?.total),
-        sreqsOpen: num(sreqOpen?.meta?.total),
+        sreqsOpen,
         openTasks,
         customers: num(customerList?.meta?.total),
         todaySales: num(todaySummary.revenue),
-        mySreqs: num(sreqOpen?.meta?.total),
+        mySreqs: sreqsOpen,
         myOrders: num(orderList?.meta?.total),
         myTasks: openTasks,
         priceLists: num(priceList?.meta?.total),
         priceUpdates,
         priceRequests: 0,
-        pendingDispatches: statusCount(deliveryByStatus, "ASSIGNED"),
+        pendingDispatches,
         todayDispatches: num(todayDeliverySummary.deliveredCount),
         delayedOrders: num(deliverySummary.failedCount),
-        outForDelivery:
-          statusCount(deliveryByStatus, "PICKED_UP") + statusCount(deliveryByStatus, "ACCEPTED"),
+        outForDelivery,
         deliveredToday: num(todayDeliverySummary.deliveredCount),
         delayedDeliveries: num(todayDeliverySummary.failedCount) || num(deliverySummary.failedCount),
         pendingInvoices: num(invoices.count),
-        receivables: num(invoices.outstanding),
+        receivables: toCollect,
+        overdueReceivables,
+        toCollect,
         payments: num(invoices.paymentTotal),
         products: num(productList?.meta?.total),
         categories: num(categoryList?.meta?.total),
@@ -267,12 +345,16 @@ export async function GET(request: Request) {
         attributes: Array.isArray(attrList?.data) ? attrList.data.length : 0,
       },
       activity,
-      sreqs,
-      orders,
+      sreqs: sreqsRecent,
+      orders: ordersRecent,
       tasks,
+      taskStatusCounts,
+      sreqStatusCounts,
+      orderStatusCounts,
       customers,
       priceLists,
       products,
+      attention,
     },
   });
 }

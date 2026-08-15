@@ -1,12 +1,17 @@
 "use client";
 import { useEffect, useState } from "react";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from "recharts";
 import type { WidgetProps } from "../types";
+import { buildTopProductsHref } from "../charts/hrefs";
 import { WidgetShell, WidgetEmpty, WidgetError } from "./shell";
 
 type TopProductsShape = {
   topProducts?: { productId?: string; _sum?: { quantity?: number | null; total?: number | null } }[];
 };
+
+function navigate(href: string) {
+  if (typeof window !== "undefined") window.location.assign(href);
+}
 
 export function TopProductsWidget({ fetchData }: WidgetProps) {
   const [data, setData] = useState<TopProductsShape | null>(null);
@@ -27,24 +32,48 @@ export function TopProductsWidget({ fetchData }: WidgetProps) {
   if (error) return <WidgetError message={error} />;
 
   const rows = (data?.topProducts ?? []).slice(0, 6).map((p, i) => ({
-    name: p.productId ? `#${i + 1}` : `#${i + 1}`,
+    name: `#${i + 1}`,
     qty: p._sum?.quantity ?? 0,
+    productId: p.productId ?? "",
   }));
 
   return (
-    <WidgetShell title="Top products" subtitle="By units sold" style={{ height: "100%" }}>
+    <WidgetShell title="Top products" subtitle="By units sold — click to open catalog" style={{ height: "100%" }}>
       {!data ? (
         <WidgetEmpty message="Loading…" />
       ) : rows.length === 0 ? (
         <WidgetEmpty message="No product sales" />
       ) : (
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <BarChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} style={{ cursor: "pointer" }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--line,#e8e8e8)" vertical={false} />
             <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#999" tickLine={false} axisLine={false} />
             <YAxis tick={{ fontSize: 10 }} stroke="#999" tickLine={false} axisLine={false} width={30} />
-            <Tooltip />
-            <Bar dataKey="qty" fill="var(--brand,#c8922a)" radius={[4, 4, 0, 0]} />
+            <Tooltip
+              content={({ active, payload }) => {
+                if (!active || !payload?.length) return null;
+                const row = payload[0]?.payload as { name?: string; qty?: number } | undefined;
+                return (
+                  <div className="rounded-md border border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2 text-xs shadow-md">
+                    <p className="font-semibold text-[var(--ink)]">{row?.name}</p>
+                    <p className="mt-1 text-[var(--ink)]">{row?.qty ?? 0} units</p>
+                    <p className="mt-1 font-medium text-[var(--brand)]">Open products →</p>
+                  </div>
+                );
+              }}
+            />
+            <Bar
+              dataKey="qty"
+              radius={[4, 4, 0, 0]}
+              onClick={(item) => {
+                const pid = (item as { productId?: string })?.productId;
+                navigate(buildTopProductsHref(pid));
+              }}
+            >
+              {rows.map((r) => (
+                <Cell key={r.name} fill="var(--brand,#c8922a)" cursor="pointer" />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       )}

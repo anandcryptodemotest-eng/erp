@@ -150,7 +150,6 @@ export default function ProfileHubPage() {
 
           <MenuList
             items={[
-              { href: "/dashboard", label: "My dashboard" },
               { href: "/orders", label: "My orders" },
               { href: "/profile/addresses", label: "Addresses" },
               {

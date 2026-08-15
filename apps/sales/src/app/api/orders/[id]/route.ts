@@ -14,6 +14,7 @@ import {
   taskTypeForAction,
 } from "@/lib/complete-task-command";
 import { startSalesOrderWorkflowV5, getPublishedDefinition, syncTaskReadiness } from "@/lib/workflow-runtime-v5";
+import { getWorkItemsForOrder } from "@/lib/workflow-work-items";
 import { withSpan } from "@erp/telemetry/helpers";
 import { createLogger } from "@erp/logger";
 import { z } from "zod";
@@ -81,6 +82,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       returns: { select: { id: true, returnNumber: true, status: true, total: true } },
       modifications: { orderBy: { createdAt: "desc" }, take: 50 },
       documents: { orderBy: { createdAt: "desc" } },
+      orderNotes: { orderBy: { createdAt: "asc" }, take: 100 },
       workflowTasks: { orderBy: [{ status: "asc" }, { createdAt: "asc" }] },
       workflowEvents: { orderBy: { createdAt: "desc" }, take: 50 },
     },
@@ -137,9 +139,33 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       };
     });
 
+  const workItems =
+    role === "CUSTOMER"
+      ? []
+      : await getWorkItemsForOrder({ tenantId, salesOrderId: id });
+
+  const customer = order.customer
+    ? {
+        id: order.customer.id,
+        name: order.customer.name,
+        email: order.customer.email,
+        phone: order.customer.phone,
+        creditLimit: order.customer.creditLimit,
+        paymentTerms: order.customer.paymentTerms,
+        isBlocked: order.customer.isBlocked,
+        blockedReason: order.customer.blockedReason,
+        customerGroup: order.customer.customerGroup,
+        portalUserId: order.customer.portalUserId,
+        wallet: order.customer.wallet,
+      }
+    : null;
+
   return NextResponse.json({
     data: {
       ...order,
+      customer,
+      orderNotes: order.orderNotes,
+      documents: order.documents,
       workflow: workflow
         ? {
             id: workflow.id,
@@ -149,6 +175,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           }
         : null,
       nextActions: role === "CUSTOMER" ? [] : nextActions,
+      workItems,
       workflowRuntime: runtime,
       prepTasks: (order.workflowTasks ?? []).filter(
         (t) => !["COMPLETED", "CANCELLED", "SKIPPED"].includes(t.status)

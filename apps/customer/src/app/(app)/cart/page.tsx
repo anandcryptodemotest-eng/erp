@@ -120,7 +120,7 @@ export default function CartPage() {
                     <div className="h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-md bg-[var(--mist)]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={item.imageUrl || productImageUrl({ id: item.productId, name: item.name }, i)}
+                        src={item.imageUrl || productImageUrl({ id: item.productId, name: item.name })}
                         alt={item.name}
                         className="h-full w-full object-cover"
                       />
@@ -213,11 +213,11 @@ export default function CartPage() {
             footer="GST is included only when set on the product; otherwise 0%."
           />
 
-          <div className="atc-bar mt-4 !relative !shadow-none">
+          <div className="atc-bar mt-4">
             <Button
               variant="primary"
               size="block"
-              className="!rounded-md"
+              className="!rounded-md min-h-[var(--touch-min)]"
               onClick={() => router.push("/checkout")}
             >
               Proceed to checkout · ₹{payTotal.toLocaleString("en-IN")}

@@ -31,7 +31,7 @@
 - [x] TenantSetting validation + Administration → Tax & Invoicing
 - [x] Internal `GET /api/internal/tenants/:id/tax-profile`
 - [x] `generateInvoice` enrichment + `normalizeRate` fix
-- [x] PDF seeds: tax-invoice / commercial (Bill) / bill-of-supply
+- [x] PDF seeds: tax-invoice / commercial (Bill) / bill-of-supply (modern B2B chrome: Bill From/To cards, accent table header `#173f5f`, notes + amount in words; Unicode ₹ / PNG / multi-page still BL-025)
 - [x] SO + SREQ line snapshots (`hsn`, `taxRate`, `taxTreatment`)
 - [x] Quick Bill → same Invoice (`/quick-bill`, `POST /api/quick-bills`)
 - [x] E2E multi-tenant (GST + non-GST + composition)

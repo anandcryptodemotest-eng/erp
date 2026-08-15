@@ -188,6 +188,15 @@ export function FormTaskSimulator(props: FormTaskSimulatorProps): ReactNode {
                   },
                 ]);
               },
+              updateComment: (id, body) => {
+                setComments((prev) => prev.map((c) => (c.id === id ? { ...c, body } : c)));
+              },
+              deleteComment: (id) => {
+                setComments((prev) => prev.filter((c) => c.id !== id));
+              },
+              deleteAttachment: (id) => {
+                setAttachments((prev) => prev.filter((a) => a.id !== id));
+              },
             }}
             lineEditor={
               perms.canEdit

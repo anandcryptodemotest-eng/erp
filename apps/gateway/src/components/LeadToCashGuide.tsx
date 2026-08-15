@@ -10,8 +10,8 @@ type FlowStepKey = "leads" | "opportunities" | "quotes" | "orders" | "invoices";
 const STEPS: Array<{ key: FlowStepKey; label: string; hint: string; href: string }> = [
   { key: "leads", label: "Lead", hint: "Capture and qualify", href: "/leads" },
   { key: "opportunities", label: "Opportunity", hint: "Manage deal stage", href: "/opportunities" },
-  { key: "quotes", label: "Quote", hint: "Send and accept", href: "/quotes" },
-  { key: "orders", label: "Order", hint: "Confirm and ship", href: "/orders" },
+  { key: "quotes", label: "Quote", hint: "Send, accept, convert", href: "/quotes" },
+  { key: "orders", label: "Order", hint: "SO_STANDARD fulfilment", href: "/sales-desk" },
   { key: "invoices", label: "Invoice", hint: "Collect payment", href: "/invoices" },
 ];
 

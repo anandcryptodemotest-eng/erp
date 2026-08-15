@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { api } from "@/lib/admin-api";
+import { api, downloadAuthenticatedDocument } from "@/lib/admin-api";
 import { Button, PageScaffold, StatusBadge } from "@erp/ui";
 import type { DocumentDefinition } from "@erp/documents";
-import { DocumentDesigner } from "@erp/document-designer";
+import { DocumentStudio, patchStudio, type SimulateFeed } from "@erp/document-designer";
 
 type DocRow = {
   id: string;
@@ -28,8 +28,12 @@ export default function DocumentStudioPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [studioKey, setStudioKey] = useState(0);
+  const [feed, setFeed] = useState<SimulateFeed>({ kind: "sample" });
+  const [invoices, setInvoices] = useState<{ id: string; number: string }[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const definitionRef = useRef<DocumentDefinition | null>(null);
+  const feedRef = useRef(feed);
+  feedRef.current = feed;
 
   const load = useCallback(async () => {
     setError(null);
@@ -48,6 +52,12 @@ export default function DocumentStudioPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    void api<{ data: { id: string; number: string }[] }>(`/api/invoices?type=RECEIVABLE&limit=30`)
+      .then((r) => setInvoices(r.data ?? []))
+      .catch(() => setInvoices([]));
+  }, []);
+
   const readOnly = row?.lifecycle !== "DRAFT";
 
   const runPreview = useCallback(
@@ -57,7 +67,7 @@ export default function DocumentStudioPage() {
           `/api/workflow-documents/${id}?action=preview`,
           {
             method: "POST",
-            body: JSON.stringify({ definition: def, interactive: false }),
+            body: JSON.stringify({ definition: def, interactive: false, feed: feedRef.current }),
           }
         );
         setPreviewHtml(r.data?.html ?? "");
@@ -81,6 +91,11 @@ export default function DocumentStudioPage() {
   useEffect(() => {
     if (definition) void runPreview(definition);
   }, [studioKey]); // eslint-disable-line react-hooks/exhaustive-deps -- preview on load only
+
+  useEffect(() => {
+    const def = definitionRef.current;
+    if (def) void runPreview(def);
+  }, [feed, runPreview]);
 
   async function save() {
     const def = definitionRef.current;
@@ -132,6 +147,28 @@ export default function DocumentStudioPage() {
     }
   }
 
+  async function downloadPdf() {
+    const def = definitionRef.current;
+    if (!def) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const stem = (def.name || "document").replace(/[^\w.-]+/g, "-");
+      const suffix = feed.kind === "invoice" ? "live" : "sample";
+      await downloadAuthenticatedDocument(
+        `/api/workflow-documents/${id}?action=pdf`,
+        `${stem}-${suffix}.pdf`,
+        {
+          body: JSON.stringify({ definition: def, feed: feedRef.current }),
+        }
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Download failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!row || !definition) {
     return (
       <PageScaffold hero={{ title: "Document" }}>
@@ -145,20 +182,34 @@ export default function DocumentStudioPage() {
       className="!max-w-none"
       hero={{
         title: row.name ?? row.documentId,
-        description: `${row.documentId} · v${row.version}`,
+        description: `Document Studio · ${row.documentId} · v${row.version}`,
         badge: <StatusBadge status={row.lifecycle} />,
-        actions: readOnly ? (
-          <Button type="button" disabled={busy} onClick={() => void cloneToDraft()}>
-            Clone to draft
-          </Button>
-        ) : (
+        actions: (
           <div className="flex gap-2">
-            <Button type="button" variant="secondary" disabled={busy} onClick={() => void save()}>
-              Save draft
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                const def = definitionRef.current;
+                if (def) onDefinitionChange(patchStudio(def, { tab: "preview" }));
+              }}
+            >
+              Preview
             </Button>
-            <Button type="button" disabled={busy} onClick={() => void publish()}>
-              Publish
-            </Button>
+            {readOnly ? (
+              <Button type="button" disabled={busy} onClick={() => void cloneToDraft()}>
+                Clone to draft
+              </Button>
+            ) : (
+              <>
+                <Button type="button" variant="secondary" disabled={busy} onClick={() => void save()}>
+                  Save draft
+                </Button>
+                <Button type="button" disabled={busy} onClick={() => void publish()}>
+                  Publish
+                </Button>
+              </>
+            )}
           </div>
         ),
       }}
@@ -180,12 +231,18 @@ export default function DocumentStudioPage() {
       }
     >
       <div className="min-h-[calc(100vh-12rem)]">
-        <DocumentDesigner
+        <DocumentStudio
           key={studioKey}
           definition={definition}
           readOnly={readOnly}
           previewHtml={previewHtml}
+          feed={feed}
+          invoices={invoices}
           onChange={onDefinitionChange}
+          onFeedChange={setFeed}
+          onSave={() => void save()}
+          onPublish={() => void publish()}
+          onDownloadPdf={() => void downloadPdf()}
           onUploadImage={async (file) => {
             const fd = new FormData();
             fd.append("file", file);

@@ -2,4 +2,13 @@
  * Reference SO_STANDARD definition for platform unit tests / simulation.
  * Production seed + catalog live in the sales app workflow-templates module (Package SRP).
  */
-export { SO_STANDARD_V5, SO_STANDARD_FORMS, SO_TASK_TYPES } from "./so-standard-v5";
+export {
+  SO_STANDARD_V5,
+  SO_STANDARD_FORMS,
+  SO_STANDARD_FORMS_REV1,
+  SO_STANDARD_FORMS_REV2,
+  SO_STANDARD_FORMS_REV3,
+  SO_STANDARD_FORMS_REV4,
+  STARTER_FORM_LATEST_REVISION,
+  SO_TASK_TYPES,
+} from "./so-standard-v5";

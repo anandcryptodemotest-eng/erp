@@ -42,17 +42,27 @@ export async function POST(request: Request) {
   if (denied) return denied;
 
   const body = (await request.json()) as {
-    action?: "create" | "clone" | "seed";
+    action?: "create" | "clone" | "seed" | "upgrade-starters";
     formId?: string;
     name?: string;
     definition?: FormDefinition;
     sourceId?: string;
+    /** When action=upgrade-starters: default true. Pass false to publish eligible forms. */
+    dryRun?: boolean;
   };
 
   if (body.action === "seed") {
     await ensureFormCatalogSeed(tenantId, { force: true });
     const rows = await listFormVersions(tenantId);
     return NextResponse.json({ data: rows, meta: { seeded: true } }, { status: 201 });
+  }
+
+  if (body.action === "upgrade-starters") {
+    const { upgradeStarterForms } = await import("@/lib/form-catalog");
+    const result = await upgradeStarterForms(tenantId, {
+      dryRun: body.dryRun !== false,
+    });
+    return NextResponse.json({ data: result.rows, meta: result });
   }
 
   if (body.action === "clone") {

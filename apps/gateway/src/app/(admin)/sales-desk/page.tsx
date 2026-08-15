@@ -10,11 +10,17 @@ function OrderDeskPage() {
     <SalesDeskWorkspace
       initialSreqId={searchParams.get("sreqId")}
       initialSalesOrderId={searchParams.get("salesOrderId")}
+      initialStatus={searchParams.get("status")}
+      initialFrom={searchParams.get("from")}
+      initialTo={searchParams.get("to")}
+      initialTab={searchParams.get("tab")}
+      initialTaskStatus={searchParams.get("taskStatus")}
+      initialSreqStatus={searchParams.get("sreqStatus")}
     />
   );
 }
 
-/** Order Desk — SREQ → SO + tasks workbench. Deep-link: ?sreqId= / ?salesOrderId= */
+/** Order Desk deep-links: sreqId, salesOrderId, status, from, to, tab, taskStatus, sreqStatus */
 export default function SalesDeskPage() {
   return (
     <Suspense fallback={null}>

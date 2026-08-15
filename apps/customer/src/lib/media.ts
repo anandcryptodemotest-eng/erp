@@ -1,47 +1,65 @@
-/** Local catalog images — under `/media/products` (not `/products`, which is an app route). */
+/** Deterministic catalog images — under `/media/products` (not `/products` app route).
+ * Wrong image is worse than none: never assign a random product photo.
+ */
 
 export const LOCAL = {
   hero: "/media/products/hero-yard.jpg",
   plywood: "/media/products/plywood-marine.jpg",
+  blockboard: "/media/products/blockboard.jpg",
   timber: "/media/products/timber.jpg",
-  warehouse: "/media/products/warehouse.jpg",
   laminate: "/media/products/laminate.jpg",
+  adhesive: "/media/products/adhesive.jpg",
+  phone: "/media/products/phone.jpg",
+  hardware: "/media/products/hardware.jpg",
+  unavailable: "/media/products/unavailable.svg",
 } as const;
 
-const NAME_MATCHES: { pattern: RegExp; src: string }[] = [
-  { pattern: /ply|marine|bwr|bwp|sheet|blockboard|mdf|particle/i, src: LOCAL.plywood },
-  { pattern: /timber|wood|lumber|teak/i, src: LOCAL.timber },
+/** SKU-family / name → known material still (deterministic). */
+const FAMILY_MATCHES: { pattern: RegExp; src: string }[] = [
+  { pattern: /\b(bwp|bwr|marine|plywood|ply)\b/i, src: LOCAL.plywood },
+  { pattern: /blockboard|block.?board/i, src: LOCAL.blockboard },
   { pattern: /laminate|veneer|mica/i, src: LOCAL.laminate },
-  { pattern: /hardwar|screw|fitting/i, src: LOCAL.warehouse },
+  { pattern: /adhesive|glue|fevicol/i, src: LOCAL.adhesive },
+  { pattern: /\bphone\b|smartphone|mobile/i, src: LOCAL.phone },
+  { pattern: /timber|lumber|teak|hardwood/i, src: LOCAL.timber },
+  { pattern: /hardwar|screw|fitting|hinge|handle/i, src: LOCAL.hardware },
+];
+
+const CATEGORY_MATCHES: { pattern: RegExp; src: string }[] = [
+  { pattern: /ply|block/i, src: LOCAL.plywood },
+  { pattern: /laminate/i, src: LOCAL.laminate },
+  { pattern: /adhesive|glue/i, src: LOCAL.adhesive },
+  { pattern: /timber|wood/i, src: LOCAL.timber },
+  { pattern: /phone|electr/i, src: LOCAL.phone },
+  { pattern: /hardwar/i, src: LOCAL.hardware },
 ];
 
 /** Uploaded admin UI screenshots / known non-product assets — never show in shop. */
-const BAD_UPLOAD_MARKERS = [
-  "1785648829163-899970c1",
-];
+const BAD_UPLOAD_MARKERS = ["1785648829163-899970c1"];
 
 export function heroImageUrl(): string {
   return LOCAL.hero;
+}
+
+export function unavailableImageUrl(): string {
+  return LOCAL.unavailable;
 }
 
 function isUsableProductImage(url: string): boolean {
   const u = url.trim();
   if (!u) return false;
   if (BAD_UPLOAD_MARKERS.some((m) => u.includes(m))) return false;
-  // Prefer real catalog paths and http(s) CDNs; skip empty placeholders
   if (u.startsWith("data:image/svg")) return false;
   return true;
 }
 
 function normalizeImageUrl(url: string): string {
-  // Prefer same-origin paths when seed stored absolute localhost URLs
   if (url.includes("/media/products/")) {
     return url.slice(url.indexOf("/media/products/"));
   }
-  // Legacy public path — remap to /media to avoid clash with /products app routes
   if (url.includes("/products/") && !url.includes("/uploads/products/")) {
     const file = url.slice(url.lastIndexOf("/") + 1);
-    if (/\.(jpe?g|png|webp|gif)$/i.test(file)) {
+    if (/\.(jpe?g|png|webp|gif|svg)$/i.test(file)) {
       return `/media/products/${file}`;
     }
   }
@@ -51,19 +69,26 @@ function normalizeImageUrl(url: string): string {
   return url;
 }
 
-function fallbackForName(name?: string, sku?: string, id?: string, index = 0): string {
+function familyImage(name?: string | null, sku?: string | null): string | null {
   const hay = `${name ?? ""} ${sku ?? ""}`;
-  for (const rule of NAME_MATCHES) {
+  for (const rule of FAMILY_MATCHES) {
     if (rule.pattern.test(hay)) return rule.src;
   }
-  const pool = [LOCAL.plywood, LOCAL.timber, LOCAL.warehouse, LOCAL.laminate];
-  const seed = (id ?? name ?? String(index))
-    .split("")
-    .reduce((a, c) => a + c.charCodeAt(0), 0);
-  return pool[seed % pool.length];
+  return null;
 }
 
-/** Primary tile/thumb image for listings. */
+function categoryPlaceholder(categoryName?: string | null): string | null {
+  if (!categoryName) return null;
+  for (const rule of CATEGORY_MATCHES) {
+    if (rule.pattern.test(categoryName)) return rule.src;
+  }
+  return null;
+}
+
+/**
+ * Resolution: explicit product → explicit group/category image → SKU-family →
+ * category placeholder → neutral Image unavailable. Never random.
+ */
 export function productImageUrl(
   product: {
     id?: string;
@@ -71,31 +96,39 @@ export function productImageUrl(
     imageUrl?: string | null;
     imageUrls?: string[] | null;
     name?: string;
-  },
-  index = 0
+    categoryName?: string | null;
+    groupImageUrl?: string | null;
+  }
 ): string {
   const fromList = Array.isArray(product.imageUrls)
     ? product.imageUrls.find((u) => typeof u === "string" && isUsableProductImage(u))
     : null;
-  if (typeof fromList === "string") {
-    return normalizeImageUrl(fromList);
-  }
+  if (typeof fromList === "string") return normalizeImageUrl(fromList);
+
   if (product.imageUrl && isUsableProductImage(product.imageUrl)) {
     return normalizeImageUrl(product.imageUrl);
   }
-  return fallbackForName(product.name, product.sku, product.id, index);
+
+  if (product.groupImageUrl && isUsableProductImage(product.groupImageUrl)) {
+    return normalizeImageUrl(product.groupImageUrl);
+  }
+
+  return (
+    familyImage(product.name, product.sku) ??
+    categoryPlaceholder(product.categoryName) ??
+    LOCAL.unavailable
+  );
 }
 
-/** Gallery list — precedence: SKU imageUrls → single imageUrl → name/category fallback. */
-export function productGalleryUrls(
-  product: {
-    id?: string;
-    sku?: string;
-    imageUrl?: string | null;
-    imageUrls?: string[] | null;
-    name?: string;
-  }
-): string[] {
+/** Gallery list — explicit URLs only, else single deterministic fallback. */
+export function productGalleryUrls(product: {
+  id?: string;
+  sku?: string;
+  imageUrl?: string | null;
+  imageUrls?: string[] | null;
+  name?: string;
+  categoryName?: string | null;
+}): string[] {
   const raw = [
     ...(Array.isArray(product.imageUrls) ? product.imageUrls : []),
     product.imageUrl,
@@ -103,14 +136,10 @@ export function productGalleryUrls(
 
   const normalized = [...new Set(raw.map(normalizeImageUrl))];
   if (normalized.length) return normalized;
-  return [fallbackForName(product.name, product.sku, product.id)];
+  return [productImageUrl(product)];
 }
 
 export function categoryImageUrl(name: string, imageUrl?: string | null): string {
   if (imageUrl && isUsableProductImage(imageUrl)) return normalizeImageUrl(imageUrl);
-  const key = name.toLowerCase();
-  if (key.includes("ply") || key.includes("block")) return LOCAL.plywood;
-  if (key.includes("timber") || key.includes("wood")) return LOCAL.timber;
-  if (key.includes("laminate")) return LOCAL.laminate;
-  return LOCAL.warehouse;
+  return categoryPlaceholder(name) ?? familyImage(name) ?? LOCAL.unavailable;
 }

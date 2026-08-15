@@ -14,7 +14,8 @@ const SERVICE_PORTS: Record<string, number> = {
   hr: 3004,
   procurement: 3005,
   delivery: 3006,
-  communication: 3008,
+  // Capability id only — same process as Gateway. POS owns TCP 3008.
+  communication: 3010,
 };
 
 const PROPAGATED_CTX_HEADERS = [
