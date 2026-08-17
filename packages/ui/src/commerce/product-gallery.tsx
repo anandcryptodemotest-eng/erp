@@ -69,8 +69,8 @@ export function ProductGallery({
         type="button"
         onClick={() => current && setExpanded(true)}
         className={cn(
-          "group relative mx-auto block w-full overflow-hidden rounded-md border border-[#e8e8e8] bg-[#f5f5f5]",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forest)]",
+          "group relative mx-auto block w-full overflow-hidden rounded-md border border-[var(--line)] bg-[var(--mist)]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]",
           "active:scale-[0.99] touch-manipulation",
           stageClass
         )}
@@ -127,7 +127,7 @@ export function ProductGallery({
               data-thumb={i}
               onClick={() => setIdx(i)}
               className={cn(
-                "h-10 w-10 shrink-0 overflow-hidden rounded border-2 bg-[#f5f5f5] transition-[border-color] duration-[var(--motion-fast)] touch-manipulation md:h-11 md:w-11",
+                "h-10 w-10 shrink-0 overflow-hidden rounded border-2 bg-[var(--mist)] transition-[border-color] duration-[var(--motion-fast)] touch-manipulation md:h-11 md:w-11",
                 i === idx ? "border-[var(--forest)]" : "border-transparent opacity-80",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forest)]"
               )}

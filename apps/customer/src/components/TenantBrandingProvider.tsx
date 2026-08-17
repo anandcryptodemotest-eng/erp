@@ -25,7 +25,7 @@ const TenantContext = createContext<TenantCtx>({
 /**
  * Loads tenant displayName from public branding API (brand.displayName || tenant.name).
  * Initial render uses slug-derived name only (SSR-safe). Cache + API apply after mount.
- * ?tenant= / ?t= wins over hostname (shared IP otherwise always Trustwood).
+ * ?tenant= / ?t= wins over hostname (shared IP otherwise always WimFlo).
  */
 export function TenantBrandingProvider({ children }: { children: ReactNode }) {
   const [slug, setSlug] = useState(() => resolveTenantSlug());

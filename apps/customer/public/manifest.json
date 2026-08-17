@@ -1,11 +1,11 @@
 {
-  "name": "Customer Portal",
-  "short_name": "Portal",
-  "description": "Place trading orders and track status",
+  "name": "WimFlo",
+  "short_name": "WimFlo",
+  "description": "On business. one flow",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#faf8f5",
-  "theme_color": "#1e3d32",
+  "background_color": "#06040f",
+  "theme_color": "#06040f",
   "orientation": "portrait",
   "icons": [
     {
@@ -19,6 +19,11 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
     }
   ],
   "categories": [

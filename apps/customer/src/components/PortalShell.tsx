@@ -134,7 +134,7 @@ function MainBottomNav({
 }) {
   const items = useMemo(
     () => [
-      { href: "/", label: "Home", icon: <Home className="h-[var(--icon-md)] w-[var(--icon-md)]" /> },
+      { href: "/home", label: "Home", icon: <Home className="h-[var(--icon-md)] w-[var(--icon-md)]" /> },
       { href: "/shop", label: "Shop", icon: <Package className="h-[var(--icon-md)] w-[var(--icon-md)]" /> },
       {
         href: "/cart",
@@ -228,8 +228,8 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
     <div className="portal-shell" data-presentation={mode}>
       <div className="portal-frame relative flex flex-col">
         {mode === "web" && !appChrome ? (
-          <header className="sticky top-0 z-30 hidden border-b border-[var(--line)] bg-[var(--surface-raised)] px-4 py-2.5 shadow-[var(--shadow-1)] md:flex md:items-center md:gap-4">
-            <Link href="/" className="shrink-0 text-lg font-bold tracking-tight text-[var(--brand)]">
+          <header className="sticky top-0 z-30 hidden border-b border-white/10 bg-[color-mix(in_srgb,var(--nav-bg)_78%,transparent)] px-4 py-2.5 backdrop-blur-md md:flex md:items-center md:gap-4">
+            <Link href="/home" className="font-display shrink-0 text-lg font-semibold tracking-tight text-[var(--brand)]">
               {orgName}
             </Link>
             <SearchField className="max-w-xl" />
@@ -260,8 +260,8 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
         ) : null}
 
         {showMobileTop ? (
-          <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2 shadow-[var(--shadow-1)] md:hidden">
-            <Link href="/" className="max-w-[9rem] shrink-0 truncate text-sm font-bold text-[var(--brand)]">
+          <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-white/10 bg-[color-mix(in_srgb,var(--nav-bg)_78%,transparent)] px-3 py-2 backdrop-blur-md md:hidden">
+            <Link href="/home" className="font-display max-w-[9rem] shrink-0 truncate text-sm font-semibold text-[var(--brand)]">
               {orgName}
             </Link>
             <SearchField />

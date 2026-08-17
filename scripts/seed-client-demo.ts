@@ -10,11 +10,35 @@
  * Buyer: buyer@trustwood.test / Buyer@12345
  */
 
-const BASE = process.env.BASE_URL ?? "http://localhost:3010/admin";
+const BASE = process.env.BASE_URL ?? "http://127.0.0.1:3010/admin";
 const TENANT = process.env.TENANT_SLUG ?? "trustwood-enterprise";
+const TENANT_NAME = process.env.TENANT_NAME ?? "Trustwood Enterprise";
 
-const ADMIN = { email: "admin@simhapurifresh.com", password: "Admin@123" };
-const PLATFORM = { email: "platform@erp.local", password: "Platform@123" };
+const ADMIN = {
+  email: process.env.ADMIN_EMAIL ?? "admin@simhapurifresh.com",
+  password: process.env.ADMIN_PASSWORD ?? "Admin@123",
+};
+const PLATFORM = {
+  email: process.env.PLATFORM_OWNER_EMAIL || "platform@erp.local",
+  password: process.env.PLATFORM_OWNER_PASSWORD || "Platform@123",
+};
+
+const ENTERPRISE_FEATURES = [
+  "dashboard",
+  "organization",
+  "users",
+  "oms",
+  "quick_bill",
+  "inventory",
+  "accounting",
+  "gst",
+  "ar",
+  "process_studio",
+  "portal",
+  "procurement",
+  "delivery",
+  "hr",
+];
 
 const DEMO_USERS = [
   { email: "sales@trustwood.test", password: "Sales@123", name: "Sales Executive", role: "SALES_EXECUTIVE" },
@@ -85,6 +109,37 @@ function warn(step: string, detail?: string) {
 }
 
 type Auth = { token: string; tenantId: string; role: string };
+
+async function platformLogin(): Promise<string> {
+  const plat = await api("POST", "/api/platform/auth", {
+    body: { email: PLATFORM.email, password: PLATFORM.password },
+  });
+  if (plat.status !== 200 || !plat.json.data) {
+    throw new Error(
+      `Platform login failed (${plat.status}). Set PLATFORM_OWNER_EMAIL / PLATFORM_OWNER_PASSWORD.`
+    );
+  }
+  return (plat.json.data as { accessToken: string }).accessToken;
+}
+
+async function loginAdmin(): Promise<Auth> {
+  const login = await api("POST", "/api/auth", {
+    body: { action: "login", email: ADMIN.email, password: ADMIN.password, tenantSlug: TENANT },
+  });
+  if (login.status !== 200 || !login.json.data) {
+    throw new Error(`Admin login failed: ${login.status} ${login.json.error ?? ""}`);
+  }
+  const data = login.json.data as {
+    accessToken: string;
+    tenant: { id: string };
+    user: { role: string };
+  };
+  return {
+    token: data.accessToken,
+    tenantId: data.tenant.id,
+    role: data.user.role ?? "ADMIN",
+  };
+}
 
 async function ensureBrand(auth: Auth, name: string, brandByName: Map<string, string>) {
   if (brandByName.has(name)) return brandByName.get(name)!;
@@ -230,20 +285,12 @@ async function ensureTrustwoodTenant() {
     return;
   }
 
-  const plat = await api("POST", "/api/platform/auth", {
-    body: { email: PLATFORM.email, password: PLATFORM.password },
-  });
-  if (plat.status !== 200 || !plat.json.data) {
-    throw new Error(
-      `Platform login failed (${plat.status}). Run pnpm seed:platform against a migrated gateway DB first.`
-    );
-  }
-  const platToken = (plat.json.data as { accessToken: string }).accessToken;
+  const platToken = await platformLogin();
 
   const created = await api("POST", "/api/platform/tenants", {
     token: platToken,
     body: {
-      name: "Trustwood Enterprise",
+      name: TENANT_NAME,
       slug: TENANT,
       plan: "starter",
       adminEmail: ADMIN.email,
@@ -279,22 +326,64 @@ async function ensureTrustwoodTenant() {
   log("Trustwood licenses enabled");
 }
 
-/** DEMO grant so portal/OMS E2E is not blocked by the Free plan (no `oms` feature). */
-async function ensureGrowthPlan(tenantId: string) {
-  const plat = await api("POST", "/api/platform/auth", {
-    body: { email: PLATFORM.email, password: PLATFORM.password },
-  });
-  if (plat.status !== 200 || !plat.json.data) {
-    warn("Growth grant skipped", `platform login ${plat.status} ${plat.json.error ?? ""}`);
+async function ensureCapabilities(tenantId: string) {
+  let platToken: string;
+  try {
+    platToken = await platformLogin();
+  } catch (e) {
+    warn("Capabilities skipped", e instanceof Error ? e.message : String(e));
     return;
   }
-  const platToken = (plat.json.data as { accessToken: string }).accessToken;
+  for (const key of ["processStudio", "indiaGst"] as const) {
+    const res = await api("PUT", `/api/platform/tenants/${tenantId}/capabilities`, {
+      token: platToken,
+      body: { key, enabled: true },
+    });
+    if (res.status === 200) log("Capability enabled", key);
+    else warn(`Capability ${key}`, `${res.status} ${res.json.error ?? ""}`);
+  }
+}
+
+async function ensureEnterprisePlan(tenantId: string) {
+  let platToken: string;
+  try {
+    platToken = await platformLogin();
+  } catch (e) {
+    warn("Plan grant skipped", e instanceof Error ? e.message : String(e));
+    return;
+  }
+
+  const created = await api("POST", "/api/billing/plans", {
+    token: platToken,
+    body: {
+      code: "enterprise_monthly",
+      name: "Enterprise",
+      billingInterval: "MONTHLY",
+      amountPaise: 100_000,
+      includedSeats: 25,
+      featureCodes: ENTERPRISE_FEATURES,
+    },
+  });
+  if (created.status === 201) log("Enterprise plan created");
+  else if (created.status !== 409) {
+    warn("Enterprise plan", `${created.status} ${created.json.error ?? ""}`);
+  }
+
   const grant = await api("POST", `/api/platform/tenants/${tenantId}/billing/grant`, {
+    token: platToken,
+    body: { planCode: "enterprise_monthly" },
+  });
+  if (grant.status === 200) {
+    log("Enterprise plan granted");
+    return;
+  }
+  warn("Enterprise grant", `${grant.status} ${grant.json.error ?? ""}`);
+  const fallback = await api("POST", `/api/platform/tenants/${tenantId}/billing/grant`, {
     token: platToken,
     body: { planCode: "growth_monthly" },
   });
-  if (grant.status === 200) log("Trustwood Growth plan granted");
-  else warn("Growth grant", `${grant.status} ${grant.json.error ?? ""}`);
+  if (fallback.status === 200) log("Growth plan granted (fallback)");
+  else warn("Growth grant", `${fallback.status} ${fallback.json.error ?? ""}`);
 }
 
 async function ensureSimpleAdhesive(
@@ -497,25 +586,13 @@ async function main() {
 
   await ensureTrustwoodTenant();
 
-  const login = await api("POST", "/api/auth", {
-    body: { action: "login", email: ADMIN.email, password: ADMIN.password, tenantSlug: TENANT },
-  });
-  if (login.status !== 200 || !login.json.data) {
-    throw new Error(`Admin login failed: ${login.status} ${login.json.error ?? ""}`);
-  }
-  const data = login.json.data as {
-    accessToken: string;
-    tenant: { id: string };
-    user: { role: string };
-  };
-  const auth: Auth = {
-    token: data.accessToken,
-    tenantId: data.tenant.id,
-    role: data.user.role ?? "ADMIN",
-  };
+  let auth = await loginAdmin();
   log("Admin logged in", `${auth.tenantId} role=${auth.role}`);
 
-  await ensureGrowthPlan(auth.tenantId);
+  await ensureEnterprisePlan(auth.tenantId);
+  await ensureCapabilities(auth.tenantId);
+  auth = await loginAdmin();
+  log("Admin session refreshed", "processStudio + indiaGst on token");
 
   const adminRefresh = await api("POST", `/api/tenants/${auth.tenantId}/users`, {
     ...auth,
@@ -810,14 +887,38 @@ async function main() {
   }
   log("Verified Adhesive", "TW-ADH-1L");
 
-  // Workflow
-  await api("POST", "/api/workflow-forms", { ...auth, body: { action: "seed" } });
-  await api("POST", "/api/workflow-templates", { ...auth, body: { action: "seed" } });
-  await api("POST", "/api/order-workflows", {
+  // Workflow, forms, print widgets, OMS trading pack
+  const forms = await api("POST", "/api/workflow-forms", { ...auth, body: { action: "seed" } });
+  if (forms.status === 200 || forms.status === 201) {
+    const n = Array.isArray(forms.json.data) ? forms.json.data.length : 0;
+    log("Starter forms seeded", `${n} versions`);
+  } else warn("workflow-forms seed", `${forms.status} ${forms.json.error ?? ""}`);
+
+  const templates = await api("POST", "/api/workflow-templates", { ...auth, body: { action: "seed" } });
+  if (templates.status === 200 || templates.status === 201) {
+    const n = Array.isArray(templates.json.data) ? templates.json.data.length : 0;
+    log("SO_STANDARD template seeded", `${n} versions`);
+  } else warn("workflow-templates seed", `${templates.status} ${templates.json.error ?? ""}`);
+
+  const docs = await api("POST", "/api/workflow-documents", { ...auth, body: { action: "seed" } });
+  if (docs.status === 200 || docs.status === 201) {
+    const n = Array.isArray(docs.json.data) ? docs.json.data.length : 0;
+    log("Tax invoice document seeded", `${n} versions`);
+  } else warn("workflow-documents seed", `${docs.status} ${docs.json.error ?? ""}`);
+
+  const oms = await api("POST", "/api/order-workflows", {
     ...auth,
     body: { templateId: "workflow.oms_trading", setDefault: true },
   });
-  log("Workflow + forms seeded");
+  if (oms.status === 200 || oms.status === 201) log("OMS Trading workflow set as default");
+  else warn("order-workflows", `${oms.status} ${oms.json.error ?? ""}`);
+
+  const upgrade = await api("POST", "/api/workflow-forms", {
+    ...auth,
+    body: { action: "upgrade-starters", dryRun: false },
+  });
+  if (upgrade.status === 200) log("Starter forms upgraded to latest widgets");
+  else warn("upgrade-starters", `${upgrade.status} ${upgrade.json.error ?? ""}`);
 
   await api("PUT", `/api/tenants/${auth.tenantId}/settings`, {
     ...auth,

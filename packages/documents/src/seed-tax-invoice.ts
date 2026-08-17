@@ -83,6 +83,30 @@ function box(id: string, x: number, y: number, width: number, height: number): P
   };
 }
 
+function widget(
+  id: string,
+  widgetId: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  config: Record<string, unknown> = {}
+): PlacedItem {
+  return {
+    id,
+    name: id,
+    type: "Widget",
+    widgetId,
+    widgetConfig: config,
+    placement: { x, y, width, height },
+    rotation: 0,
+    locked: false,
+    visible: true,
+    zIndex: 0,
+    opacity: 1,
+  };
+}
+
 /**
  * Modern Indian B2B tax invoice — brand-first header, soft party cards,
  * accent table header, quiet totals, notes + words, declaration + signatory.
@@ -335,19 +359,23 @@ export const TAX_INVOICE_SEED: DocumentDefinition = {
       ],
     },
 
-    // ── Notes + amount in words ~70px ─────────────────────────────
-    box("notesCard", 0, 450, 300, 68),
+    // ── Notes + UPI QR + amount in words ~70px ────────────────────
+    box("notesCard", 0, 450, 216, 68),
+    widget("payQr", "doc.qr", 224, 448, 72, 88, {
+      path: "payment.upiUri",
+      caption: "Pay by UPI",
+    }),
     box("wordsCard", 312, 450, 203, 68),
-    text("notesTitle", "Notes title", 10, 458, 280, "NOTES", {
+    text("notesTitle", "Notes title", 10, 458, 196, "NOTES", {
       fontSize: 8,
       fontWeight: 700,
       color: MUTED,
     }),
-    field("invoiceNotes", "invoice.notes", 10, 474, 280, {
+    field("invoiceNotes", "invoice.notes", 10, 474, 196, {
       name: "Notes",
       binding: { path: "invoice.notes", fallback: "" },
       style: { fontSize: 9, color: MUTED },
-      placement: { x: 10, y: 474, width: 280, height: 36 },
+      placement: { x: 10, y: 474, width: 196, height: 36 },
     }),
     text("wordsTitle", "Words title", 322, 458, 183, "AMOUNT IN WORDS", {
       fontSize: 8,

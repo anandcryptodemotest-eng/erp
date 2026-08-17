@@ -71,7 +71,7 @@ export default function AdministrationPage() {
   const [currency, setCurrency] = useState("INR");
   const [timezone, setTimezone] = useState("Asia/Kolkata");
   const [brandName, setBrandName] = useState("");
-  const [brandAccent, setBrandAccent] = useState("#c8922a");
+  const [brandAccent, setBrandAccent] = useState("#6ff2ff");
   const [portalSlug, setPortalSlug] = useState("");
   const [portalName, setPortalName] = useState("");
   const [sessionTimeout, setSessionTimeout] = useState("24");
@@ -100,7 +100,7 @@ export default function AdministrationPage() {
       setCurrency(data.settings?.currency ?? "INR");
       setTimezone(data.settings?.timezone ?? "Asia/Kolkata");
       setBrandName(data.settings?.["brand.displayName"] ?? data.name ?? "");
-      setBrandAccent(data.settings?.["brand.accent"] ?? "#c8922a");
+      setBrandAccent(data.settings?.["brand.accent"] ?? "#6ff2ff");
       setPortalSlug(data.settings?.["portal.slug"] ?? data.slug ?? "");
       setPortalName(data.settings?.["portal.name"] ?? data.name ?? "");
       setSessionTimeout(data.settings?.["security.sessionHours"] ?? "24");

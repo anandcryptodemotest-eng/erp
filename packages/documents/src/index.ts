@@ -66,3 +66,5 @@ export {
   printWidgetById,
 } from "./print-widgets";
 export type { PrintWidgetId, PrintWidgetSlot, PrintWidgetCatalogEntry } from "./print-widgets";
+export { serializeQRData, resolveQRData, qrSourceFromItem, qrCaptionFromItem } from "./qr-data";
+export type { QRDataSource, QRWidgetConfig } from "./qr-data";

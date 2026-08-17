@@ -17,4 +17,9 @@ export const SAMPLE_DOCUMENT_PAYLOAD: Record<string, unknown> = {
     { sku: "TW-MR-12", description: "MR plywood 12mm", qty: 4, rate: 920, tax: 662.4, amount: 4342.4 },
   ],
   totals: { subtotal: 7380, tax: 1328.4, total: 8708.4 },
+  payment: {
+    upiUri: "upi://pay?pa=trustwood@upi&pn=Trust%20Wood&am=8708.40&cu=INR&tn=INV-000245",
+    vpa: "trustwood@upi",
+    amountDue: 8708.4,
+  },
 };

@@ -380,7 +380,7 @@ export default function CheckoutPage() {
                 onClick={() => setSelectedAddr(a.id)}
                 className={`min-h-[var(--touch-min)] w-full rounded-lg border p-3 text-left transition-colors ${
                   selectedAddr === a.id
-                    ? "border-[var(--forest)] bg-[#f5f8f6]"
+                    ? "border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_12%,var(--surface))]"
                     : "border-[var(--line)] bg-[var(--surface-raised)]"
                 }`}
               >

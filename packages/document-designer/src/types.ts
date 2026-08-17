@@ -165,6 +165,7 @@ export const WIDGET_PALETTE: WidgetPaletteEntry[] = [
   { widgetId: "doc.buyer", label: "Buyer" },
   { widgetId: "doc.lineItems", label: "Line items" },
   { widgetId: "doc.totals", label: "Totals" },
+  { widgetId: "doc.qr", label: "QR" },
 ];
 
 export type SimulateFeed = { kind: "sample" } | { kind: "invoice"; invoiceId: string };

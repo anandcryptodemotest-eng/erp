@@ -50,6 +50,53 @@ Business catalog: Text, Field, Image, Table, Container, Box, Line, Header, Foote
 
 Sankalp Document Studio is a general-purpose business document designer. ERP invoice is only the first payload / use case.
 
+## Addendum (2026-08-17) — data-agnostic `doc.qr`
+
+`doc.qr` is a print widget with **zero business knowledge**. It resolves a value, serializes it, and encodes a QR. UPI, e-invoice signed QR, portal URLs, and any other payload are produced **outside** the widget and bound through `path`.
+
+```text
+Document Studio
+  doc.qr widget (path / text / caption)
+  QR primitive (binding / text)
+        ↓
+  resolveQRData() → serializeQRData() → QR encoder
+        ↓
+  HTML SVG  |  PDF DrawRectOp
+```
+
+Config is only:
+
+```ts
+type QRWidgetConfig = {
+  path?: string;
+  text?: string;
+  caption?: string;
+};
+```
+
+There is no `kind`, no UPI branch, and **no default path** (including `payment.upiUri`). An invoice template that wants a collect QR sets `path: "payment.upiUri"` itself.
+
+**Resolve.** If `path` is set, use that value only — even when missing, null, or empty. Do not fall back to `text`. If `path` is unset and `text` is set, use `text`. Otherwise the QR is hidden.
+
+**Hide.** Missing path value, null, undefined, or empty string after serialize → do not render (no SVG, no PDF modules). Path set with empty/missing value does not fall back to `text`.
+
+**Serialize (`serializeQRData`).** Never `[object Object]`. Never plain `JSON.stringify` of objects (key order is not guaranteed).
+
+| Input | Output |
+| string | as-is |
+| number | decimal string |
+| boolean | `"true"` / `"false"` |
+| Date | ISO-8601 |
+| object | recursive canonical JSON: sort keys, canonicalize values, `JSON.stringify` with no spaces |
+| array | keep element order; canonicalize each element |
+| null / undefined | hidden |
+
+`{"customer":"ABC","amount":12500}` and `{"amount":12500,"customer":"ABC"}` both serialize to `{"amount":12500,"customer":"ABC"}`.
+
+The Power+ palette still exposes a raw QR primitive. `doc.qr` is the Business/Power composition; both share the same resolve → serialize → encode path.
+
+Invoice UPI collect (`upi://pay?...`) is a **payload producer** in accounting (tenant `payments.upi.vpa` / `payments.upi.payeeName`), not a widget feature.
+
 ## Related
 
 - BL-026 print-widget compositions (`packages/documents/src/print-widgets.ts`)

@@ -8,6 +8,7 @@ import { blankDocumentDefinition } from "./blank-document";
 import { renderDocument, renderDocumentHtml, renderDocumentPdfBytes } from "./render";
 import { pdfSafeText } from "./pdf";
 import { formatValue, getByPath } from "./resolve";
+import type { DocumentDefinition, PlacedItem } from "./types";
 
 const SAMPLE_PAYLOAD = {
   invoice: {
@@ -199,3 +200,107 @@ test("renderDocument writes PDF", async () => {
   assert.match(text, /\(Buyer\) Tj/);
   assert.match(text, /\(Item\) Tj/);
 });
+
+function qrItem(overrides: Partial<PlacedItem> = {}): PlacedItem {
+  return {
+    id: "q1",
+    name: "QR",
+    type: "QR",
+    placement: { x: 0, y: 0, width: 72, height: 72 },
+    rotation: 0,
+    locked: false,
+    visible: true,
+    zIndex: 0,
+    opacity: 1,
+    ...overrides,
+  };
+}
+
+function qrDoc(item: PlacedItem): DocumentDefinition {
+  return {
+    name: "QR page",
+    documentType: "INVOICE",
+    page: { size: "A4" },
+    items: [item],
+  };
+}
+
+test("QR path object serializes to canonical JSON in HTML data-qr", () => {
+  const html = renderDocumentHtml(
+    qrDoc(qrItem({ binding: { path: "some.payload", fallback: "" } })),
+    { some: { payload: { b: 2, a: 1 } } }
+  );
+  assert.match(html, /data-qr="{&quot;a&quot;:1,&quot;b&quot;:2}"/);
+  assert.match(html, /<svg /);
+});
+
+test("QR path null is not rendered", () => {
+  const html = renderDocumentHtml(
+    qrDoc(qrItem({ binding: { path: "some.payload", fallback: "" } })),
+    { some: { payload: null } }
+  );
+  assert.doesNotMatch(html, /data-qr=/);
+  assert.doesNotMatch(html, /<svg /);
+});
+
+test("QR path missing does not fall back to text", () => {
+  const html = renderDocumentHtml(
+    qrDoc(qrItem({ binding: { path: "missing.path", fallback: "" }, properties: { text: "fallback" } })),
+    {}
+  );
+  assert.doesNotMatch(html, /data-qr=/);
+  assert.doesNotMatch(html, /<svg /);
+});
+
+test("QR widget expand has no UPI default — empty config stays hidden", () => {
+  const def: DocumentDefinition = {
+    name: "Widget QR",
+    documentType: "INVOICE",
+    page: { size: "A4" },
+    items: [
+      {
+        id: "w_qr",
+        name: "QR",
+        type: "Widget",
+        widgetId: "doc.qr",
+        widgetConfig: {},
+        placement: { x: 0, y: 0, width: 72, height: 72 },
+        rotation: 0,
+        locked: false,
+        visible: true,
+        zIndex: 0,
+        opacity: 1,
+      },
+    ],
+  };
+  const html = renderDocumentHtml(def, { payment: { upiUri: "upi://pay?pa=a@b" } });
+  assert.doesNotMatch(html, /data-qr=/);
+  assert.doesNotMatch(html, /<svg /);
+});
+
+test("PDF QR modules are filled black rects when data is present", async () => {
+  const withQr = await renderDocumentPdfBytes(
+    qrDoc(qrItem({ binding: { path: "some.payload", fallback: "" } })),
+    { some: { payload: { a: 1, b: 2 } } }
+  );
+  const withoutQr = await renderDocumentPdfBytes(
+    qrDoc(qrItem({ binding: { path: "some.payload", fallback: "" } })),
+    { some: { payload: null } }
+  );
+  const withText = withQr.toString("latin1");
+  const withoutText = withoutQr.toString("latin1");
+  assert.match(withText, /0 0 0 rg/);
+  assert.doesNotMatch(withoutText, /0 0 0 rg/);
+  assert.ok((withText.match(/ re\nf/g) ?? []).length > 10);
+});
+
+test("tax-invoice HTML includes UPI QR when payment.upiUri is set", () => {
+  const html = renderDocumentHtml(TAX_INVOICE_SEED, {
+    ...SAMPLE_PAYLOAD,
+    payment: { upiUri: "upi://pay?pa=shop@upi&pn=Trust&am=236.00&cu=INR&tn=INV-000001" },
+  });
+  assert.match(html, /data-qr="upi:\/\/pay\?pa=shop@upi/);
+  assert.match(html, /Pay by UPI/);
+  assert.match(html, /<svg /);
+});
+

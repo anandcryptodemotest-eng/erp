@@ -35,6 +35,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma";
 import { fetchTenantTaxContext } from "@/lib/fetch-tenant-tax-profile";
+import { invoicePaymentPayload } from "@/lib/upi-pay-uri";
 import {
   registerDocumentPayloadProvider,
   getDocumentPayloadProvider,
@@ -383,7 +384,11 @@ export async function generateInvoice(input: GenerateInvoiceInput) {
 
   if (!invoice) throw new Error("Failed to create invoice");
 
-  const payload = buildInvoicePayload(invoice, order, profile, summary, taxCtx.logoUrl);
+  const payload = buildInvoicePayload(invoice, order, profile, summary, taxCtx.logoUrl, {
+    vpa: taxCtx.upiVpa,
+    payeeName: taxCtx.upiPayeeName,
+    paidAmount: invoice.paidAmount,
+  });
   const overrideErrors = applyPayloadOverrides(
     payload,
     input.payloadOverrides,
@@ -465,6 +470,7 @@ export function buildInvoicePayload(
     documentKind?: string | null;
     placeOfSupply?: string | null;
     notes?: string | null;
+    paidAmount?: number;
     cgst?: number;
     sgst?: number;
     igst?: number;
@@ -483,7 +489,8 @@ export function buildInvoicePayload(
   order: SalesOrderPayload,
   profile?: TenantTaxProfile,
   summary?: ReturnType<typeof computeInvoiceTax>,
-  logoUrl?: string
+  logoUrl?: string,
+  paymentOpts?: { vpa?: string; payeeName?: string; paidAmount?: number }
 ): Record<string, unknown> {
   const title =
     invoice.documentKind === "COMMERCIAL"
@@ -505,7 +512,7 @@ export function buildInvoicePayload(
     sellerState ? `State: ${sellerState}` : "",
   ].filter(Boolean);
 
-  return {
+  const payload: Record<string, unknown> = {
     invoice: {
       number: invoice.number,
       date: invoice.date.toISOString(),
@@ -566,6 +573,16 @@ export function buildInvoicePayload(
     },
     meta: { checksumSeed: createHash("sha256").update(invoice.number).digest("hex").slice(0, 8) },
   };
+
+  const payment = invoicePaymentPayload({
+    vpa: paymentOpts?.vpa,
+    payeeName: paymentOpts?.payeeName || sellerName,
+    invoiceNumber: invoice.number,
+    total: invoice.total,
+    paidAmount: paymentOpts?.paidAmount ?? invoice.paidAmount ?? 0,
+  });
+  if (payment) payload.payment = payment;
+  return payload;
 }
 
 function stubOrderFromInvoice(invoice: {
@@ -612,7 +629,11 @@ export async function buildInvoiceDocumentPayload(
       /* Quick Bill / missing SO — keep invoice lines + entity name */
     }
   }
-  return buildInvoicePayload(invoice, order, taxCtx.profile, undefined, taxCtx.logoUrl);
+  return buildInvoicePayload(invoice, order, taxCtx.profile, undefined, taxCtx.logoUrl, {
+    vpa: taxCtx.upiVpa,
+    payeeName: taxCtx.upiPayeeName,
+    paidAmount: invoice.paidAmount,
+  });
 }
 
 registerDocumentPayloadProvider({

@@ -6,18 +6,20 @@ import {
   bindingSchemaForDocumentType,
   findItemById,
   flattenItems,
+  isPrintWidgetId,
 } from "@erp/documents";
 import {
   defaultAreaContainer,
   defaultItem,
   defaultPageNumberItem,
+  defaultWidgetItem,
   invoiceStarterItems,
 } from "./defaultItem";
 import { PageCanvas } from "./PageCanvas";
 import { PropertyPanel } from "./PropertyPanel";
 import { canvasReducer, createInitialState, getPrimarySelected } from "./reducer";
 import type { DesignerCommand, GridSize, PaletteTile } from "./types";
-import { PALETTE_GROUPS, QR_TILE } from "./types";
+import { PALETTE_GROUPS, QR_TILE, WIDGET_PALETTE } from "./types";
 import "./document-designer.css";
 
 export type DocumentDesignerProps = {
@@ -133,6 +135,12 @@ export function DocumentDesigner({
     dispatch({ type: "CreateItems", items: invoiceStarterItems(), parentId: null });
   };
 
+  const addWidget = (widgetId: string) => {
+    if (!isPrintWidgetId(widgetId)) return;
+    const parent = selectedItem?.type === "Container" ? selectedItem.id : null;
+    dispatch({ type: "CreateItems", items: [defaultWidgetItem(widgetId)], parentId: parent });
+  };
+
   const applyJson = () => {
     try {
       const next = JSON.parse(jsonText) as DocumentDefinition;
@@ -216,6 +224,17 @@ export function DocumentDesigner({
               >
                 {QR_TILE.label}
               </button>
+              {WIDGET_PALETTE.map((w) => (
+                <button
+                  key={w.widgetId}
+                  type="button"
+                  disabled={readOnly}
+                  className="erp-doc-studio__tile"
+                  onClick={() => addWidget(w.widgetId)}
+                >
+                  {w.label}
+                </button>
+              ))}
             </div>
             <details style={{ marginTop: 12 }}>
               <summary

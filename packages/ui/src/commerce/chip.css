@@ -5,21 +5,21 @@
   min-height: 2.5rem;
   padding: 0 0.9rem;
   border-radius: 0.5rem;
-  border: 1.5px solid #cfd5d1;
-  background: #fff;
-  color: #121a16;
+  border: 1.5px solid var(--line);
+  background: var(--surface-raised);
+  color: var(--ink);
   font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-1);
   transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease,
     transform 0.1s ease, box-shadow 0.12s ease;
 }
 
 .erp-chip:hover {
-  border-color: #2d5a4a;
-  box-shadow: 0 0 0 1px rgba(45, 90, 74, 0.15);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 25%, transparent);
 }
 
 .erp-chip:active {
@@ -27,22 +27,22 @@
 }
 
 .erp-chip:focus-visible {
-  outline: 2px solid #1e3d32;
+  outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
 
 .erp-chip[aria-pressed="true"],
 .erp-chip.is-active {
-  border-color: #1e3d32;
-  background: #1e3d32;
-  color: #fff;
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--ink-inverse);
   box-shadow: none;
 }
 
 .erp-chip-group-label {
   font-size: 0.8125rem;
   font-weight: 700;
-  color: #121a16;
+  color: var(--ink);
   margin-bottom: 0.4rem;
 }
 

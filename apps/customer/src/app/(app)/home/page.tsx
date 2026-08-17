@@ -12,7 +12,7 @@ import {
 } from "@erp/ui";
 import { api } from "@/lib/api-client";
 import { addToCart } from "@/lib/cart-store";
-import { categoryImageUrl, heroImageUrl, productImageUrl } from "@/lib/media";
+import { categoryImageUrl, productImageUrl } from "@/lib/media";
 import { formatPortalPrice } from "@/lib/pricing-display";
 import { useTenantDisplayName } from "@/components/TenantBrandingProvider";
 
@@ -114,26 +114,22 @@ export default function HomePage() {
 
   return (
     <div className="pb-4">
-      <section className="relative overflow-hidden bg-[var(--forest)] text-white">
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-30"
-          style={{ backgroundImage: `url(${heroImageUrl()})` }}
-          aria-hidden
-        />
-        <div className="relative flex items-center justify-between gap-3 px-4 py-4 md:px-6 md:py-5">
+      <section className="relative overflow-hidden border-b border-white/10">
+        <div className="erp-login-wash absolute inset-0 opacity-90" aria-hidden />
+        <div className="relative flex items-center justify-between gap-3 px-4 py-5 md:px-6 md:py-7">
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--amber-soft)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--brand)]">
               {orgName}
             </p>
-            <h1 className="mt-0.5 text-lg font-bold leading-tight md:text-xl">
+            <h1 className="font-display mt-1 text-xl font-semibold leading-tight tracking-tight md:text-2xl">
               {greeting()}
             </h1>
-            <p className="mt-0.5 text-xs text-white/75">
+            <p className="mt-1 text-xs text-[var(--ink-soft)]">
               Browse · Configure · Track orders
             </p>
           </div>
           <Link href="/shop" className="shrink-0">
-            <Button variant="secondary" size="sm" className="!rounded-md !bg-[var(--surface-raised)] !text-[var(--forest)]">
+            <Button variant="secondary" size="sm" className="!rounded-full !bg-[var(--brand)] !text-[var(--ink-inverse)]">
               Shop now
             </Button>
           </Link>

@@ -108,8 +108,8 @@ export function RevenueTrendWidget({ fetchData }: WidgetProps) {
           >
             <defs>
               <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--brand,#c8922a)" stopOpacity={0.35} />
-                <stop offset="95%" stopColor="var(--brand,#c8922a)" stopOpacity={0} />
+                <stop offset="5%" stopColor="var(--brand,#6ff2ff)" stopOpacity={0.35} />
+                <stop offset="95%" stopColor="var(--brand,#6ff2ff)" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--line,#e8e8e8)" vertical={false} />
@@ -129,7 +129,7 @@ export function RevenueTrendWidget({ fetchData }: WidgetProps) {
                 );
               }}
             />
-            <Area type="monotone" dataKey="revenue" stroke="var(--brand,#c8922a)" strokeWidth={2} fill="url(#revenueFill)" />
+            <Area type="monotone" dataKey="revenue" stroke="var(--brand,#6ff2ff)" strokeWidth={2} fill="url(#revenueFill)" />
           </AreaChart>
         </ResponsiveContainer>
       )}

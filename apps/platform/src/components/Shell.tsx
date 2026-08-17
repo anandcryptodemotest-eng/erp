@@ -63,8 +63,8 @@ export function Shell({ children }: { children: ReactNode }) {
 
   return (
     <AdminShell
-      brandEyebrow={operatorName ?? "Platform Admin"}
-      brandTitle="Platform Admin"
+      brandEyebrow="WimFlo"
+      brandTitle="Platform"
       brandContext={ready ? formatRole(op?.role) : undefined}
       groups={NAV_GROUPS}
       pathname={pathname}

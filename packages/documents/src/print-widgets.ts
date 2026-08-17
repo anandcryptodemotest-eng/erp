@@ -1,6 +1,14 @@
 import type { DocumentDefinition, DocumentPlacement, DocumentStyle, PlacedItem } from "./types";
 
-export type PrintWidgetId = "doc.logo" | "doc.seller" | "doc.buyer" | "doc.lineItems" | "doc.totals";
+import type { QRWidgetConfig } from "./qr-data";
+
+export type PrintWidgetId =
+  | "doc.logo"
+  | "doc.seller"
+  | "doc.buyer"
+  | "doc.lineItems"
+  | "doc.totals"
+  | "doc.qr";
 
 export type PrintWidgetSlot = { path: string; label: string };
 
@@ -62,6 +70,12 @@ export const PRINT_WIDGET_CATALOG: PrintWidgetCatalogEntry[] = [
       { path: "totals.total", label: "Grand Total" },
     ],
     defaultPlacement: { width: 215, height: 80 },
+  },
+  {
+    id: "doc.qr",
+    label: "QR",
+    slots: [{ path: "", label: "Value" }],
+    defaultPlacement: { width: 72, height: 88 },
   },
 ];
 
@@ -222,7 +236,54 @@ function expandOne(item: PlacedItem): PlacedItem {
     });
   }
 
+  if (widgetId === "doc.qr") {
+    return expandQrWidget(item, placement, destW, destH);
+  }
+
   return baseItem(item.id, "Box", placement, { name: item.name ?? "Unknown widget" });
+}
+
+/** Expand `doc.qr` to a QR primitive (+ optional caption). No default path. */
+function expandQrWidget(
+  item: PlacedItem,
+  placement: DocumentPlacement,
+  destW: number,
+  destH: number
+): PlacedItem {
+  const cfg = (item.widgetConfig ?? {}) as QRWidgetConfig;
+  const path = typeof cfg.path === "string" ? cfg.path.trim() : "";
+  const text = typeof cfg.text === "string" ? cfg.text : "";
+  const caption = typeof cfg.caption === "string" ? cfg.caption.trim() : "";
+  const qrH = caption ? Math.max(24, destH - 16) : destH;
+  const qr = baseItem(`${item.id}__code`, "QR", { x: 0, y: 0, width: destW, height: qrH }, {
+    name: item.name ?? "QR",
+    ...(path ? { binding: { path, fallback: "" } } : {}),
+    properties: {
+      ...(text ? { text } : {}),
+    },
+  });
+
+  if (!caption) {
+    return {
+      ...qr,
+      id: item.id,
+      placement,
+      ...(path ? { visibility: { when: path } } : {}),
+    };
+  }
+
+  return baseItem(item.id, "Container", placement, {
+    name: item.name ?? "QR",
+    ...(path ? { visibility: { when: path } } : {}),
+    children: [
+      qr,
+      baseItem(`${item.id}__caption`, "Text", { x: 0, y: qrH, width: destW, height: 16 }, {
+        name: "QR caption",
+        properties: { text: caption },
+        style: { fontSize: 8, textAlign: "center", color: "#64748b" },
+      }),
+    ],
+  });
 }
 
 /** Replace Widget refs with primitives. Does not mutate `items`. */

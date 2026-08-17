@@ -114,7 +114,7 @@ function SidebarBody({
     <aside className={cn("admin-sidebar", collapsed && "is-collapsed")}>
       <div className="admin-sidebar__brand">
         <div className="admin-sidebar__mark" aria-hidden>
-          T
+          W
         </div>
         {!collapsed && (
           <div className="admin-sidebar__brand-text">

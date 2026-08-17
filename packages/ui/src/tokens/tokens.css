@@ -55,7 +55,7 @@
   --border-width: 1px;
 
   /* Elevation Level 0–4 */
-  --shadow-color: 15, 23, 42;
+  --shadow-color: 0, 4, 16;
   --shadow-0: none;
   --shadow-1: 0 1px 2px rgba(var(--shadow-color), 0.06);
   --shadow-2: 0 4px 12px rgba(var(--shadow-color), 0.08);
@@ -111,30 +111,32 @@
   --focus-ring: 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--brand);
 
   /* Type families (apps may override with next/font variables) */
-  --font-display: "Fraunces", Georgia, serif;
-  --font-body: "Outfit", system-ui, sans-serif;
+  --font-display: "Unbounded", system-ui, sans-serif;
+  --font-body: "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  /* Semantic color aliases — defaults = Sankalp v2 (trustwood) */
-  --ink: #374151;
-  --ink-soft: #6b7280;
-  --ink-inverse: #ffffff;
-  --accent: #f5b33d;
-  --accent-soft: #fcd34d;
-  --brand: #0b5e3c;
-  --brand-dark: #084031;
-  --brand-mid: #0b5e3c;
-  --brand-light: #b6f3bc;
-  --surface: #ffffff;
-  --surface-raised: #ffffff;
-  --surface-sunken: #f8faf9;
-  --canvas: #f3f6f4;
-  --mist: #e8eee9;
-  --line: #e5e7eb;
-  --line-strong: #d1d5db;
-  --danger: #dc2626;
-  --success: #16a34a;
-  --warning: #f59e0b;
-  --info: #0ea5e9;
+  /* Semantic color aliases — WimFlo / Sankalp cinematic */
+  --ink: #eef3ff;
+  --ink-soft: #93a0be;
+  --ink-inverse: #06040f;
+  --accent: #8b5cff;
+  --accent-soft: #c4b5fd;
+  --brand: #6ff2ff;
+  --brand-dark: #22d3ee;
+  --brand-mid: #2ad4ff;
+  --brand-light: #a5f3fc;
+  --nav-bg: #06040f;
+  --surface: #101628;
+  --surface-raised: #161d32;
+  --surface-sunken: #0c1224;
+  --canvas: #070b16;
+  --mist: #1a2238;
+  --line: rgba(242, 244, 255, 0.12);
+  --line-strong: rgba(242, 244, 255, 0.2);
+  --danger: #f87171;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --info: #38bdf8;
 
   /* Legacy aliases (commerce + existing apps) */
   --forest: var(--brand);
@@ -144,10 +146,14 @@
   --linen: var(--canvas);
   --paper: var(--surface);
 
-  /* Soft brand-tinted canvas — not linen/cream wash, not heavy gradients */
+  /* Soft cyan / violet atmosphere on obsidian */
+  --grad: linear-gradient(100deg, #6ff2ff 0%, #8b5cff 48%, #ff4ecd 100%);
+  --glass: rgba(255, 255, 255, 0.045);
+  --glass-border: rgba(255, 255, 255, 0.14);
   --page-bg:
-    radial-gradient(900px 420px at 0% -5%, color-mix(in srgb, var(--brand) 6%, transparent), transparent 55%),
-    linear-gradient(180deg, var(--canvas) 0%, var(--surface-sunken) 100%);
+    radial-gradient(900px 480px at 85% -10%, color-mix(in srgb, var(--brand) 16%, transparent), transparent 58%),
+    radial-gradient(720px 420px at 0% 110%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 55%),
+    linear-gradient(180deg, #06040f 0%, var(--canvas) 42%, var(--surface-sunken) 100%);
 }
 
 /** Use on html/body for admin hosts — one canvas, theme-driven colors */
@@ -157,6 +163,13 @@
   color: var(--ink);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+}
+
+.erp-login-wash {
+  background:
+    radial-gradient(90% 70% at 50% 115%, color-mix(in srgb, var(--accent) 22%, transparent) 0%, transparent 60%),
+    radial-gradient(60% 40% at 80% 0%, color-mix(in srgb, var(--brand) 14%, transparent) 0%, transparent 50%),
+    #06040f;
 }
 
 .erp-page-enter {
@@ -196,7 +209,7 @@
   background: linear-gradient(
     90deg,
     var(--mist) 0%,
-    color-mix(in srgb, var(--mist) 55%, white) 50%,
+    color-mix(in srgb, var(--mist) 55%, var(--brand-light)) 50%,
     var(--mist) 100%
   );
   background-size: 200% 100%;
@@ -229,57 +242,60 @@
 }
 
 /* ─── BRAND THEMES ─── */
-[data-theme="trustwood"] {
-  --ink: #374151;
-  --ink-soft: #6b7280;
-  --ink-inverse: #ffffff;
-  --accent: #f5b33d;
-  --accent-soft: #fcd34d;
-  --brand: #0b5e3c;
-  --brand-dark: #084031;
-  --brand-mid: #0b5e3c;
-  --brand-light: #b6f3bc;
-  --surface: #ffffff;
-  --surface-raised: #ffffff;
-  --surface-sunken: #f8faf9;
-  --canvas: #f3f6f4;
-  --mist: #e8eee9;
-  --line: #e5e7eb;
-  --line-strong: #d1d5db;
-  --danger: #dc2626;
-  --success: #16a34a;
-  --warning: #f59e0b;
-  --info: #0ea5e9;
-  --shadow-color: 15, 23, 42;
-  --font-display: "Fraunces", Georgia, serif;
-  --font-body: "Outfit", system-ui, sans-serif;
+[data-theme="trustwood"],
+[data-theme="wimflo"] {
+  --ink: #eef3ff;
+  --ink-soft: #93a0be;
+  --ink-inverse: #06040f;
+  --accent: #8b5cff;
+  --accent-soft: #c4b5fd;
+  --brand: #6ff2ff;
+  --brand-dark: #22d3ee;
+  --brand-mid: #2ad4ff;
+  --brand-light: #a5f3fc;
+  --nav-bg: #06040f;
+  --surface: #101628;
+  --surface-raised: #161d32;
+  --surface-sunken: #0c1224;
+  --canvas: #070b16;
+  --mist: #1a2238;
+  --line: rgba(242, 244, 255, 0.12);
+  --line-strong: rgba(242, 244, 255, 0.2);
+  --danger: #f87171;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --info: #38bdf8;
+  --shadow-color: 0, 4, 16;
+  --font-display: "Unbounded", system-ui, sans-serif;
+  --font-body: "Space Grotesk", system-ui, sans-serif;
 }
 
-/* Deprecated alias — maps to trustwood v2 */
+/* Deprecated alias — maps to WimFlo cinematic */
 [data-theme="platform"] {
-  --ink: #374151;
-  --ink-soft: #6b7280;
-  --ink-inverse: #ffffff;
-  --accent: #f5b33d;
-  --accent-soft: #fcd34d;
-  --brand: #0b5e3c;
-  --brand-dark: #084031;
-  --brand-mid: #0b5e3c;
-  --brand-light: #b6f3bc;
-  --surface: #ffffff;
-  --surface-raised: #ffffff;
-  --surface-sunken: #f8faf9;
-  --canvas: #f3f6f4;
-  --mist: #e8eee9;
-  --line: #e5e7eb;
-  --line-strong: #d1d5db;
-  --danger: #dc2626;
-  --success: #16a34a;
-  --warning: #f59e0b;
-  --info: #0ea5e9;
-  --shadow-color: 15, 23, 42;
-  --font-display: "Fraunces", Georgia, serif;
-  --font-body: "Outfit", system-ui, sans-serif;
+  --ink: #eef3ff;
+  --ink-soft: #93a0be;
+  --ink-inverse: #06040f;
+  --accent: #8b5cff;
+  --accent-soft: #c4b5fd;
+  --brand: #6ff2ff;
+  --brand-dark: #22d3ee;
+  --brand-mid: #2ad4ff;
+  --brand-light: #a5f3fc;
+  --nav-bg: #06040f;
+  --surface: #101628;
+  --surface-raised: #161d32;
+  --surface-sunken: #0c1224;
+  --canvas: #070b16;
+  --mist: #1a2238;
+  --line: rgba(242, 244, 255, 0.12);
+  --line-strong: rgba(242, 244, 255, 0.2);
+  --danger: #f87171;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --info: #38bdf8;
+  --shadow-color: 0, 4, 16;
+  --font-display: "Unbounded", system-ui, sans-serif;
+  --font-body: "Space Grotesk", system-ui, sans-serif;
 }
 
 [data-theme="pos"] {

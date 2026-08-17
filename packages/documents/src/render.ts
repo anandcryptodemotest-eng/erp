@@ -6,6 +6,8 @@ import { formatValue, getByPath, isVisible } from "./resolve";
 import { resolveImageUrl } from "./image-url";
 import { buildLayoutPdf, isJpeg, readJpegDimensions, textWidth, type DrawOp, type PdfImage } from "./pdf";
 import { expandDocumentDefinition } from "./print-widgets";
+import { qrCaptionFromItem, qrSourceFromItem, resolveQRData } from "./qr-data";
+import { encodeQRMatrix, qrMatrixToSvg } from "./qr-matrix";
 import type {
   DocumentDefinition,
   PlacedItem,
@@ -136,7 +138,26 @@ function renderItemHtml(item: PlacedItem, payload: Record<string, unknown>, ox =
     return `<div data-id="${escapeHtml(item.id)}" style="${pos}background:${escapeHtml(bg)};border:${escapeHtml(border)};border-radius:3px;box-sizing:border-box"></div>`;
   }
 
+  if (item.type === "QR") {
+    return renderQrHtml(item, payload, pos);
+  }
+
   return "";
+}
+
+function renderQrHtml(item: PlacedItem, payload: Record<string, unknown>, pos: string): string {
+  const data = resolveQRData(qrSourceFromItem(item), payload);
+  if (!data) return "";
+  const width = item.placement.width ?? 72;
+  const boxH = item.placement.height ?? 72;
+  const caption = qrCaptionFromItem(item);
+  const matrixH = caption ? Math.max(24, boxH - 16) : boxH;
+  const matrix = encodeQRMatrix(data);
+  const svg = qrMatrixToSvg(matrix, width, matrixH);
+  const captionHtml = caption
+    ? `<div style="position:absolute;left:0;top:${matrixH}px;width:${width}px;font-size:8px;text-align:center;color:#64748b">${escapeHtml(caption)}</div>`
+    : "";
+  return `<div data-id="${escapeHtml(item.id)}" data-qr="${escapeHtml(data)}" style="${pos}">${svg}${captionHtml}</div>`;
 }
 
 /**
@@ -224,6 +245,56 @@ function fitContain(imgW: number, imgH: number, boxW: number, boxH: number): { w
 
 const TABLE_ROW_HEIGHT = 18;
 
+function collectQrDrawOps(
+  item: PlacedItem,
+  payload: Record<string, unknown>,
+  x: number,
+  y: number,
+  w: number,
+  ops: DrawOp[]
+): void {
+  const data = resolveQRData(qrSourceFromItem(item), payload);
+  if (!data) return;
+  const boxH = item.placement.height ?? 72;
+  const caption = qrCaptionFromItem(item);
+  const matrixH = caption ? Math.max(24, boxH - 16) : boxH;
+  const matrix = encodeQRMatrix(data);
+  const n = matrix.size;
+  if (n <= 0) return;
+  const module = Math.min(w, matrixH) / n;
+  const grid = module * n;
+  const gx = x + (w - grid) / 2;
+  const gy = y;
+  ops.push({
+    kind: "rect",
+    rect: { x: gx, y: gy, w: grid, h: grid },
+    fill: [1, 1, 1],
+    stroke: false,
+  });
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      if (!matrix.get(r, c)) continue;
+      ops.push({
+        kind: "rect",
+        rect: { x: gx + c * module, y: gy + r * module, w: module, h: module },
+        fill: [0, 0, 0],
+        stroke: false,
+      });
+    }
+  }
+  if (caption) {
+    const fontSize = 8;
+    const tw = textWidth(caption, fontSize);
+    ops.push({
+      kind: "text",
+      x: x + (w - tw) / 2,
+      y: y + matrixH + fontSize,
+      text: caption,
+      fontSize,
+    });
+  }
+}
+
 function collectDrawOps(
   item: PlacedItem,
   payload: Record<string, unknown>,
@@ -291,6 +362,11 @@ function collectDrawOps(
       fill,
       stroke: true,
     });
+    return;
+  }
+
+  if (item.type === "QR") {
+    collectQrDrawOps(item, payload, x, y, w, ops);
     return;
   }
 
