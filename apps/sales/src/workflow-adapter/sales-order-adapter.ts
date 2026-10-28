@@ -124,10 +124,10 @@ async function applyInvoiceLineUpdates(orderId: string, items: unknown) {
       if (!id || id.startsWith("new-")) continue;
       const existing = order.items.find((i) => i.id === id);
       if (!existing) continue;
-      const quantity = Math.max(
-        1,
-        Math.round(Number(raw.quantity ?? existing.quantity) || existing.quantity)
-      );
+      // Float quantity: preserves fractional/weight-based lines (e.g. 0.5 kg).
+      // Do NOT round or force a minimum of 1 — that corrupts sell-by-weight produce.
+      const parsedQty = Number(raw.quantity ?? existing.quantity);
+      const quantity = Number.isFinite(parsedQty) && parsedQty > 0 ? parsedQty : existing.quantity;
       const unitPrice = Math.max(0, Number(raw.unitPrice ?? existing.unitPrice) || 0);
       const total = Math.round(quantity * unitPrice * 100) / 100;
       await tx.salesOrderItem.update({

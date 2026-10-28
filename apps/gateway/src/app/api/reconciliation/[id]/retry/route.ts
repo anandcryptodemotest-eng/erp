@@ -23,6 +23,9 @@ export async function POST(request: Request, { params }: Params) {
   const result = await serviceClient.call(record.targetService as ModuleId, record.path, {
     method: record.method,
     tenantId,
+    // Forward the retrying operator's role so downstream role gates (e.g. inventory
+    // warehouse create requires ADMIN/MANAGER) are satisfied for provisioning records.
+    role: role ?? undefined,
     body: record.payload ?? undefined,
     requestId: request.headers.get("x-request-id") ?? undefined,
   });

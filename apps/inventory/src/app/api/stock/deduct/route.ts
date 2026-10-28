@@ -7,6 +7,7 @@ import {
   normalizeVariantId,
   upsertStockDelta,
 } from "@/lib/warehouse-stock";
+import { consumeFefoAllowingShortfall } from "@/lib/stock-batches";
 
 const deductSchema = z.object({
   items: z
@@ -70,6 +71,7 @@ export async function POST(request: Request) {
           throw new Error(`Insufficient stock for product ${item.productId}`);
         }
 
+        // Decrement the aggregate pool (source of truth for totals).
         await upsertStockDelta(tx, {
           tenantId,
           productId: item.productId,
@@ -78,19 +80,70 @@ export async function POST(request: Request) {
           quantityDelta: -item.quantity,
         });
 
-        const m = await tx.stockMovement.create({
-          data: {
+        const product = await tx.product.findFirst({
+          where: { id: item.productId, tenantId },
+          select: { trackBatches: true },
+        });
+
+        if (product?.trackBatches) {
+          // FEFO: consume oldest-expiring lots first (one OUT movement per lot for a
+          // per-lot traceability trail). The aggregate pool already approved the
+          // deduction, so if the open lots fall short (e.g. after a direct adjustment
+          // or expiry write-off) we record the uncovered remainder as a single
+          // non-lot aggregate OUT rather than failing the whole shipment.
+          const { consumption, shortfall } = await consumeFefoAllowingShortfall(tx, {
             tenantId,
             productId: item.productId,
             warehouseId: item.warehouseId,
             variantId,
-            type: "OUT",
             quantity: item.quantity,
-            reference,
-            notes,
-          },
-        });
-        ms.push(m);
+          });
+          for (const part of consumption) {
+            const m = await tx.stockMovement.create({
+              data: {
+                tenantId,
+                productId: item.productId,
+                warehouseId: item.warehouseId,
+                variantId,
+                type: "OUT",
+                quantity: part.quantity,
+                batchId: part.batchId,
+                reference,
+                notes: notes ?? `FEFO lot ${part.batchNo}`,
+              },
+            });
+            ms.push(m);
+          }
+          if (shortfall > 0) {
+            const m = await tx.stockMovement.create({
+              data: {
+                tenantId,
+                productId: item.productId,
+                warehouseId: item.warehouseId,
+                variantId,
+                type: "OUT",
+                quantity: shortfall,
+                reference,
+                notes: notes ?? "Unbatched remainder (lots short of aggregate)",
+              },
+            });
+            ms.push(m);
+          }
+        } else {
+          const m = await tx.stockMovement.create({
+            data: {
+              tenantId,
+              productId: item.productId,
+              warehouseId: item.warehouseId,
+              variantId,
+              type: "OUT",
+              quantity: item.quantity,
+              reference,
+              notes,
+            },
+          });
+          ms.push(m);
+        }
       }
       return ms;
     });

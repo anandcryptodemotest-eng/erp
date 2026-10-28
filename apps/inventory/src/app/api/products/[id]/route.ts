@@ -35,7 +35,9 @@ const updateProductSchema = z.object({
     .optional(),
   baseRate: z.number().nonnegative().nullable().optional(),
   pricingUom: z.string().nullable().optional(),
-  reorderLevel: z.number().int().min(0).optional(),
+  reorderLevel: z.number().min(0).optional(),
+  trackBatches: z.boolean().optional(),
+  shelfLifeDays: z.number().int().positive().nullable().optional(),
   productStructure: z.enum(["SIMPLE", "VARIANT"]).optional(),
   /** @deprecated use productStructure */
   hasVariants: z.boolean().optional(),

@@ -11,7 +11,7 @@ const createReturnSchema = z.object({
     productId: z.string(),
     productName: z.string(),
     variantId: z.string().optional(),
-    quantity: z.number().int().positive(),
+    quantity: z.number().positive(), // Float: allows returning weight-based lines (e.g. 0.5 kg)
     unitPrice: z.number().positive(),
   })).min(1),
 });

@@ -7,6 +7,7 @@ import {
   normalizeVariantId,
   upsertStockDelta,
 } from "@/lib/warehouse-stock";
+import { computeExpiry, receiveIntoBatch } from "@/lib/stock-batches";
 
 const log = createLogger({ service: "inventory" });
 
@@ -18,6 +19,9 @@ const receiveSchema = z.object({
         warehouseId: z.string(),
         variantId: z.string().optional(),
         quantity: z.number().positive(),
+        /** Perishable lot fields — used only when the product has trackBatches=true. */
+        batchNo: z.string().min(1).optional(),
+        expiryDate: z.string().datetime().optional(),
       })
     )
     .min(1),
@@ -72,6 +76,31 @@ export async function POST(request: Request) {
           quantityDelta: item.quantity,
         });
 
+        // For perishable (batch-tracked) products, also record the receipt as a lot so
+        // deduction can later consume FEFO and expiry can be swept.
+        let batchId: string | undefined;
+        const product = await tx.product.findFirst({
+          where: { id: item.productId, tenantId },
+          select: { trackBatches: true, shelfLifeDays: true },
+        });
+        if (product?.trackBatches) {
+          const receivedDate = new Date();
+          const expiryDate = item.expiryDate
+            ? new Date(item.expiryDate)
+            : computeExpiry(receivedDate, product.shelfLifeDays);
+          const batch = await receiveIntoBatch(tx, {
+            tenantId,
+            productId: item.productId,
+            warehouseId: item.warehouseId,
+            variantId,
+            batchNo: item.batchNo,
+            quantity: item.quantity,
+            expiryDate,
+            receivedDate,
+          });
+          batchId = batch.id;
+        }
+
         const m = await tx.stockMovement.create({
           data: {
             tenantId,
@@ -80,6 +109,7 @@ export async function POST(request: Request) {
             variantId,
             type: "IN",
             quantity: item.quantity,
+            batchId,
             reference,
             idempotencyKey: idempotencyKey ? `${idempotencyKey}:${index}` : undefined,
             notes,

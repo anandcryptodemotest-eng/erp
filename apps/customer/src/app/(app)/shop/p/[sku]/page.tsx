@@ -46,6 +46,7 @@ interface Product {
   baseRate?: number | null;
   pricingBasis?: string | null;
   pricingUom?: string | null;
+  sellByWeight?: boolean | null;
   imageUrls?: string[] | null;
   unit?: string;
   description?: string | null;
@@ -176,6 +177,15 @@ export default function ProductDetailPage({ params }: { params: Promise<{ sku: s
   const available =
     product?.stocks?.reduce((s, w) => s + (w.quantity ?? 0), 0) ?? 99;
 
+  // Sell-by-weight / measured items allow fractional quantities (e.g. 0.5 kg).
+  const isWeightSale =
+    !!product?.sellByWeight ||
+    ((product?.pricingBasis ?? "").toUpperCase() === "PER_WEIGHT");
+  const qtyUnit = isWeightSale ? (product?.pricingUom ?? product?.unit ?? "kg") : undefined;
+  // Step 0.25 for weight (quarter-kg), otherwise whole units.
+  const qtyStep = isWeightSale ? 0.25 : 1;
+  const qtyMin = isWeightSale ? qtyStep : 1;
+
   const selectableDefs = (product?.attributeDefinitions ?? []).filter(
     (d) => optionList(d.options).length > 0 || d.isVariantAxis
   );
@@ -217,6 +227,14 @@ export default function ProductDetailPage({ params }: { params: Promise<{ sku: s
         qty,
         imageUrl: productImageUrl(product),
         selectedAttributes: { ...selected },
+        // Carry measured-sale metadata so the cart treats weight items as fractional.
+        ...(isWeightSale
+          ? {
+              pricingBasis: product.pricingBasis ?? "PER_WEIGHT",
+              rateUom: product.pricingUom ?? product.unit ?? "kg",
+              measureUom: product.pricingUom ?? product.unit ?? "kg",
+            }
+          : {}),
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not add to cart");
@@ -374,7 +392,14 @@ export default function ProductDetailPage({ params }: { params: Promise<{ sku: s
 
       <div className="atc-bar anim-slide-up">
         <div className="mx-auto flex w-full max-w-[var(--layout-wide)] flex-wrap items-center gap-3">
-          <QuantityStepper value={qty} onChange={setQty} max={available || 99} />
+          <QuantityStepper
+            value={qty}
+            onChange={setQty}
+            min={qtyMin}
+            step={qtyStep}
+            unit={qtyUnit}
+            max={available || 99}
+          />
           <div className="min-w-0 flex-1 text-sm">
             <span className="text-[var(--ink-soft)]">Total </span>
             <PriceDisplay

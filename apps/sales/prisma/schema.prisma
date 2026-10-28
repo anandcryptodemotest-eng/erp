@@ -481,8 +481,8 @@ model SalesOrderItem {
   productId      String
   productName    String
   variantId      String?
-  quantity       Int
-  shippedQty     Int     @default(0)
+  quantity       Float // Float supports weight-based lines (e.g. 0.5 kg produce)
+  shippedQty     Float   @default(0) // Float for partial weight shipments
   availableQty   Float? // manual stock verification
   shortageQty    Float? // max(0, quantity - availableQty)
   unitPrice      Float
@@ -581,7 +581,7 @@ model SalesReturnItem {
   productId   String
   productName String
   variantId   String?
-  quantity    Int
+  quantity    Float // Float so weight-based lines (e.g. 0.5 kg) can be returned
   unitPrice   Float
   total       Float
 

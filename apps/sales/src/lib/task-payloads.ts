@@ -10,7 +10,7 @@ export const reviewSchema = z.object({
         id: z.string().optional(),
         productId: z.string(),
         productName: z.string(),
-        quantity: z.number().int().positive(),
+        quantity: z.number().positive(), // Float: supports weight-based lines (e.g. 0.5 kg)
         unitPrice: z.number().nonnegative(),
         remarks: z.string().optional(),
         /** Product attrs + pricing engine snapshot at quote time */

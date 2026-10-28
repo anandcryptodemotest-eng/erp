@@ -24,7 +24,7 @@ const log = createLogger({ service: "sales" });
 const shipItemsSchema = z.object({
   items: z.array(z.object({
     orderItemId: z.string(),
-    shippedQty: z.number().int().positive(),
+    shippedQty: z.number().positive(), // Float: supports partial weight shipments (e.g. 0.5 kg)
   })).min(1),
   warehouseId: z.string(),
   notes: z.string().optional(),

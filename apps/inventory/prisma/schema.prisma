@@ -153,6 +153,11 @@ model Product {
   isFeatured   Boolean  @default(false)
   sortOrder    Int      @default(0)
   isActive     Boolean  @default(true)
+  /// Perishable goods (e.g. produce): track batches/lots with expiry and consume FEFO.
+  /// When false, stock is a single aggregate pool and batches are ignored.
+  trackBatches Boolean  @default(false)
+  /// Default shelf life in days — used to auto-compute expiry on receipt when none given.
+  shelfLifeDays Int?
   // Industry-specific fields validated against ProductAttributeDefinition
   customAttributes       Json @default("{}")
   attributeSchemaVersion Int  @default(1)
@@ -165,6 +170,7 @@ model Product {
   stocks         WarehouseStock[]
   movements      StockMovement[]
   reservations   StockReservation[]
+  batches        StockBatch[]
   priceListItems PriceListItem[]
   boms           BOM[]
   bomComponents  BOMLine[] @relation("BOMComponents")
@@ -211,6 +217,7 @@ model ProductVariant {
   product        Product          @relation(fields: [productId], references: [id])
   priceListItems PriceListItem[]
   stocks         WarehouseStock[]
+  batches        StockBatch[]
 
   @@unique([tenantId, sku])
   @@index([tenantId])
@@ -294,6 +301,7 @@ model Warehouse {
   stocks       WarehouseStock[]
   movements    StockMovement[]
   reservations StockReservation[]
+  batches      StockBatch[]
 
   @@index([tenantId])
 }
@@ -328,17 +336,57 @@ model StockMovement {
   variantId   String?
   type        String   // IN, OUT, TRANSFER, ADJUSTMENT, RESERVE, RELEASE
   quantity    Float    // Float supports weight-based movements (e.g. 0.5 kg)
+  /// Batch/lot this movement drew from or added to (perishable products only).
+  batchId     String?
   reference   String?
   idempotencyKey String?
   notes       String?
   createdAt   DateTime @default(now())
 
-  product   Product   @relation(fields: [productId], references: [id])
-  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
+  product   Product     @relation(fields: [productId], references: [id])
+  warehouse Warehouse   @relation(fields: [warehouseId], references: [id])
+  batch     StockBatch? @relation(fields: [batchId], references: [id])
 
   @@index([tenantId])
   @@index([reference])
+  @@index([batchId])
   @@unique([tenantId, idempotencyKey])
+}
+
+/// A received lot of a perishable product with its own expiry date.
+/// The aggregate WarehouseStock.quantity remains the total on-hand; the sum of a
+/// product's open (non-depleted, non-expired) batch quantities should reconcile to it.
+/// Deduction consumes batches FEFO (first-expired-first-out).
+model StockBatch {
+  id              String    @id @default(cuid())
+  tenantId        String
+  productId       String
+  warehouseId     String
+  /// null = SIMPLE product; set for a specific VARIANT SKU (mirrors WarehouseStock).
+  variantId       String?
+  /// Supplier/lot label. Optional; a cuid-based code is generated when omitted.
+  batchNo         String
+  /// Remaining quantity in this batch (Float for weight-based items, e.g. 2.5 kg).
+  quantity        Float     @default(0)
+  /// Quantity originally received into this batch (for spoilage/shrinkage reporting).
+  initialQuantity Float     @default(0)
+  expiryDate      DateTime?
+  receivedDate    DateTime  @default(now())
+  /// Set true when expiryDate has passed and the batch is written off.
+  isExpired       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  product   Product         @relation(fields: [productId], references: [id])
+  warehouse Warehouse       @relation(fields: [warehouseId], references: [id])
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+  movements StockMovement[]
+
+  @@unique([tenantId, productId, warehouseId, variantId, batchNo])
+  @@index([tenantId])
+  // FEFO picking: earliest expiry first within a product+warehouse+variant scope.
+  @@index([tenantId, productId, warehouseId, variantId, expiryDate])
+  @@index([tenantId, expiryDate])
 }
 
 model StockReservation {

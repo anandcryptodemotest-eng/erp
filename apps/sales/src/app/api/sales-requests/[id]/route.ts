@@ -25,7 +25,7 @@ const updateOpenSchema = z.object({
         productId: z.string(),
         productName: z.string(),
         variantId: z.string().nullish(),
-        quantity: z.number().int().positive(),
+        quantity: z.number().positive(), // Float: supports weight-based lines (e.g. 0.5 kg)
         unitPrice: z.number().nonnegative(),
         taxRate: z.number().nonnegative().optional(),
       })

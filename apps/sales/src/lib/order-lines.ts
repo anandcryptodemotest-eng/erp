@@ -10,8 +10,9 @@ export const lineItemInputSchema = z
       productName: z.string().optional(),
       name: z.string().optional(),
       variantId: z.string().nullish(),
-      quantity: z.number().int().positive().optional(),
-      qty: z.number().int().positive().optional(),
+      // Float-positive: supports weight-based lines (e.g. 0.5 kg produce), not just whole units
+      quantity: z.number().positive().optional(),
+      qty: z.number().positive().optional(),
       unitPrice: z.number().nonnegative(),
     })
   )
