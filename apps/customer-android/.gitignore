@@ -1,0 +1,25 @@
+# Capacitor shell — the android/ project IS committed. Only secrets and local,
+# machine-specific, or generated files are ignored here.
+
+# Android local SDK path (per-developer)
+android/local.properties
+
+# Signing material — NEVER commit
+*.keystore
+*.jks
+android/keystore.properties
+android/app/keystore.properties
+
+# Gradle / build output
+android/.gradle/
+android/build/
+android/app/build/
+android/captures/
+.gradle/
+
+# Capacitor copies web assets into the native project on sync
+android/app/src/main/assets/public/
+
+# IDE
+.idea/
+*.iml

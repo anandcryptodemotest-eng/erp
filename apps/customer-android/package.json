@@ -1,0 +1,25 @@
+{
+  "name": "@erp/customer-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Capacitor remote-WebView shell around the Next.js customer portal (apps/customer). No business logic lives here.",
+  "scripts": {
+    "cap": "cap",
+    "add:android": "cap add android",
+    "sync": "cap sync android",
+    "open:android": "cap open android",
+    "release:check": "node scripts/release-check.mjs",
+    "apk:debug": "cd android && ./gradlew assembleDebug",
+    "aab:release": "node scripts/release-check.mjs && cd android && ./gradlew bundleRelease"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3"
+  }
+}
