@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Sankalp</title>
+    <style>
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: #1e3d32;
+        color: #faf8f5;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      .wrap {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        text-align: center;
+        padding: 1.5rem;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #faf8f5;
+        opacity: 0.6;
+        animation: pulse 1s ease-in-out infinite;
+      }
+      @keyframes pulse { 0%, 100% { opacity: 0.25 } 50% { opacity: 0.9 } }
+      p { margin: 0; font-size: 0.9rem; opacity: 0.8 }
+    </style>
+  </head>
+  <body>
+    <!--
+      Placeholder only. In production the WebView loads server.url
+      (the remote Next.js portal) and this file is not shown.
+      Do NOT add application logic here — see docs/CUSTOMER-ANDROID-APK.md.
+    -->
+    <div class="wrap">
+      <div class="dot"></div>
+      <p>Connecting…</p>
+    </div>
+  </body>
+</html>

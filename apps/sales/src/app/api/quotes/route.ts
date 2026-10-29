@@ -12,7 +12,7 @@ const createQuoteSchema = z.object({
     productId: z.string(),
     productName: z.string(),
     variantId: z.string().optional(),
-    quantity: z.number().int().positive(),
+    quantity: z.number().positive(), // Float: supports weight-based lines (e.g. 0.5 kg)
     unitPrice: z.number().positive(),
     discount: z.number().min(0).max(100).default(0),
   })).min(1),

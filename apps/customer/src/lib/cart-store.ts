@@ -36,9 +36,25 @@ export function saveCart(items: CartItem[]): void {
   notifyCartChanged();
 }
 
+/** Weight/measure-priced items may be sold in sub-unit quantities (e.g. 0.5 kg). */
+function isMeasured(item: CartItem): boolean {
+  const basis = (item.pricingBasis ?? "").toUpperCase();
+  return basis !== "" && basis !== "PER_EACH";
+}
+
 export function addToCart(item: CartItem): CartItem[] {
-  if (!item.productId || !item.name || !Number.isFinite(item.price) || item.price < 0 || item.qty < 1) {
-    throw new Error("Invalid cart item — missing name or price");
+  // Measured items (PER_WEIGHT etc.) allow fractional quantities like 0.5 kg;
+  // PER_EACH items still require a whole-unit minimum of 1.
+  const minQty = isMeasured(item) ? Number.MIN_VALUE : 1;
+  if (
+    !item.productId ||
+    !item.name ||
+    !Number.isFinite(item.price) ||
+    item.price < 0 ||
+    !Number.isFinite(item.qty) ||
+    item.qty < minQty
+  ) {
+    throw new Error("Invalid cart item — missing name, price, or quantity");
   }
   const cart = getCart();
   const incoming = withLineTotal(item);

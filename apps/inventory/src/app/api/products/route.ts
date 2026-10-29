@@ -45,6 +45,8 @@ const createProductSchema = z.object({
   baseRate: z.number().nonnegative().optional(),
   pricingUom: z.string().optional(),
   reorderLevel: z.number().min(0).default(10),
+  trackBatches: z.boolean().default(false),
+  shelfLifeDays: z.number().int().positive().nullable().optional(),
   productStructure: z.enum(["SIMPLE", "VARIANT"]).optional().default("SIMPLE"),
   hasVariants: z.boolean().optional(),
   variantAxes: z.array(z.string().min(1)).optional(),
