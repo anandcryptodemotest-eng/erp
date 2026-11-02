@@ -11,6 +11,7 @@ import {
   PALETTE,
   PALETTE_GROUPS,
   QR_TILE,
+  WIDGET_PALETTE,
   businessPaletteLabels,
 } from "./types";
 import {
@@ -84,6 +85,10 @@ test("invoice starter is compositions, not palette", () => {
   );
 });
 
+test("Power+ widget palette includes data-agnostic doc.qr", () => {
+  assert.ok(WIDGET_PALETTE.some((w) => w.widgetId === "doc.qr"));
+});
+
 test("guided steps are generic page sections", () => {
   const labels = GUIDED_STEPS.map((s) => s.label as string);
   assert.deepEqual(labels, ["Page", "Header", "Content", "Collections", "Summary", "Footer", "Preview"]);
@@ -117,7 +122,9 @@ test("invoice schema marks lines as a collection", () => {
 test("primitive tax-invoice seed still opens", () => {
   const state = createInitialState(TAX_INVOICE_SEED);
   assert.ok(state.definition.items.length > 0);
-  assert.ok(state.definition.items.every((i) => i.type !== "Widget"));
+  const qr = state.definition.items.find((i) => i.widgetId === "doc.qr");
+  assert.equal(qr?.type, "Widget");
+  assert.equal((qr?.widgetConfig as { path?: string } | undefined)?.path, "payment.upiUri");
 });
 
 test("blank document opens with empty canvas", () => {

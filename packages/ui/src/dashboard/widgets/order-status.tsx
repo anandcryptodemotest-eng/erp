@@ -7,7 +7,7 @@ import { WidgetShell, WidgetEmpty, WidgetError } from "./shell";
 
 type OrdersByStatus = { status: string; _count: { id: number } }[];
 
-const COLORS = ["#c8922a", "#2f7d5c", "#3b82f6", "#ef4444", "#8b5cf6", "#64748b"];
+const COLORS = ["#6ff2ff", "#8b5cff", "#ff4ecd", "#38bdf8", "#4ade80", "#94a3b8"];
 
 function navigate(href: string) {
   if (typeof window !== "undefined") window.location.assign(href);

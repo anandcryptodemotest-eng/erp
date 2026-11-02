@@ -45,7 +45,8 @@ img {
   max-width: var(--layout-wide);
   margin: 0 auto;
   position: relative;
-  background: var(--surface-raised);
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  backdrop-filter: blur(18px);
 }
 
 .portal-frame {
@@ -119,9 +120,9 @@ img {
 
 .cx-eyebrow {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.28em;
   color: var(--brand);
 }
 

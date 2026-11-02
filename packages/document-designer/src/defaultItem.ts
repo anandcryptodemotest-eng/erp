@@ -52,6 +52,8 @@ export function defaultItem(type: DocumentItemType): PlacedItem {
     base.name = "QR";
     base.placement.width = 64;
     base.placement.height = 64;
+    base.binding = { path: "", fallback: "" };
+    base.properties = { text: "" };
   }
   if (type === "Table") {
     base.name = "Table";
@@ -136,5 +138,8 @@ export function mergeItem(item: PlacedItem, patch: Partial<PlacedItem>): PlacedI
     properties: patch.properties
       ? { ...(item.properties ?? {}), ...patch.properties }
       : item.properties,
+    widgetConfig: patch.widgetConfig
+      ? { ...(item.widgetConfig ?? {}), ...patch.widgetConfig }
+      : item.widgetConfig,
   };
 }

@@ -24,6 +24,8 @@ export function TaxInvoicingPanel() {
   const [posDefault, setPosDefault] = useState("");
   const [eInvoiceMode, setEInvoiceMode] = useState("OFF");
   const [nicMode, setNicMode] = useState("DEMO");
+  const [upiVpa, setUpiVpa] = useState("");
+  const [upiPayeeName, setUpiPayeeName] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +44,8 @@ export function TaxInvoicingPanel() {
       setPosDefault(s["tax.placeOfSupplyDefault"] ?? "");
       setEInvoiceMode(s["tax.eInvoiceMode"] ?? "OFF");
       setNicMode(s["tax.nic.mode"] === "PRODUCTION" ? "PRODUCTION" : "DEMO");
+      setUpiVpa(s["payments.upi.vpa"] ?? "");
+      setUpiPayeeName(s["payments.upi.payeeName"] ?? "");
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to load tax settings");
     }
@@ -75,6 +79,8 @@ export function TaxInvoicingPanel() {
         payload["tax.stateCode"] = stateCode;
         if (posDefault) payload["tax.placeOfSupplyDefault"] = posDefault;
       }
+      payload["payments.upi.vpa"] = upiVpa.trim();
+      payload["payments.upi.payeeName"] = upiPayeeName.trim();
       await api(`/api/tenants/${tenantId}/settings`, {
         method: "PUT",
         body: JSON.stringify(payload),
@@ -193,6 +199,21 @@ export function TaxInvoicingPanel() {
           </p>
         </>
       )}
+
+      <div className="space-y-2 rounded-lg border border-[var(--line)] p-3">
+        <h3 className="text-xs font-semibold text-[var(--ink)]">UPI collect</h3>
+        <p className="text-[11px] text-[var(--ink-soft)]">
+          When a VPA is set, unpaid invoices include a UPI pay URI in the document payload. Scanning
+          does not mark the invoice paid.
+        </p>
+        <Input label="UPI VPA" value={upiVpa} onChange={(e) => setUpiVpa(e.target.value)} placeholder="shop@upi" />
+        <Input
+          label="Payee name (optional)"
+          value={upiPayeeName}
+          onChange={(e) => setUpiPayeeName(e.target.value)}
+          placeholder="Defaults to legal name"
+        />
+      </div>
 
       <Button disabled={busy} onClick={() => void save()}>
         {busy ? "Saving…" : "Save tax settings"}

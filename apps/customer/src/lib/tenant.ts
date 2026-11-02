@@ -8,7 +8,7 @@
 
 import { storage } from "@/lib/platform/storage";
 
-const DEFAULT_SLUG = "trustwood-enterprise";
+const DEFAULT_SLUG = "wimflo";
 const DISPLAY_NAME_CACHE_KEY = "customer_tenant_display_name";
 const DISPLAY_NAME_SLUG_KEY = "customer_tenant_display_slug";
 const HOST_TENANT_CACHE_KEY = "customer_host_tenant_slug";
@@ -129,7 +129,7 @@ export function resolveTenantSlug(opts?: {
     process.env.NEXT_PUBLIC_TENANT_SLUG?.trim() || process.env.DEFAULT_TENANT_SLUG?.trim();
   if (fromEnv) return fromEnv;
 
-  // Shared demo IP without ?tenant=: prefer Trustwood rather than blank chrome.
+  // Shared IP without ?tenant=: prefer WimFlo rather than blank chrome.
   if (typeof window !== "undefined" && isSharedIpHostname(window.location.hostname)) {
     return DEFAULT_SLUG;
   }

@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Chip, ChipGroup, Input } from "@erp/ui";
 import { saveAuth } from "@/lib/api-client";
 import { ensureCustomerProfile } from "@/lib/ensure-customer-profile";
-import { heroImageUrl } from "@/lib/media";
 import {
   fetchTenantBranding,
   rememberQueryTenant,
@@ -259,29 +258,22 @@ function LoginForm() {
 
   return (
     <div className="relative flex min-h-dvh items-center justify-center px-4 py-10">
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          backgroundImage: `linear-gradient(115deg, rgba(18,26,22,0.92), rgba(30,61,50,0.75)), url(${heroImageUrl()})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      />
-      <div className="relative w-full max-w-md overflow-hidden rounded-[var(--radius-md)] border border-white/15 bg-[color-mix(in_srgb,var(--paper)_94%,white)] shadow-[var(--shadow)]">
-        <div className="bg-[var(--ink)] px-6 py-7 text-white">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--amber-soft)]">
+      <div className="erp-login-wash pointer-events-none absolute inset-0" />
+      <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/12 bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] shadow-[var(--shadow-4)] backdrop-blur-md">
+        <div className="px-6 py-7 text-[var(--ink)]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--brand)]">
             Customer portal
           </p>
-          <h1 className="font-display mt-2 text-3xl font-semibold leading-tight">
-            {orgName || "Customer portal"}
+          <h1 className="font-display mt-2 text-3xl font-semibold leading-tight tracking-tight">
+            {orgName || "WimFlo"}
           </h1>
-          <p className="mt-2 text-sm text-white/65">Order materials · track every stage</p>
+          <p className="mt-2 text-sm text-[var(--ink-soft)]">On business. one flow</p>
           {tenantSlug ? (
-            <p className="mt-2 font-mono text-[11px] text-white/50">{tenantSlug}</p>
+            <p className="mt-2 font-mono text-[11px] text-[var(--ink-soft)]/70">{tenantSlug}</p>
           ) : null}
         </div>
 
-        <div className="p-6">
+        <div className="border-t border-white/10 p-6">
           <ChipGroup className="mb-5">
             <Chip
               active={mode === "login"}
@@ -330,7 +322,7 @@ function LoginForm() {
             </div>
           ) : null}
           {googleError ? (
-            <div className="mb-4 rounded-[var(--radius-md)] bg-red-50 px-4 py-2.5 text-sm text-[var(--danger)]">
+            <div className="mb-4 rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--danger)_40%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,var(--surface))] px-4 py-2.5 text-sm text-[var(--danger)]">
               {googleError}
             </div>
           ) : null}
@@ -400,7 +392,7 @@ function LoginForm() {
               </>
             )}
             {error ? (
-              <div className="rounded-[var(--radius-md)] bg-red-50 px-4 py-2.5 text-sm text-[var(--danger)]">
+              <div className="rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--danger)_40%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,var(--surface))] px-4 py-2.5 text-sm text-[var(--danger)]">
                 {error}
               </div>
             ) : null}
@@ -416,7 +408,7 @@ function LoginForm() {
             {mode === "otp" && otpSentTo ? (
               <button
                 type="button"
-                className="w-full text-center text-xs font-semibold text-[var(--forest)]"
+                className="w-full text-center text-xs font-semibold text-[var(--brand)]"
                 disabled={loading}
                 onClick={() => void handleOtpStart()}
               >
@@ -462,7 +454,7 @@ function Field({
         required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="min-h-[var(--touch-min)] rounded-[var(--radius-md)] border-[var(--line)] focus-visible:ring-[var(--forest)]"
+        className="min-h-[var(--touch-min)] rounded-[var(--radius-md)] border-[var(--line)] bg-[var(--surface-sunken)] focus-visible:ring-[var(--brand)]"
       />
     </div>
   );

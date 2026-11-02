@@ -63,8 +63,8 @@ export function SearchBar({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className={cn(
-        "min-h-[var(--touch-min)] w-full rounded-[var(--radius-full)] border border-[var(--line)] bg-white px-4 text-sm text-[var(--ink)] placeholder:text-[var(--ink-soft)]/60",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forest)] focus-visible:ring-offset-1",
+        "min-h-[var(--touch-min)] w-full rounded-[var(--radius-full)] border border-[var(--line)] bg-[var(--surface-sunken)] px-4 text-sm text-[var(--ink)] placeholder:text-[var(--ink-soft)]/60",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--canvas)]",
         className
       )}
       aria-label={placeholder}

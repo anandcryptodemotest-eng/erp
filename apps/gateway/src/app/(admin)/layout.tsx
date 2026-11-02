@@ -166,7 +166,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [query, setQuery] = useState("");
   const [phoneOps, setPhoneOps] = useState(false);
   const [sessionUser, setSessionUser] = useState<ReturnType<typeof getAdminUser>>(null);
-  const [tenantDisplayName, setTenantDisplayName] = useState("TrustWood");
+  const [tenantDisplayName, setTenantDisplayName] = useState("WimFlo");
   const [planFeatures, setPlanFeatures] = useState<string[] | null>(null);
 
   const allowed = useMemo(
@@ -223,13 +223,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const name =
           settings["brand.displayName"]?.trim() ||
           (r.data?.name as string | undefined)?.trim() ||
-          "TrustWood";
+          "WimFlo";
         setTenantDisplayName(name);
         if (typeof document !== "undefined") {
           document.title = `${name} Admin`;
         }
       })
-      .catch(() => setTenantDisplayName("TrustWood"));
+      .catch(() => setTenantDisplayName("WimFlo"));
   }, []);
 
   const normalizedQuery = query.trim().toLowerCase();
@@ -275,7 +275,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <AdminShell
-      brandEyebrow="TrustWood"
+      brandEyebrow="WimFlo"
       brandTitle={tenantDisplayName}
       brandContext={displayRole}
       groups={filteredGroups}

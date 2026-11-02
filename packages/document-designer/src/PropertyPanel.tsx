@@ -103,6 +103,9 @@ export function PropertyPanel({
 
   const bindable =
     item.type === "Field" || item.type === "Logo" || item.type === "Table" || item.type === "Image";
+  const isQrWidget = item.type === "Widget" && item.widgetId === "doc.qr";
+  const isQrPrimitive = item.type === "QR";
+  const qrConfig = (item.widgetConfig ?? {}) as { path?: string; text?: string; caption?: string };
   const sample =
     item.binding?.path
       ? formatValue(
@@ -113,7 +116,7 @@ export function PropertyPanel({
       : "";
   const align = (item.placement.align ?? item.style?.textAlign ?? "left") as AlignPreset;
   const spacing = spacingFromPadding(item.style?.padding) ?? "medium";
-  const activeTab: PropTab = propTab ?? (bindable ? "data" : "properties");
+  const activeTab: PropTab = propTab ?? (bindable || isQrWidget || isQrPrimitive ? "data" : "properties");
 
   return (
     <div>
@@ -356,7 +359,98 @@ export function PropertyPanel({
                 onPatch={patch}
               />
             )}
-            {item.type === "Widget" && (
+            {isQrWidget && (
+              <Section title="Value">
+                <p className="erp-doc-studio__field-caption">Path</p>
+                <input
+                  className="erp-doc-designer__field"
+                  value={typeof qrConfig.path === "string" ? qrConfig.path : ""}
+                  placeholder="payload.path"
+                  onChange={(e) =>
+                    patch({
+                      widgetConfig: { ...qrConfig, path: e.target.value },
+                    })
+                  }
+                />
+                <BindingPicker
+                  schema={schema}
+                  value={typeof qrConfig.path === "string" ? qrConfig.path : ""}
+                  readOnly={readOnly}
+                  onSelect={(path) =>
+                    patch({
+                      widgetConfig: { ...qrConfig, path },
+                    })
+                  }
+                  onFormatterChange={() => undefined}
+                />
+                <label className="erp-doc-designer__field">
+                  Text
+                  <input
+                    value={typeof qrConfig.text === "string" ? qrConfig.text : ""}
+                    placeholder="Literal value when path is empty"
+                    onChange={(e) =>
+                      patch({
+                        widgetConfig: { ...qrConfig, text: e.target.value },
+                      })
+                    }
+                  />
+                </label>
+                <label className="erp-doc-designer__field">
+                  Caption
+                  <input
+                    value={typeof qrConfig.caption === "string" ? qrConfig.caption : ""}
+                    onChange={(e) =>
+                      patch({
+                        widgetConfig: { ...qrConfig, caption: e.target.value },
+                      })
+                    }
+                  />
+                </label>
+                <p style={{ fontSize: 10, color: "#78716c", marginTop: 8 }}>
+                  Path is used exclusively when set. Empty or missing path values hide the QR — text is
+                  not a fallback.
+                </p>
+              </Section>
+            )}
+            {isQrPrimitive && (
+              <Section title="Value">
+                <p className="erp-doc-studio__field-caption">Path</p>
+                <input
+                  className="erp-doc-designer__field"
+                  value={item.binding?.path ?? ""}
+                  placeholder="payload.path"
+                  onChange={(e) =>
+                    patch({
+                      binding: { path: e.target.value, fallback: item.binding?.fallback ?? "" },
+                    })
+                  }
+                />
+                <BindingPicker
+                  schema={schema}
+                  value={item.binding?.path}
+                  readOnly={readOnly}
+                  onSelect={(path) =>
+                    patch({
+                      binding: { path, fallback: item.binding?.fallback ?? "" },
+                    })
+                  }
+                  onFormatterChange={() => undefined}
+                />
+                <label className="erp-doc-designer__field">
+                  Text
+                  <input
+                    value={typeof item.properties?.text === "string" ? item.properties.text : ""}
+                    placeholder="Literal value when path is empty"
+                    onChange={(e) =>
+                      patch({
+                        properties: { ...item.properties, text: e.target.value },
+                      })
+                    }
+                  />
+                </label>
+              </Section>
+            )}
+            {item.type === "Widget" && !isQrWidget && (
               <Section title="Composition">
                 <p style={{ fontSize: 11, marginBottom: 6 }}>
                   <code>{item.widgetId ?? "—"}</code>
@@ -366,7 +460,7 @@ export function PropertyPanel({
                 </p>
                 <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11 }}>
                   {(printWidgetById(item.widgetId)?.slots ?? []).map((s) => (
-                    <li key={s.path}>
+                    <li key={s.path || s.label}>
                       {s.label}{" "}
                       <code style={{ fontSize: 10, color: "#78716c" }}>{s.path}</code>
                     </li>
@@ -374,7 +468,12 @@ export function PropertyPanel({
                 </ul>
               </Section>
             )}
-            {!bindable && item.type !== "Widget" && item.type !== "Logo" && item.type !== "Image" && (
+            {!bindable &&
+              !isQrWidget &&
+              !isQrPrimitive &&
+              item.type !== "Widget" &&
+              item.type !== "Logo" &&
+              item.type !== "Image" && (
               <p style={{ fontSize: 12, color: "#78716c" }}>This block has no payload binding.</p>
             )}
           </>

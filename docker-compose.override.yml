@@ -1,0 +1,40 @@
+# Production secrets and environment. Ports are bound to loopback in docker-compose.yml.
+services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  gateway:
+    environment:
+      DATABASE_URL: postgresql://erp:${POSTGRES_PASSWORD}@postgres:5432/erp_gateway
+      DEPLOYMENT_ENVIRONMENT: production
+      OTEL_SDK_DISABLED: "true"
+  sales:
+    environment:
+      DATABASE_URL: postgresql://erp:${POSTGRES_PASSWORD}@postgres:5432/erp_sales
+      DEPLOYMENT_ENVIRONMENT: production
+      OTEL_SDK_DISABLED: "true"
+  inventory:
+    environment:
+      DATABASE_URL: postgresql://erp:${POSTGRES_PASSWORD}@postgres:5432/erp_inventory
+      DEPLOYMENT_ENVIRONMENT: production
+      OTEL_SDK_DISABLED: "true"
+  accounting:
+    environment:
+      DATABASE_URL: postgresql://erp:${POSTGRES_PASSWORD}@postgres:5432/erp_accounting
+      DEPLOYMENT_ENVIRONMENT: production
+      OTEL_SDK_DISABLED: "true"
+  hr:
+    environment:
+      DATABASE_URL: postgresql://erp:${POSTGRES_PASSWORD}@postgres:5432/erp_hr
+      DEPLOYMENT_ENVIRONMENT: production
+      OTEL_SDK_DISABLED: "true"
+  procurement:
+    environment:
+      DATABASE_URL: postgresql://erp:${POSTGRES_PASSWORD}@postgres:5432/erp_procurement
+      DEPLOYMENT_ENVIRONMENT: production
+      OTEL_SDK_DISABLED: "true"
+  delivery:
+    environment:
+      DATABASE_URL: postgresql://erp:${POSTGRES_PASSWORD}@postgres:5432/erp_delivery
+      DEPLOYMENT_ENVIRONMENT: production
+      OTEL_SDK_DISABLED: "true"

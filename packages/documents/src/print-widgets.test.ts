@@ -25,10 +25,10 @@ function widget(id: string, widgetId: PrintWidgetId, placement: PlacedItem["plac
   };
 }
 
-test("catalog has the five v1 widgets", () => {
+test("catalog has the six print widgets including doc.qr", () => {
   assert.deepEqual(
     PRINT_WIDGET_CATALOG.map((w) => w.id),
-    ["doc.logo", "doc.seller", "doc.buyer", "doc.lineItems", "doc.totals"]
+    ["doc.logo", "doc.seller", "doc.buyer", "doc.lineItems", "doc.totals", "doc.qr"]
   );
 });
 
@@ -64,14 +64,35 @@ test("expand does not mutate saved Widget refs", () => {
   assert.equal(original[0].type, "Widget");
 });
 
-test("primitive-only seed is unchanged by expand", () => {
+test("primitive seed expands doc.qr without a UPI default path", () => {
   const next = expandDocumentDefinition(TAX_INVOICE_SEED);
-  assert.equal(next.items.length, TAX_INVOICE_SEED.items.length);
-  assert.ok(next.items.every((i) => i.type !== "Widget"));
-  assert.equal(
-    next.items.find((i) => i.id === "lines")?.binding?.path,
-    "lines"
-  );
+  const pay = TAX_INVOICE_SEED.items.find((i) => i.id === "payQr");
+  assert.equal(pay?.type, "Widget");
+  assert.equal(pay?.widgetId, "doc.qr");
+  assert.equal((pay?.widgetConfig as { path?: string })?.path, "payment.upiUri");
+  const expanded = next.items.find((i) => i.id === "payQr");
+  assert.ok(expanded);
+  assert.notEqual(expanded?.type, "Widget");
+  const qr = expanded?.type === "QR" ? expanded : expanded?.children?.find((c) => c.type === "QR");
+  assert.equal(qr?.binding?.path, "payment.upiUri");
+});
+
+test("expand doc.qr has no default path", () => {
+  const expanded = expandWidgets([widget("w_qr", "doc.qr", { x: 0, y: 0, width: 72, height: 72 })]);
+  assert.equal(expanded[0].type, "QR");
+  assert.equal(expanded[0].binding?.path, undefined);
+  assert.equal(expanded[0].properties?.text, undefined);
+});
+
+test("expand doc.qr uses widgetConfig path and caption — not payment.upiUri by default", () => {
+  const item = widget("w_qr", "doc.qr", { x: 10, y: 20, width: 72, height: 88 });
+  item.widgetConfig = { path: "some.payload", caption: "Scan" };
+  const expanded = expandWidgets([item]);
+  assert.equal(expanded[0].type, "Container");
+  const qr = expanded[0].children?.find((c) => c.type === "QR");
+  assert.equal(qr?.binding?.path, "some.payload");
+  const caption = expanded[0].children?.find((c) => c.type === "Text");
+  assert.equal(caption?.properties?.text, "Scan");
 });
 
 test("expand doc.totals includes Subtotal / GST / Grand Total labels", () => {

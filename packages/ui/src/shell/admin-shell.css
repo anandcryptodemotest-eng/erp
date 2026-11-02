@@ -30,7 +30,7 @@
   position: absolute;
   inset: 0;
   border: 0;
-  background: rgba(12, 20, 17, 0.7);
+  background: rgba(6, 4, 15, 0.72);
   cursor: pointer;
 }
 
@@ -172,8 +172,8 @@
   height: 100%;
   width: 16rem;
   flex-shrink: 0;
-  background: var(--brand);
-  color: #f5f2ec;
+  background: var(--nav-bg, #06040f);
+  color: var(--ink);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   transition: width var(--motion-standard) var(--ease-out);
 }
@@ -204,8 +204,8 @@
   flex-shrink: 0;
   margin-top: 0.125rem;
   border-radius: 0.75rem;
-  background: var(--accent);
-  color: var(--ink);
+  background: linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%);
+  color: var(--ink-inverse);
   font-family: var(--font-display);
   font-size: 0.875rem;
   font-weight: 700;
@@ -335,7 +335,7 @@
 }
 
 .admin-nav-active {
-  background: color-mix(in srgb, white 14%, var(--brand-dark));
+  background: color-mix(in srgb, var(--brand) 18%, transparent);
   color: #fff;
   font-weight: 600;
 }
@@ -347,7 +347,8 @@
   bottom: 18%;
   width: 3px;
   border-radius: 0 3px 3px 0;
-  background: #fff;
+  background: var(--brand);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--brand) 55%, transparent);
 }
 
 .admin-nav-icon {
@@ -531,7 +532,7 @@
   align-items: center;
   gap: 0.5rem;
   border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--surface) 92%, white);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
   backdrop-filter: blur(8px);
   padding: 0.65rem 0.85rem;
   padding-top: max(0.65rem, env(safe-area-inset-top));

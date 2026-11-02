@@ -36,7 +36,7 @@ export function StatusBars({
             </div>
             <div className="mt-1 h-2 overflow-hidden rounded-full bg-[var(--mist,#f4f6f5)]">
               <div
-                className="h-full rounded-full bg-[var(--brand,#c8922a)] transition-[width]"
+                className="h-full rounded-full bg-[var(--brand,#6ff2ff)] transition-[width]"
                 style={{ width: `${pct}%` }}
               />
             </div>

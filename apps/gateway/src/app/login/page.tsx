@@ -84,8 +84,7 @@ function LoginForm() {
       .catch(() => undefined);
   }, [urlTenant, resolveSlug]);
 
-  const displayName = resolved?.displayName ?? "ERP Admin";
-  const accent = resolved?.branding.accent ?? "#c8922a";
+  const displayName = resolved?.displayName ?? "WimFlo";
   const loginDisabled =
     loading || resolving || Boolean(orgError) || (fromUrl && !resolved);
 
@@ -216,36 +215,22 @@ function LoginForm() {
 
   return (
     <div className="relative flex min-h-dvh items-center justify-center px-4 py-10 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          backgroundImage:
-            "linear-gradient(115deg, rgba(18,26,22,0.92), rgba(30,61,50,0.75)), url(/admin/products/hero-yard.jpg)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      />
-      <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/15 bg-[color-mix(in_srgb,var(--paper)_94%,white)] shadow-[var(--shadow)]">
-        <div
-          className="px-6 py-7 text-white"
-          style={{
-            background: `linear-gradient(145deg, #121a16 0%, color-mix(in srgb, ${accent} 35%, #121a16) 100%)`,
-          }}
-        >
-          <p
-            className="text-[11px] font-bold uppercase tracking-[0.2em]"
-            style={{ color: accent }}
-          >
-            Admin portal
+      <div className="erp-login-wash pointer-events-none absolute inset-0" />
+      <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/12 bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] shadow-[var(--shadow-4)] backdrop-blur-md">
+        <div className="px-6 py-7 text-[var(--ink)]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--brand)]">
+            Staff access
           </p>
-          <h1 className="font-display mt-2 text-3xl font-semibold leading-tight">{displayName}</h1>
-          <p className="mt-2 text-sm text-white/65">
-            {resolved ? "Dashboard · Order Desk · catalog" : "Sign in to your organization"}
+          <h1 className="font-display mt-2 text-3xl font-semibold leading-tight tracking-tight">
+            {displayName}
+          </h1>
+          <p className="mt-2 text-sm text-[var(--ink-soft)]">
+            On business. one flow
           </p>
-          {resolving && <p className="mt-2 text-xs text-white/50">Looking up organization…</p>}
+          {resolving && <p className="mt-2 text-xs text-[var(--ink-soft)]">Looking up organization…</p>}
         </div>
 
-        <div className="p-6">
+        <div className="border-t border-white/10 p-6">
           {picker && picker.length > 0 ? (
             <div className="space-y-3">
               <p className="text-sm text-[var(--ink-soft)]">Choose an organization</p>
@@ -255,7 +240,7 @@ function LoginForm() {
                     <button
                       type="button"
                       disabled={loading}
-                      className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-left text-sm hover:bg-[var(--mist)] disabled:opacity-60"
+                      className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-sunken)] px-4 py-3 text-left text-sm hover:bg-[var(--mist)] disabled:opacity-60"
                       onClick={() => void completeLogin(t.slug)}
                     >
                       <span className="font-semibold text-[var(--ink)]">{t.name}</span>
@@ -267,7 +252,7 @@ function LoginForm() {
                 ))}
               </ul>
               {error && (
-                <div className="rounded-xl border border-[color-mix(in_srgb,var(--warning)_40%,var(--line))] bg-[color-mix(in_srgb,var(--warning)_12%,white)] px-4 py-2.5 text-sm text-[var(--warning)]">
+                <div className="rounded-xl border border-[color-mix(in_srgb,var(--warning)_40%,var(--line))] bg-[color-mix(in_srgb,var(--warning)_12%,var(--surface))] px-4 py-2.5 text-sm text-[var(--warning)]">
                   {error}
                 </div>
               )}
@@ -296,7 +281,7 @@ function LoginForm() {
                 </p>
               )}
               {orgError && (
-                <div className="rounded-xl border border-[color-mix(in_srgb,var(--danger)_40%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,white)] px-4 py-2.5 text-sm text-[var(--danger)]">
+                <div className="rounded-xl border border-[color-mix(in_srgb,var(--danger)_40%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,var(--surface))] px-4 py-2.5 text-sm text-[var(--danger)]">
                   {orgError}
                 </div>
               )}
@@ -305,7 +290,7 @@ function LoginForm() {
                   type="button"
                   className={`rounded-full px-3 py-1.5 ${
                     authMethod === "password"
-                      ? "bg-[var(--ink)] text-white"
+                      ? "bg-[var(--brand)] text-[var(--ink-inverse)]"
                       : "bg-[var(--mist)] text-[var(--ink-soft)]"
                   }`}
                   onClick={() => {
@@ -320,7 +305,7 @@ function LoginForm() {
                   type="button"
                   className={`rounded-full px-3 py-1.5 ${
                     authMethod === "otp"
-                      ? "bg-[var(--ink)] text-white"
+                      ? "bg-[var(--brand)] text-[var(--ink-inverse)]"
                       : "bg-[var(--mist)] text-[var(--ink-soft)]"
                   }`}
                   onClick={() => {
@@ -372,14 +357,14 @@ function LoginForm() {
                 </>
               )}
               {error && !picker && (
-                <div className="rounded-xl border border-[color-mix(in_srgb,var(--danger)_40%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,white)] px-4 py-2.5 text-sm text-[var(--danger)]">
+                <div className="rounded-xl border border-[color-mix(in_srgb,var(--danger)_40%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_10%,var(--surface))] px-4 py-2.5 text-sm text-[var(--danger)]">
                   {error}
                 </div>
               )}
               <button
                 type="submit"
                 disabled={loginDisabled}
-                className="btn-dark btn-dark-block disabled:opacity-60"
+                className="btn-dark btn-dark-block disabled:opacity-60 !bg-[var(--brand)] !text-[var(--ink-inverse)]"
               >
                 {loading
                   ? "Signing in…"
@@ -443,7 +428,7 @@ function Field({
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}
-        className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[var(--amber)]/35"
+        className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-sunken)] px-4 py-3 text-sm text-[var(--ink)] outline-none focus:ring-2 focus:ring-[var(--brand)]/35"
       />
     </div>
   );

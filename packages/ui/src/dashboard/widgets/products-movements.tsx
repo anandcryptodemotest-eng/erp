@@ -71,7 +71,7 @@ export function TopProductsWidget({ fetchData }: WidgetProps) {
               }}
             >
               {rows.map((r) => (
-                <Cell key={r.name} fill="var(--brand,#c8922a)" cursor="pointer" />
+                <Cell key={r.name} fill="var(--brand,#6ff2ff)" cursor="pointer" />
               ))}
             </Bar>
           </BarChart>

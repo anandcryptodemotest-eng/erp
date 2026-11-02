@@ -40,7 +40,7 @@ export function QuantityStepper({
   return (
     <div
       className={cn(
-        "inline-flex items-center rounded-[var(--radius-full)] border border-[var(--line)] bg-white",
+        "inline-flex items-center rounded-[var(--radius-full)] border border-[var(--line)] bg-[var(--surface-raised)]",
         className
       )}
       role="group"

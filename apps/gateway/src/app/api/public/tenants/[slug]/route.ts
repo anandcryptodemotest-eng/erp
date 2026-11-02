@@ -42,7 +42,7 @@ export async function GET(_request: Request, { params }: Ctx) {
       active: true,
       branding: {
         logo: settings["brand.logo"] || null,
-        accent: settings["brand.accent"] || "#c8922a",
+        accent: settings["brand.accent"] || "#6ff2ff",
         theme: settings["brand.theme"] || "light",
       },
     },

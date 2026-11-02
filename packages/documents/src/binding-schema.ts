@@ -52,6 +52,14 @@ export const INVOICE_BINDING_SCHEMA: DocumentBindingSchema = {
         { path: "totals.total", label: "Total", formatter: "currency" },
       ],
     },
+    {
+      label: "Payment",
+      fields: [
+        { path: "payment.upiUri", label: "UPI pay URI" },
+        { path: "payment.vpa", label: "UPI VPA" },
+        { path: "payment.amountDue", label: "Amount due", formatter: "currency" },
+      ],
+    },
   ],
 };
 

@@ -30,14 +30,14 @@ export function BillSummary({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-lg border border-[#e8e8e8] bg-white",
+        "overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface-raised)]",
         className
       )}
     >
-      <div className="border-b border-[#f0f0f0] bg-[#fafafa] px-3 py-2 text-xs font-bold uppercase tracking-wide text-[var(--ink-soft)]">
+      <div className="border-b border-[var(--line)] bg-[var(--surface-sunken)] px-3 py-2 text-xs font-bold uppercase tracking-wide text-[var(--ink-soft)]">
         {title}
       </div>
-      <div className="divide-y divide-[#f5f5f5] px-3 py-1">
+      <div className="divide-y divide-[var(--line)] px-3 py-1">
         {rows.map((row, i) => (
           <div
             key={`${row.label}-${i}`}
@@ -54,7 +54,7 @@ export function BillSummary({
           </div>
         ))}
       </div>
-      <div className="flex items-center justify-between gap-3 border-t border-[#e8e8e8] bg-[#fafafa] px-3 py-3">
+      <div className="flex items-center justify-between gap-3 border-t border-[var(--line)] bg-[var(--surface-sunken)] px-3 py-3">
         <span className="text-sm font-bold text-[var(--ink)]">{totalLabel}</span>
         <PriceDisplay
           amount={typeof totalValue === "number" ? totalValue : totalValue}

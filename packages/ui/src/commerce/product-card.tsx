@@ -37,13 +37,13 @@ export function ProductCard({
     <a
       href={href}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-lg border border-[#e8e8e8] bg-white",
+        "group relative flex flex-col overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface-raised)]",
         "transition-transform duration-[var(--motion-fast)] active:scale-[0.98]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--forest)] focus-visible:ring-offset-1",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--canvas)]",
         className
       )}
     >
-      <div className="aspect-[4/5] overflow-hidden bg-[#f0f0f0]">
+      <div className="aspect-[4/5] overflow-hidden bg-[var(--mist)]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={imageUrl}
@@ -81,7 +81,7 @@ export function ProductCard({
                 e.stopPropagation();
                 onQuickAdd?.();
               }}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[var(--forest)] text-lg font-bold leading-none text-white shadow-sm hover:brightness-110 active:scale-95"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[var(--brand)] text-lg font-bold leading-none text-[var(--ink-inverse)] shadow-sm hover:brightness-110 active:scale-95"
             >
               +
             </button>

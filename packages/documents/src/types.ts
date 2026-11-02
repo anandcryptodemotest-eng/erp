@@ -68,7 +68,7 @@ export type PlacedItem = {
   children?: PlacedItem[];
   /** Print-widget catalog id when type is Widget (e.g. doc.lineItems). */
   widgetId?: string;
-  /** Reserved; v1 unused. Catalog owns widget internals. */
+  /** Widget-specific config (e.g. doc.qr path / text / caption). Catalog widgets may ignore this. */
   widgetConfig?: Record<string, unknown>;
   /** Degrees; unused in renderer initially. */
   rotation?: number;

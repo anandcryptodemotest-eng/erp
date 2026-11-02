@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="wimFlo">
+  <defs>
+    <linearGradient id="w" x1="7" y1="24" x2="25" y2="8" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8b5cff"/>
+      <stop offset=".42" stop-color="#4f7bff"/>
+      <stop offset="1" stop-color="#6ff2ff"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6ff2ff"/>
+      <stop offset=".55" stop-color="#8b5cff"/>
+      <stop offset="1" stop-color="#ff4ecd"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="#06040f"/>
+  <rect x=".55" y=".55" width="30.9" height="30.9" rx="7.45" fill="none" stroke="url(#ring)" stroke-width=".7" opacity=".5"/>
+  <g fill="none" stroke="url(#w)" stroke-width="4.55" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 10.15 11.55 22.35 16.35 12.05"/>
+    <path d="M14.55 14.7 20.65 22.35 24.45 10.15"/>
+  </g>
+  <circle cx="24.45" cy="6.85" r="1.55" fill="#6ff2ff"/>
+</svg>
