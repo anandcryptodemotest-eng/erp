@@ -28,6 +28,14 @@ export const VERTICAL_RECIPES: Record<
     workflowTemplate: "workflow.oms_trading",
     seedWarehouse: true,
   },
+  // Mobile cart / van / field retail: counter sales (POS = accounting bills + shifts)
+  // over multiple moving stock locations, restocked from a central warehouse.
+  // Generic across fruit carts, FMCG vans, kiosks, field sales — configured per tenant.
+  mobile_retail: {
+    modules: ["core", "inventory", "sales", "accounting", "delivery"],
+    workflowTemplate: "workflow.oms_trading",
+    seedWarehouse: true,
+  },
 };
 
 export type Vertical = keyof typeof VERTICAL_RECIPES;
@@ -172,6 +180,15 @@ export async function provisionTenant(
         { tenantId: tenant.id, key: "timezone", value: "Asia/Kolkata" },
         { tenantId: tenant.id, key: "brand.displayName", value: input.name },
         { tenantId: tenant.id, key: "onboarding.vertical", value: vertical },
+        // Mobile-retail defaults: the customer-visible label for a stock location
+        // and the cash-handover policy live in tenant settings (configuration, not
+        // code), so "Fruit Cart" vs "Delivery Van" is a per-tenant choice.
+        ...(vertical === "mobile_retail"
+          ? [
+              { tenantId: tenant.id, key: "retail.locationLabel", value: "Cart" },
+              { tenantId: tenant.id, key: "retail.cashHandoverRequired", value: "true" },
+            ]
+          : []),
       ],
     });
 

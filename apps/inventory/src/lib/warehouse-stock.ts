@@ -64,6 +64,45 @@ export async function upsertStockDelta(
   });
 }
 
+/**
+ * Atomically decrement stock for product+warehouse+variant, guarded so it can
+ * never drive the pool negative under concurrency.
+ *
+ * Implemented as a single conditional UPDATE (`WHERE quantity >= qty`). When two
+ * sales race for the same pool, the database serializes the two updates and only
+ * the one(s) that still find enough stock succeed; a loser matches 0 rows and we
+ * signal a shortfall. This replaces the unsafe read-then-write (findWarehouseStock
+ * + increment) which let both racers pass the check and oversell.
+ *
+ * Returns { ok: true } on success, or { ok: false } when there is no row or not
+ * enough on-hand — the caller should fail the whole deduction (409).
+ */
+export async function atomicDecrementStock(
+  db: Db,
+  args: {
+    tenantId: string;
+    productId: string;
+    warehouseId: string;
+    variantId?: string | null;
+    quantity: number;
+  }
+): Promise<{ ok: true } | { ok: false }> {
+  const variantId = normalizeVariantId(args.variantId);
+  const result = await db.warehouseStock.updateMany({
+    where: {
+      tenantId: args.tenantId,
+      productId: args.productId,
+      warehouseId: args.warehouseId,
+      variantId,
+      // Guard: only decrement when enough stock remains. This predicate + the
+      // decrement are one atomic statement, so concurrent sales cannot oversell.
+      quantity: { gte: args.quantity },
+    },
+    data: { quantity: { decrement: args.quantity } },
+  });
+  return result.count > 0 ? { ok: true } : { ok: false };
+}
+
 /** Available = on-hand − open reservations for the same product+warehouse+variant scope. */
 export async function availableQty(
   db: Db,

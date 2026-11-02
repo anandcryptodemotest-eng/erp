@@ -21,7 +21,7 @@ const createSchema = z.object({
   customerDomain: z.string().max(253).optional(),
   adminDomain: z.string().max(253).optional(),
   /** Onboarding recipe — selects modules, order workflow, and warehouse seeding. */
-  vertical: z.enum(["grocery", "general"]).default("general"),
+  vertical: z.enum(["grocery", "general", "mobile_retail"]).default("general"),
 });
 
 // GET /api/platform/tenants

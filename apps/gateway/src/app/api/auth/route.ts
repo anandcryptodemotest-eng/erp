@@ -85,7 +85,7 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   /** Onboarding recipe for the new workspace; defaults to a general OMS tenant. */
-  vertical: z.enum(["grocery", "general"]).optional(),
+  vertical: z.enum(["grocery", "general", "mobile_retail"]).optional(),
 });
 
 const registerCustomerSchema = z.object({

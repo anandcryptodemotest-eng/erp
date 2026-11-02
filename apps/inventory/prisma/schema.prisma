@@ -136,6 +136,13 @@ model Product {
   weightUnit   String?  // g | kg | ml | L | pcs
   unit         String   @default("pcs")  // pcs | kg | g | liter | ml | dozen | bag
   sellByWeight Boolean  @default(false)  // true = price × weight at billing
+  /// Unit-of-measure model (P2/G8). The stock ledger always moves in baseUom; POS may
+  /// sell/price in sellingUom and convert via uomConversion (1 sellingUom = N baseUom).
+  /// e.g. stock bananas in "kg" but sell by "dozen" with uomConversion = 1.4.
+  baseUom          String  @default("pcs") // stock-keeping unit the ledger moves in
+  sellingUom       String?                 // POS selling unit; null = same as baseUom
+  uomConversion    Float   @default(1)      // 1 sellingUom = N baseUom (must be > 0)
+  quantityPrecision Int    @default(3)      // decimal places for display/rounding
   costPrice    Float?   // null = unknown; valuation/margin warn until set. Never used by @erp/pricing
   sellPrice    Float?   // PER_EACH list price; null = no fixed sell price (measured products use baseRate + quote)
   /// MANUAL | LAST_PURCHASE | WEIGHTED_AVERAGE | FIFO — inventory cost engine only; never used by @erp/pricing
@@ -302,8 +309,74 @@ model Warehouse {
   movements    StockMovement[]
   reservations StockReservation[]
   batches      StockBatch[]
+  stockLocation StockLocation?
 
   @@index([tenantId])
+}
+
+/// Operational wrapper over a Warehouse (P2). Models a cart / van / store / kiosk as
+/// a first-class location with an operator, an audited lifecycle, and (optionally) a
+/// last-known position. Stock itself still lives in the backing Warehouse — this is NOT
+/// a second source of truth for inventory, only the "who / where / what-state" layer.
+/// Deliberately generic (mobile-retail / field-inventory), not fruit-cart specific.
+model StockLocation {
+  id            String    @id @default(cuid())
+  tenantId      String
+  warehouseId   String    @unique // backing stock pool (one Warehouse per location)
+  code          String             // e.g. CART-12
+  name          String             // e.g. "Fruit Cart 12 — MG Road"
+  type          String    @default("WAREHOUSE") // WAREHOUSE | CART | VAN | STORE | KIOSK
+  branchId      String?            // gateway Branch.id (optional grouping)
+  operatorId    String?            // hr.Employee.id (cart operator / driver)
+  // Lifecycle: CREATED -> LOADING -> READY -> ON_ROUTE -> PARKED ->
+  // SETTLEMENT_PENDING -> CLOSED. Transitions are audited (StockLocationStatusEvent).
+  status        String    @default("CREATED")
+  lastLatitude  Float?
+  lastLongitude Float?
+  lastSeenAt    DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  warehouse     Warehouse @relation(fields: [warehouseId], references: [id])
+  statusEvents  StockLocationStatusEvent[]
+  pings         CartLocationPing[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, type])
+  @@index([tenantId, status])
+}
+
+/// Continuous GPS breadcrumbs for a roaming location (P6/G5). Non-order-scoped,
+/// unlike delivery DeliveryTracking — a cart is tracked all day, not per order.
+model CartLocationPing {
+  id              String   @id @default(cuid())
+  tenantId        String
+  stockLocationId String
+  latitude        Float
+  longitude       Float
+  accuracy        Float?
+  capturedAt      DateTime @default(now())
+
+  location StockLocation @relation(fields: [stockLocationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, stockLocationId, capturedAt])
+}
+
+/// Append-only audit of every StockLocation lifecycle transition (P2/G10).
+model StockLocationStatusEvent {
+  id              String   @id @default(cuid())
+  tenantId        String
+  stockLocationId String
+  fromStatus      String?           // null for the initial CREATED
+  toStatus        String
+  userId          String            // who performed the transition
+  remarks         String?
+  createdAt       DateTime @default(now())
+
+  location StockLocation @relation(fields: [stockLocationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, stockLocationId, createdAt])
 }
 
 model WarehouseStock {

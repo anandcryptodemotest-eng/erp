@@ -250,6 +250,14 @@ model Bill {
   currency      String    @default("INR")
   billNumber    String
   shiftId       String?
+  /// The warehouse stock was deducted from (and reversed to on refund).
+  warehouseId   String?
+  /// The cart / stock-location (inventory.StockLocation.id) this sale came from —
+  /// enables per-cart sales + cash reconciliation. Null for non-cart counter sales.
+  stockLocationId String?
+  /// Client-generated id for a bill captured OFFLINE on the terminal and later synced
+  /// (P5). Unique per tenant so a replayed sync batch never creates duplicates.
+  offlineId     String?
   customerId    String?
   customerName  String?
   customerPhone String?
@@ -271,8 +279,11 @@ model Bill {
   returns BillReturn[]
 
   @@unique([tenantId, billNumber])
+  @@unique([tenantId, offlineId])
   @@index([tenantId])
   @@index([tenantId, shiftId])
+  @@index([tenantId, stockLocationId])
+  @@index([tenantId, warehouseId])
 }
 
 model BillItem {
