@@ -195,8 +195,19 @@ async function createUserFromIdentity(identity: VerifiedIdentity): Promise<strin
     await tx.tenantUser.create({
       data: { tenantId: tenant.id, userId: user.id, role: "CUSTOMER" },
     });
-    await tx.moduleLicense.create({
-      data: { tenantId: tenant.id, moduleId: "core", plan: "basic" },
+    // License the general OMS module set (not just "core") so this personal
+    // workspace is actually usable. Mirrors VERTICAL_RECIPES.general in
+    // provision-tenant.ts (kept inline here to avoid nesting transactions).
+    await tx.moduleLicense.createMany({
+      data: ["core", "inventory", "sales"].map((moduleId) => ({
+        tenantId: tenant.id,
+        moduleId,
+        plan: "basic",
+      })),
+    });
+    // Default branch so admin features work without a separate setup step.
+    await tx.branch.create({
+      data: { tenantId: tenant.id, code: "MAIN", name: "Main", isDefault: true, isActive: true },
     });
     return user.id;
   });

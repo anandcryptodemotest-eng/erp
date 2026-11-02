@@ -58,33 +58,51 @@ export async function POST(request: Request) {
     const body = await request.json();
     const data = createReturnSchema.parse(body);
 
+    const role = request.headers.get("x-user-role");
+
     const order = await prisma.salesOrder.findFirst({
       where: { id: data.orderId, tenantId },
-      include: { items: true },
+      include: { items: true, customer: { select: { id: true, portalUserId: true } } },
     });
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
-    if (!["SHIPPED", "INVOICED", "PARTIALLY_SHIPPED"].includes(order.status)) {
-      return NextResponse.json({ error: "Can only return shipped or invoiced orders" }, { status: 409 });
+
+    // A customer may only open a return against their OWN order.
+    if (role === "CUSTOMER" && order.customer?.portalUserId !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Validate quantities: returned qty must not exceed shipped qty on each order item
+    // Returnable once the goods have reached the customer. DELIVERED is included so
+    // the grocery flow (which deducts stock at dispatch, not via 'ship') is returnable.
+    if (!["SHIPPED", "INVOICED", "PARTIALLY_SHIPPED", "DELIVERED", "PAID", "CLOSED"].includes(order.status)) {
+      return NextResponse.json({ error: "Can only return delivered, shipped, or invoiced orders" }, { status: 409 });
+    }
+
+    // Returnable quantity per line = shippedQty when the order went through the
+    // ship path; otherwise (delivered/invoiced grocery orders) the ordered quantity.
     for (const returnItem of data.items) {
       const orderItem = order.items.find((i) => i.id === returnItem.orderItemId);
       if (!orderItem) {
         return NextResponse.json({ error: `Order item ${returnItem.orderItemId} not found on this order` }, { status: 400 });
       }
-      if (returnItem.quantity > orderItem.shippedQty) {
+      const returnable = orderItem.shippedQty > 0 ? orderItem.shippedQty : orderItem.quantity;
+      if (returnItem.quantity > returnable) {
         return NextResponse.json(
-          { error: `Return quantity ${returnItem.quantity} exceeds shipped quantity ${orderItem.shippedQty} for ${orderItem.productName}` },
+          { error: `Return quantity ${returnItem.quantity} exceeds returnable quantity ${returnable} for ${orderItem.productName}` },
           { status: 409 }
         );
       }
     }
 
-    const TAX_RATE = parseFloat(process.env.TAX_RATE ?? "0.10");
+    // Tax on a return mirrors the tax on the ORIGINAL order line (credit back what
+    // was charged), not a flat house rate. SalesOrderItem.taxRate is a fraction
+    // (e.g. 0.18); 0 when the product had no GST configured.
     const returnItems = data.items.map((item) => ({ ...item, total: item.quantity * item.unitPrice }));
     const subtotal = returnItems.reduce((sum, i) => sum + i.total, 0);
-    const tax = subtotal * TAX_RATE;
+    const tax = returnItems.reduce((sum, i) => {
+      const orderItem = order.items.find((o) => o.id === i.orderItemId);
+      const rate = orderItem?.taxRate ?? 0;
+      return sum + i.total * rate;
+    }, 0);
     const total = subtotal + tax;
 
     const count = await prisma.salesReturn.count({ where: { tenantId } });

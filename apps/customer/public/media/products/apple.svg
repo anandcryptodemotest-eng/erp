@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" role="img" aria-label="Apple">
+  <rect width="400" height="300" fill="#fff0f0"/>
+  <g transform="translate(200 160)">
+    <path d="M0 -70 C 60 -110, 120 -40, 80 40 C 55 90, 20 100, 0 80 C -20 100, -55 90, -80 40 C -120 -40, -60 -110, 0 -70 Z" fill="#e23b3b" stroke="#a81f1f" stroke-width="6"/>
+    <path d="M0 -70 C 10 -95, 30 -100, 45 -95" fill="none" stroke="#7a4a1e" stroke-width="8" stroke-linecap="round"/>
+    <path d="M6 -78 C 40 -96, 70 -70, 60 -48 C 40 -70, 20 -74, 6 -78 Z" fill="#4caf50"/>
+    <ellipse cx="-30" cy="-10" rx="16" ry="26" fill="#ff7b7b" opacity="0.6"/>
+  </g>
+  <text x="200" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#7a1313">Apple</text>
+</svg>

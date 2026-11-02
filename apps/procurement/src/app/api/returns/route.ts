@@ -84,10 +84,13 @@ export async function POST(request: Request) {
       }
     }
 
-    const TAX_RATE = parseFloat(process.env.TAX_RATE ?? "0.10");
+    // Credit tax back at the ORIGINAL PO's effective rate (order.tax/order.subtotal),
+    // not a flat house rate. This keeps a partial return's tax proportional to what
+    // was actually charged on the purchase order; 0 when the PO carried no tax.
     const returnItems = data.items.map((item) => ({ ...item, total: item.quantity * item.unitPrice }));
     const subtotal = returnItems.reduce((sum, i) => sum + i.total, 0);
-    const tax = subtotal * TAX_RATE;
+    const poEffectiveRate = order.subtotal > 0 ? order.tax / order.subtotal : 0;
+    const tax = subtotal * poEffectiveRate;
     const total = subtotal + tax;
 
     const count = await prisma.purchaseReturn.count({ where: { tenantId } });

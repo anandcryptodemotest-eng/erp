@@ -110,7 +110,7 @@ model SalesRequestItem {
   productId      String
   productName    String
   variantId      String?
-  quantity       Int
+  quantity       Float // Float so portal weight orders (e.g. 0.75 kg) aren't truncated
   unitPrice      Float
   taxRate        Float   @default(0)
   taxTreatment   String  @default("TAXABLE") // TAXABLE | EXEMPT | ZERO_RATED
@@ -317,6 +317,7 @@ model SalesOrder {
   orderNotes       OrderNote[]
   workflowTasks    WorkflowTask[]
   workflowEvents   WorkflowEvent[]
+  payments         OrderPayment[]
 
   @@unique([tenantId, orderNumber])
   @@index([tenantId])
@@ -326,6 +327,31 @@ model SalesOrder {
   @@index([tenantId, paymentStatus])
   @@index([tenantId, branchId])
   @@index([workflowId])
+}
+
+/// A customer order payment attempt (prepaid online / UPI / card via a PSP, or a
+/// recorded cash/COD payment). provider=RAZORPAY|DEV|MANUAL. For PSP flows the
+/// providerOrderId/providerPaymentId/signature capture the gateway handshake.
+model OrderPayment {
+  id                String   @id @default(cuid())
+  tenantId          String
+  salesOrderId      String
+  amount            Float
+  currency          String   @default("INR")
+  method            String   @default("UPI") // UPI | CARD | WALLET | NETBANKING | COD | CASH
+  provider          String   @default("RAZORPAY") // RAZORPAY | DEV | MANUAL
+  status            String   @default("CREATED") // CREATED | PAID | FAILED
+  providerOrderId   String? // Razorpay order id (or dev-simulated id)
+  providerPaymentId String?
+  signature         String?
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  order SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, salesOrderId])
+  @@unique([tenantId, providerOrderId])
 }
 
 /// Tenant-scoped order lifecycle (copied from a platform template on apply).

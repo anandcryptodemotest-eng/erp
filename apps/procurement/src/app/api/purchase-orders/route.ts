@@ -17,6 +17,8 @@ const createPOSchema = z.object({
     variantId: z.string().optional(),
     quantity: z.number().positive(),    // Float for weight-based purchasing (e.g. 50.5 kg)
     unitPrice: z.number().positive(),
+    /** Purchase GST rate as a fraction (e.g. 0.18). Omitted → 0 (no flat house rate). */
+    taxRate: z.number().min(0).max(1).optional(),
   })),
 });
 
@@ -89,10 +91,11 @@ export async function POST(request: Request) {
       quantity: i.quantity,
       unitPrice: i.unitPrice,
       total: i.quantity * i.unitPrice,
+      taxRate: i.taxRate ?? 0,
     }));
     const subtotal = items.reduce((s, i) => s + i.total, 0);
-    const TAX_RATE = parseFloat(process.env.TAX_RATE ?? "0.10");
-    const tax = subtotal * TAX_RATE;
+    // Per-line GST from the caller-supplied rate; no invented flat house rate.
+    const tax = items.reduce((s, i) => s + i.total * i.taxRate, 0);
     const total = subtotal + tax;
 
     const count = await prisma.purchaseOrder.count({ where: { tenantId } });
@@ -109,7 +112,16 @@ export async function POST(request: Request) {
         tax,
         total,
         notes: data.notes,
-        items: { create: items },
+        items: {
+          create: items.map((i) => ({
+            productId: i.productId,
+            productName: i.productName,
+            variantId: i.variantId,
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+            total: i.total,
+          })),
+        },
       },
       include: { vendor: true, items: true },
     });

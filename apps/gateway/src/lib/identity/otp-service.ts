@@ -4,10 +4,11 @@ import { createLogger } from "@erp/logger";
 import { prisma } from "@/lib/prisma";
 import { otpPepper } from "@/lib/integrations/crypto";
 import {
+  loadApiKey,
   sendOtpMessage,
   WhatsAppNotConfiguredError,
 } from "@/lib/integrations/whatsapp-integration-service";
-import { Fast2SmsError } from "@/lib/integrations/fast2sms";
+import { Fast2SmsError, sendQuickSms } from "@/lib/integrations/fast2sms";
 import { normalizeWhatsAppPhone, syntheticOtpEmail } from "./phone";
 import {
   findCredentialByProvider,
@@ -86,11 +87,82 @@ async function assertRateLimit(tenantId: string, phoneNormalized: string) {
   }
 }
 
+/** Dev/demo OTP mode: when no provider is configured, deliver the code via logs
+ * (and return it in the API response) so phone login is usable out of the box.
+ * Explicit + off by default — never weakens a configured production tenant. */
+function otpDevModeEnabled(): boolean {
+  const v = (process.env.OTP_DEV_MODE ?? "").trim().toLowerCase();
+  if (v === "true" || v === "1" || v === "yes") return true;
+  // Default ON outside production so local/demo phone login works without setup.
+  return v === "" && process.env.NODE_ENV !== "production";
+}
+
+/**
+ * Deliver an OTP via the best available channel, in order:
+ *   1. the tenant's configured WhatsApp/SMS OTP channel (sendOtpMessage)
+ *   2. a generic Fast2SMS quick-SMS using the tenant's saved API key
+ *   3. dev mode (logged + returned to caller) when nothing is configured
+ * Returns the channel used and the provider request id (when any).
+ */
+async function deliverOtp(
+  tenantId: string,
+  phoneE164: string,
+  code: string
+): Promise<{ channel: string; requestId: string | null; devCode?: string }> {
+  // 1. Configured OTP channel (WhatsApp auth/simple or Fast2SMS OTP id).
+  try {
+    const sent = await sendOtpMessage(tenantId, phoneE164, code);
+    return { channel: "provider", requestId: sent.requestId ?? null };
+  } catch (err) {
+    if (!(err instanceof WhatsAppNotConfiguredError)) {
+      // A real send failure (Fast2SmsError or other) — surface it, don't silently fall back.
+      throw err;
+    }
+    // Not configured → try the generic SMS fallback next.
+  }
+
+  // 2. Generic quick-SMS using the tenant's saved Fast2SMS API key (no WhatsApp template needed).
+  const apiKey = await loadApiKey(tenantId).catch(() => null);
+  if (apiKey) {
+    const mobile = phoneE164.replace(/\D/g, "").slice(-10);
+    if (mobile.length === 10) {
+      try {
+        const raw = await sendQuickSms({
+          apiKey,
+          message: `${code} is your verification code. It expires in 5 minutes. Do not share it.`,
+          numbers: mobile,
+        });
+        const rec = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+        const rid = rec.request_id ?? rec.message_id ?? rec.message;
+        return { channel: "sms", requestId: rid != null ? String(rid) : null };
+      } catch (err) {
+        log.warn("otp_sms_fallback_failed", { tenantId, err });
+        // fall through to dev mode / error
+      }
+    }
+  }
+
+  // 3. Dev/demo mode — issue the code without a provider.
+  if (otpDevModeEnabled()) {
+    log.warn("otp_dev_mode", {
+      tenantId,
+      phone: phoneE164,
+      code,
+      note: "OTP delivered via dev mode (no provider configured). Set OTP_DEV_MODE=false to disable.",
+    });
+    return { channel: "dev", requestId: null, devCode: code };
+  }
+
+  throw new WhatsAppNotConfiguredError(
+    "No OTP delivery channel configured. Configure WhatsApp/SMS, or enable OTP_DEV_MODE for testing."
+  );
+}
+
 export async function startOtp(input: {
   phone: string;
   tenantSlug: string;
   purpose: OtpPurpose;
-}): Promise<{ expiresIn: number; phone: string }> {
+}): Promise<{ expiresIn: number; phone: string; channel: string; devCode?: string }> {
   const phoneNormalized = normalizeWhatsAppPhone(input.phone);
   if (!phoneNormalized) {
     throw new OtpError("INVALID_PHONE", "Enter a valid mobile number with country code", 400);
@@ -99,19 +171,18 @@ export async function startOtp(input: {
   await assertRateLimit(tenant.id, phoneNormalized);
 
   const code = generateOtp();
-  let requestId: string | null = null;
+  let delivery: { channel: string; requestId: string | null; devCode?: string };
   try {
-    const sent = await sendOtpMessage(tenant.id, phoneNormalized, code);
-    requestId = sent.requestId;
+    delivery = await deliverOtp(tenant.id, phoneNormalized, code);
   } catch (err) {
     if (err instanceof WhatsAppNotConfiguredError) {
-      throw new OtpError("WHATSAPP_NOT_CONFIGURED", err.message, 503);
+      throw new OtpError("OTP_NOT_CONFIGURED", err.message, 503);
     }
     if (err instanceof Fast2SmsError) {
-      throw new OtpError("WHATSAPP_SEND_FAILED", err.message, err.clientStatus);
+      throw new OtpError("OTP_SEND_FAILED", err.message, err.clientStatus);
     }
     log.error("otp_send_failed", { err });
-    throw new OtpError("WHATSAPP_SEND_FAILED", "Could not send WhatsApp OTP", 502);
+    throw new OtpError("OTP_SEND_FAILED", "Could not send verification code", 502);
   }
 
   await prisma.otpChallenge.create({
@@ -121,11 +192,17 @@ export async function startOtp(input: {
       codeHash: hashOtp(tenant.id, phoneNormalized, code),
       purpose: input.purpose,
       expiresAt: new Date(Date.now() + OTP_TTL_MS),
-      providerRequestId: requestId,
+      providerRequestId: delivery.requestId,
     },
   });
 
-  return { expiresIn: Math.floor(OTP_TTL_MS / 1000), phone: phoneNormalized };
+  return {
+    expiresIn: Math.floor(OTP_TTL_MS / 1000),
+    phone: phoneNormalized,
+    channel: delivery.channel,
+    // Only present in dev mode; lets local/demo clients auto-fill the code.
+    ...(delivery.devCode ? { devCode: delivery.devCode } : {}),
+  };
 }
 
 async function consumeChallenge(input: {

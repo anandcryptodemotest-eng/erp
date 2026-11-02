@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" role="img" aria-label="Carrot">
+  <rect width="400" height="300" fill="#fff1e6"/>
+  <g transform="translate(200 150) rotate(20)">
+    <path d="M0 110 L-34 -40 Q0 -60 34 -40 Z" fill="#ef7215" stroke="#c4560a" stroke-width="6"/>
+    <path d="M-22 -8 l12 4 M-14 24 l14 4 M-6 56 l12 4" stroke="#c4560a" stroke-width="3"/>
+    <g stroke="#3f8a30" stroke-width="7" stroke-linecap="round" fill="none">
+      <path d="M0 -42 q-6 -40 -28 -56"/>
+      <path d="M0 -42 q0 -44 0 -62"/>
+      <path d="M0 -42 q6 -40 28 -56"/>
+    </g>
+  </g>
+  <text x="200" y="288" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#9a4a05">Carrot</text>
+</svg>

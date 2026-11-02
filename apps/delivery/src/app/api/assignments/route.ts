@@ -3,12 +3,28 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { serviceClient } from "@erp/config";
 
-const schema = z.object({
-  orderId: z.string().min(1),
-  orderNumber: z.string().min(1),
-  executiveId: z.string().min(1),
-  notes: z.string().optional(),
-});
+// Accept both the native shape ({orderId, orderNumber, executiveId}) and the
+// sales dispatch shape ({salesOrderId, driverId, vehicleInfo}). orderNumber is
+// optional (derived when omitted) so the sales workflow can auto-assign.
+const schema = z
+  .object({
+    orderId: z.string().min(1).optional(),
+    salesOrderId: z.string().min(1).optional(),
+    orderNumber: z.string().min(1).optional(),
+    executiveId: z.string().min(1).optional(),
+    driverId: z.string().min(1).optional(),
+    vehicleInfo: z.string().optional(),
+    notes: z.string().optional(),
+  })
+  .transform((v) => ({
+    orderId: v.orderId ?? v.salesOrderId ?? "",
+    orderNumber: v.orderNumber,
+    executiveId: v.executiveId ?? v.driverId ?? "",
+    vehicleInfo: v.vehicleInfo,
+    notes: v.notes,
+  }))
+  .refine((v) => v.orderId.length > 0, { message: "orderId (or salesOrderId) is required" })
+  .refine((v) => v.executiveId.length > 0, { message: "executiveId (or driverId) is required" });
 
 export async function GET(request: NextRequest) {
   const tenantId = request.headers.get("x-tenant-id")!;
@@ -18,11 +34,13 @@ export async function GET(request: NextRequest) {
   const skip = (page - 1) * limit;
   const status = url.searchParams.get("status") ?? undefined;
   const executiveId = url.searchParams.get("executiveId") ?? undefined;
+  const orderId = url.searchParams.get("orderId") ?? undefined;
 
   const where = {
     tenantId,
     ...(status && { status }),
     ...(executiveId && { executiveId }),
+    ...(orderId && { orderId }),
   };
 
   const [data, total] = await Promise.all([
@@ -53,31 +71,63 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
   }
+  const input = parsed.data;
 
-  // Verify the executive exists and is available in HR service
-  const hrRes = await serviceClient.call<{ isDeliveryExecutive: boolean; availabilityStatus: string }>(
+  // Verify the executive against HR. This is STRICT for a human dispatcher
+  // (they pick from a roster), but BEST-EFFORT for service-key calls (the sales
+  // workflow auto-assigns an own-fleet driver that may not be an HR employee) —
+  // we don't want fulfilment to fail because HR isn't set up.
+  const viaService = Boolean(serviceKey);
+  const hrRes = await serviceClient.call<{ data?: { isDeliveryExecutive?: boolean; availabilityStatus?: string } }>(
     "hr",
-    `/api/employees/${parsed.data.executiveId}`,
+    `/api/employees/${input.executiveId}`,
     { tenantId, userId }
   );
+  const emp = hrRes.data?.data;
+  const hrKnown = hrRes.status === 200 && !!emp;
 
-  if (hrRes.status === 404 || !hrRes.data) {
-    return NextResponse.json({ error: "Executive not found" }, { status: 404 });
-  }
-  if (!(hrRes.data as unknown as { data: { isDeliveryExecutive: boolean; availabilityStatus: string } }).data?.isDeliveryExecutive) {
-    return NextResponse.json({ error: "Employee is not a delivery executive" }, { status: 400 });
-  }
-  if ((hrRes.data as unknown as { data: { availabilityStatus: string } }).data?.availabilityStatus !== "AVAILABLE") {
+  if (!viaService) {
+    if (hrRes.status === 404 || !emp) {
+      return NextResponse.json({ error: "Executive not found" }, { status: 404 });
+    }
+    if (!emp.isDeliveryExecutive) {
+      return NextResponse.json({ error: "Employee is not a delivery executive" }, { status: 400 });
+    }
+    if (emp.availabilityStatus !== "AVAILABLE") {
+      return NextResponse.json({ error: "Executive is not available" }, { status: 409 });
+    }
+  } else if (hrKnown && emp && emp.isDeliveryExecutive && emp.availabilityStatus && emp.availabilityStatus !== "AVAILABLE") {
+    // Even service calls shouldn't assign a known-but-busy executive.
     return NextResponse.json({ error: "Executive is not available" }, { status: 409 });
+  }
+
+  // Derive a display order number when the caller didn't supply one.
+  let orderNumber = input.orderNumber;
+  if (!orderNumber) {
+    const soRes = await serviceClient.call<{ data?: { orderNumber?: string } }>(
+      "sales",
+      `/api/orders/${input.orderId}`,
+      { tenantId, userId }
+    );
+    orderNumber = soRes.data?.data?.orderNumber ?? input.orderId;
+  }
+
+  const noteParts = [input.notes, input.vehicleInfo ? `Vehicle: ${input.vehicleInfo}` : null].filter(Boolean);
+
+  const existing = await prisma.deliveryAssignment.findFirst({
+    where: { tenantId, orderId: input.orderId, status: { in: ["ASSIGNED", "ACCEPTED", "PICKED_UP"] } },
+  });
+  if (existing) {
+    return NextResponse.json({ data: existing, meta: { reused: true } }, { status: 200 });
   }
 
   const assignment = await prisma.deliveryAssignment.create({
     data: {
       tenantId,
-      orderId: parsed.data.orderId,
-      orderNumber: parsed.data.orderNumber,
-      executiveId: parsed.data.executiveId,
-      notes: parsed.data.notes,
+      orderId: input.orderId,
+      orderNumber,
+      executiveId: input.executiveId,
+      notes: noteParts.length ? noteParts.join(" · ") : undefined,
     },
   });
 

@@ -11,6 +11,10 @@ import {
 import { z } from "zod";
 import type { Prisma } from "@/generated/prisma";
 import { assertSaasEntitlement } from "@/lib/assert-saas-entitlement";
+import {
+  createConfirmedSalesOrder,
+  CreateConfirmedSalesOrderError,
+} from "@/lib/create-confirmed-sales-order";
 
 const log = createLogger({ service: "sales" });
 
@@ -26,6 +30,13 @@ const createRequestSchema = z.object({
     .default("COD"),
   couponId: z.string().optional(),
   couponDiscount: z.number().min(0).default(0),
+  /**
+   * Instant order: auto-convert the request to a CONFIRMED sales order so the
+   * buyer gets immediate confirmation (storefront UX). Defaults to true for
+   * online orders; staff request-desk entries (role !== CUSTOMER) default false
+   * so they can still be reviewed before confirming.
+   */
+  autoConfirm: z.boolean().optional(),
   items: lineItemInputSchema,
 });
 
@@ -179,16 +190,71 @@ export async function POST(request: Request) {
       },
     });
 
+    // Instant order: auto-confirm online orders into a CONFIRMED sales order so
+    // the buyer gets immediate confirmation (reserves stock + starts fulfilment).
+    // Best-effort — if confirmation can't run (no published workflow, stock
+    // shortage, etc.) the request stays OPEN for staff to convert manually.
+    const wantInstant = data.autoConfirm ?? (data.isOnlineOrder || role === "CUSTOMER");
+    let confirmedOrder: { id: string; orderNumber: string; status: string } | null = null;
+    let autoConfirmError: string | null = null;
+    if (wantInstant) {
+      try {
+        const result = await createConfirmedSalesOrder({
+          tenantId,
+          userId,
+          sourceKind: "SREQ",
+          salesRequestId: sreq.id,
+        });
+        confirmedOrder = {
+          id: result.order.id,
+          orderNumber: result.order.orderNumber,
+          status: result.order.status,
+        };
+      } catch (err) {
+        autoConfirmError =
+          err instanceof CreateConfirmedSalesOrderError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : "Auto-confirm failed";
+        log.warn("sreq_auto_confirm_failed", { tenantId, sreqId: sreq.id, err: autoConfirmError });
+      }
+    }
+
     await notifyPortalCustomer({
       tenantId,
       portalUserId: customer.portalUserId,
-      type: "ORDER_PLACED",
-      title: "Sales request submitted",
-      body: `${sreq.requestNumber} is with sales. A sales order will be created after review.`,
-      metadata: { salesRequestId: sreq.id, requestNumber: sreq.requestNumber },
+      phone: customer.phone,
+      type: confirmedOrder ? "ORDER_CONFIRMED" : "ORDER_PLACED",
+      title: confirmedOrder ? "Order confirmed" : "Order received",
+      body: confirmedOrder
+        ? `Your order ${confirmedOrder.orderNumber} is confirmed and being prepared.`
+        : `${sreq.requestNumber} is with our team and will be confirmed shortly.`,
+      metadata: confirmedOrder
+        ? { salesRequestId: sreq.id, orderId: confirmedOrder.id, orderNumber: confirmedOrder.orderNumber }
+        : { salesRequestId: sreq.id, requestNumber: sreq.requestNumber },
     });
 
-    return NextResponse.json({ data: sreq }, { status: 201 });
+    // Reload the request so salesOrder is reflected after auto-confirm.
+    const finalSreq = confirmedOrder
+      ? await prisma.salesRequest.findFirst({
+          where: { id: sreq.id, tenantId },
+          include: {
+            items: true,
+            customer: { select: { id: true, name: true } },
+            salesOrder: { select: { id: true, orderNumber: true, status: true, paymentStatus: true, total: true } },
+          },
+        })
+      : sreq;
+
+    return NextResponse.json(
+      {
+        data: finalSreq,
+        order: confirmedOrder,
+        ...(autoConfirmError ? { autoConfirmError } : {}),
+      },
+      { status: 201 }
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });

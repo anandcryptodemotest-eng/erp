@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" role="img" aria-label="Orange">
+  <rect width="400" height="300" fill="#fff4e6"/>
+  <g transform="translate(200 165)">
+    <circle cx="0" cy="0" r="80" fill="#ff9a1e" stroke="#d9760a" stroke-width="6"/>
+    <circle cx="-26" cy="-22" r="16" fill="#ffc06b" opacity="0.7"/>
+    <circle cx="0" cy="-78" r="9" fill="#4c9a3a"/>
+    <path d="M-10 -82 q10 -16 24 -8" fill="none" stroke="#4c9a3a" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <text x="200" y="288" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#9a5a05">Orange</text>
+</svg>

@@ -239,11 +239,10 @@ export default function CheckoutPage() {
       })),
     };
 
-    const res = await api<{ data: { id: string; requestNumber: string; status: string } }>(
-      "sales",
-      "/api/sales-requests",
-      { method: "POST", body: JSON.stringify(body) }
-    );
+    const res = await api<{
+      data: { id: string; requestNumber: string; status: string };
+      order?: { id: string; orderNumber: string; status: string } | null;
+    }>("sales", "/api/sales-requests", { method: "POST", body: JSON.stringify(body) });
     if (res.error) {
       setPlacing(false);
       setError(res.error);
@@ -255,6 +254,8 @@ export default function CheckoutPage() {
       setError("Request created but response was incomplete");
       return;
     }
+    // Instant order: the request auto-confirmed into a sales order.
+    const confirmedOrder = res.data?.order ?? null;
 
     // Attach buyer files (PO / site photo) — non-fatal if one fails
     const uploadErrors: string[] = [];
@@ -280,11 +281,41 @@ export default function CheckoutPage() {
       if (linked.error) uploadErrors.push(file.name);
     }
 
+    // Prepaid instant order: collect payment now (dev mode auto-settles; live
+    // mode opens the PSP). COD/counter/bank-transfer skip online payment.
+    let paid = false;
+    const prepaid = !["COD", "COUNTER", "BANK_TRANSFER"].includes(paymentMethod);
+    if (confirmedOrder && prepaid) {
+      const create = await api<{
+        data: { providerOrderId: string; devMode: boolean; keyId: string | null; amount: number };
+      }>("gateway", `/api/portal/orders/${confirmedOrder.id}/pay`, {
+        method: "POST",
+        body: JSON.stringify({ method: paymentMethod }),
+      });
+      const intent = create.data?.data;
+      if (intent?.providerOrderId && intent.devMode) {
+        // Dev mode: no PSP UI — settle immediately so the demo prepaid flow completes.
+        const verify = await api<{ data: { paymentStatus: string } }>(
+          "gateway",
+          `/api/portal/orders/${confirmedOrder.id}/pay/verify`,
+          { method: "POST", body: JSON.stringify({ providerOrderId: intent.providerOrderId }) }
+        );
+        paid = verify.data?.data?.paymentStatus === "PAID";
+      }
+      // LIVE mode (intent.keyId present) would open Razorpay Checkout here; left
+      // to the PSP widget integration. The order is already placed either way.
+    }
+
     setPlacing(false);
     clearCart();
-    const q = new URLSearchParams({ placed: "1", type: "sreq" });
+
+    // Route to the confirmed order when we have one, else the request page.
+    const target = confirmedOrder ? confirmedOrder.id : sreq.id;
+    const q = new URLSearchParams({ placed: "1", type: confirmedOrder ? "order" : "sreq" });
+    if (confirmedOrder) q.set("confirmed", "1");
+    if (paid) q.set("paid", "1");
     if (uploadErrors.length) q.set("attachWarn", String(uploadErrors.length));
-    router.push(`/orders/${sreq.id}?${q.toString()}`);
+    router.push(`/orders/${target}?${q.toString()}`);
   }
 
   const host = useMemo(

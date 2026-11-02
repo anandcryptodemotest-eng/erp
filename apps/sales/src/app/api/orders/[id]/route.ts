@@ -518,6 +518,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       await notifyPortalCustomer({
         tenantId,
         portalUserId: order.customer.portalUserId,
+        phone: order.customer.phone,
         type: "ORDER_CANCELLED",
         title: "Order cancelled",
         body: `${order.orderNumber} was cancelled.`,

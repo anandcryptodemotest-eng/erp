@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" role="img" aria-label="Lemon">
+  <rect width="400" height="300" fill="#fffde6"/>
+  <g transform="translate(200 160)">
+    <ellipse cx="0" cy="0" rx="92" ry="66" fill="#f6e01a" stroke="#cbb60a" stroke-width="6"/>
+    <circle cx="96" cy="0" r="8" fill="#d9c40a"/>
+    <circle cx="-96" cy="0" r="8" fill="#d9c40a"/>
+    <ellipse cx="-30" cy="-18" rx="22" ry="14" fill="#fff07a" opacity="0.7"/>
+  </g>
+  <text x="200" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#8a7a00">Lemon</text>
+</svg>

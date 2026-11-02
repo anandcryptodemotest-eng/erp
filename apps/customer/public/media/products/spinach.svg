@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" role="img" aria-label="Spinach">
+  <rect width="400" height="300" fill="#eef7ea"/>
+  <g transform="translate(200 150)" stroke="#2e6b2a" stroke-width="4">
+    <path d="M0 90 C -10 20, -30 -30, -70 -60 C -30 -40, -10 10, 0 60 Z" fill="#4c9a3a"/>
+    <path d="M0 90 C 10 20, 30 -30, 70 -60 C 30 -40, 10 10, 0 60 Z" fill="#54a83f"/>
+    <path d="M0 95 C -4 10, -6 -50, -10 -90 C 6 -50, 6 10, 0 70 Z" fill="#3f8a30"/>
+    <path d="M0 92 C 2 20, 6 -36, 36 -78 C 8 -44, 2 8, 0 62 Z" fill="#5cb347"/>
+    <path d="M0 92 C -2 20, -6 -36, -36 -78 C -8 -44, -2 8, 0 62 Z" fill="#5cb347"/>
+  </g>
+  <text x="200" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#265522">Spinach</text>
+</svg>

@@ -15,6 +15,9 @@ const createQuoteSchema = z.object({
     quantity: z.number().positive(), // Float: supports weight-based lines (e.g. 0.5 kg)
     unitPrice: z.number().positive(),
     discount: z.number().min(0).max(100).default(0),
+    /** GST rate as a fraction (e.g. 0.18). Omitted → 0; the invoice engine
+     *  applies the authoritative product/HSN rate at billing time. */
+    taxRate: z.number().min(0).max(1).optional(),
   })).min(1),
 });
 
@@ -77,13 +80,17 @@ export async function POST(request: Request) {
       }
     }
 
-    const TAX_RATE = parseFloat(process.env.TAX_RATE ?? "0.10");
+    // Per-line tax from the caller-supplied rate (fraction). No flat house rate:
+    // the authoritative GST is resolved per product/HSN at invoice time.
     const items = data.items.map((item) => {
       const lineTotal = item.quantity * item.unitPrice * (1 - item.discount / 100);
       return { ...item, total: lineTotal };
     });
     const subtotal = items.reduce((sum, i) => sum + i.total, 0);
-    const tax = subtotal * TAX_RATE;
+    const tax = data.items.reduce((sum, item) => {
+      const lineTotal = item.quantity * item.unitPrice * (1 - item.discount / 100);
+      return sum + lineTotal * (item.taxRate ?? 0);
+    }, 0);
     const total = subtotal + tax;
 
     const count = await prisma.quote.count({ where: { tenantId } });
@@ -102,7 +109,17 @@ export async function POST(request: Request) {
         tax,
         total,
         notes: data.notes,
-        items: { create: items },
+        items: {
+          create: items.map((i) => ({
+            productId: i.productId,
+            productName: i.productName,
+            variantId: i.variantId,
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+            discount: i.discount,
+            total: i.total,
+          })),
+        },
       },
       include: { items: true, customer: { select: { id: true, name: true } } },
     });

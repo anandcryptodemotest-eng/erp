@@ -232,11 +232,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           status: "REJECTED",
           rejectReason: data.rejectReason.trim(),
         },
-        include: { items: true, customer: { select: { id: true, name: true } }, salesOrder: true },
+        include: {
+          items: true,
+          customer: { select: { id: true, name: true, portalUserId: true, phone: true } },
+          salesOrder: true,
+        },
       });
       await notifyPortalCustomer({
         tenantId,
         portalUserId: sreq.customer.portalUserId,
+        phone: sreq.customer.phone,
         type: "ORDER_UPDATED",
         title: "Sales request rejected",
         body: `${updated.requestNumber} was rejected. ${updated.rejectReason ?? ""}`.trim(),

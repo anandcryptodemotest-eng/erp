@@ -16,6 +16,11 @@ const updateSchema = z.object({
   status: z.enum(["ACCEPTED", "PICKED_UP", "DELIVERED", "FAILED", "CANCELLED"]),
   failureReason: z.string().optional(),
   notes: z.string().optional(),
+  // Proof of delivery — supplied by the driver app on DELIVERED.
+  podPhotoUrl: z.string().optional(),
+  podSignatureUrl: z.string().optional(),
+  podRecipientName: z.string().optional(),
+  podNotes: z.string().optional(),
 });
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -58,41 +63,42 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (parsed.data.status === "DELIVERED") timestamps.deliveredAt = now;
   if (parsed.data.status === "FAILED") timestamps.failedAt = now;
 
-  // When delivered, notify sales service to advance the order status
-  if (parsed.data.status === "DELIVERED" && existing.orderId) {
-    const userId = request.headers.get("x-user-id") ?? "";
-    const omsDelivery = await serviceClient.call("sales", `/api/orders/${existing.orderId}?action=deliver-oms`, {
-      method: "PATCH",
-      body: {},
-      tenantId,
-      userId,
-    });
-    if (omsDelivery.status >= 400) {
-      const fallbackDelivery = await serviceClient.call("sales", `/api/orders/${existing.orderId}?action=delivered`, {
-        method: "PATCH",
-        body: {},
-        tenantId,
-        userId,
-      });
-      if (fallbackDelivery.status >= 400) {
-        const errBody = fallbackDelivery.data as { error?: string } | undefined;
-        return NextResponse.json(
-          { error: errBody?.error ?? fallbackDelivery.error ?? "Sales delivery update failed" },
-          { status: 502 }
-        );
-      }
-    }
-  }
-
+  // Persist the local delivery state + proof of delivery FIRST — this is the
+  // source of truth for the assignment and must not be lost if the cross-service
+  // sales callback fails.
   const assignment = await prisma.deliveryAssignment.update({
     where: { id },
     data: {
       status: parsed.data.status,
       ...(parsed.data.failureReason && { failureReason: parsed.data.failureReason }),
       ...(parsed.data.notes && { notes: parsed.data.notes }),
+      ...(parsed.data.podPhotoUrl && { podPhotoUrl: parsed.data.podPhotoUrl }),
+      ...(parsed.data.podSignatureUrl && { podSignatureUrl: parsed.data.podSignatureUrl }),
+      ...(parsed.data.podRecipientName && { podRecipientName: parsed.data.podRecipientName }),
+      ...(parsed.data.podNotes && { podNotes: parsed.data.podNotes }),
       ...timestamps,
     },
   });
 
-  return NextResponse.json({ data: assignment });
+  // When delivered, advance the sales order — best-effort. A failure here (e.g.
+  // the order isn't in a deliverable state) does NOT roll back the delivery
+  // record; we surface a non-fatal warning instead of a hard error.
+  let salesSyncWarning: string | undefined;
+  if (parsed.data.status === "DELIVERED" && existing.orderId) {
+    const userId = request.headers.get("x-user-id") ?? "";
+    let res = await serviceClient.call("sales", `/api/orders/${existing.orderId}?action=deliver-oms`, {
+      method: "PATCH", body: {}, tenantId, userId,
+    });
+    if (res.status >= 400) {
+      res = await serviceClient.call("sales", `/api/orders/${existing.orderId}?action=delivered`, {
+        method: "PATCH", body: {}, tenantId, userId,
+      });
+    }
+    if (res.status >= 400) {
+      const errBody = res.data as { error?: string } | undefined;
+      salesSyncWarning = errBody?.error ?? res.error ?? "Sales delivery update failed";
+    }
+  }
+
+  return NextResponse.json({ data: assignment, ...(salesSyncWarning ? { salesSyncWarning } : {}) });
 }

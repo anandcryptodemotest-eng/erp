@@ -24,6 +24,38 @@ import {
 } from "@/lib/task-payloads";
 import { canCompleteDispatch, normalizeDispatchPayload } from "@erp/types";
 import { serviceClient } from "@erp/config";
+import { createLogger } from "@erp/logger";
+import { notifyPortalCustomer } from "@/lib/notify-customer";
+
+const log = createLogger({ service: "sales" });
+
+/** Notify the buyer about an order event (best-effort, multi-channel). */
+async function notifyBuyer(
+  tenantId: string,
+  orderId: string,
+  type: string,
+  title: string,
+  body: (orderNumber: string) => string
+): Promise<void> {
+  try {
+    const order = await prisma.salesOrder.findFirst({
+      where: { id: orderId, tenantId },
+      select: { orderNumber: true, customer: { select: { portalUserId: true, phone: true } } },
+    });
+    if (!order?.customer?.portalUserId) return;
+    await notifyPortalCustomer({
+      tenantId,
+      portalUserId: order.customer.portalUserId,
+      phone: order.customer.phone,
+      type,
+      title,
+      body: body(order.orderNumber),
+      metadata: { orderId, orderNumber: order.orderNumber },
+    });
+  } catch (err) {
+    log.warn("notify_buyer_failed", { orderId, tenantId, err });
+  }
+}
 
 export const salesOrderAdapter: WorkflowDomainAdapter = {
   async loadEntity(entityType, entityId): Promise<EntitySnapshot> {
@@ -153,9 +185,19 @@ export function registerDefaultSalesHandlers() {
     payload: (payload as Record<string, unknown>) ?? {},
   });
 
-  for (const type of ["DELIVERY_CONFIRM", "ORDER_CLOSE"]) {
-    registerSalesTaskHandler(type, passthrough);
-  }
+  registerSalesTaskHandler("ORDER_CLOSE", passthrough);
+
+  // Delivery confirmation: advance status (passthrough behaviour) AND notify the buyer.
+  registerSalesTaskHandler("DELIVERY_CONFIRM", async (task, payload, ctx) => {
+    await notifyBuyer(
+      ctx.tenantId,
+      ctx.instance.entityId,
+      "ORDER_DELIVERED",
+      "Order delivered",
+      (n) => `Your order ${n} has been delivered. Thank you for shopping with us!`
+    );
+    return passthrough(task, payload, ctx);
+  });
 
   registerSalesTaskHandler("WAREHOUSE_PICK", async (_task, payload, ctx) => {
     const p = (payload && typeof payload === "object" ? payload : {}) as Record<string, unknown>;
@@ -544,19 +586,35 @@ export function registerDefaultSalesHandlers() {
         dispatchedAt: new Date(),
       },
     });
-    if (normalized.fulfillmentMode === "own_fleet") {
-      try {
-        await serviceClient.call("delivery", "/api/assignments", {
+    let deliveryAssignment: { assignmentId?: string; warning?: string } = {};
+    if (normalized.fulfillmentMode === "own_fleet" && normalized.assignedDriverId) {
+      const orderForNumber = await prisma.salesOrder.findFirst({
+        where: { id: orderId },
+        select: { orderNumber: true },
+      });
+      const assign = await serviceClient.call<{ data?: { id?: string } }>(
+        "delivery",
+        "/api/assignments",
+        {
           method: "POST",
           body: {
-            salesOrderId: orderId,
-            driverId: normalized.assignedDriverId,
+            orderId,
+            orderNumber: orderForNumber?.orderNumber,
+            executiveId: normalized.assignedDriverId,
             vehicleInfo: normalized.vehicleInfo,
           },
           tenantId: ctx.tenantId,
-        });
-      } catch {
-        /* delivery service optional during cutover */
+          userId: ctx.actorUserId,
+        }
+      );
+      if (assign.status >= 200 && assign.status < 300) {
+        deliveryAssignment = { assignmentId: assign.data?.data?.id };
+      } else {
+        // Non-fatal: dispatch/stock still proceeds, but we no longer hide the failure.
+        const errBody = assign.data as { error?: string } | undefined;
+        const warning = assign.error || errBody?.error || `Delivery assignment failed (${assign.status})`;
+        deliveryAssignment = { warning };
+        log.warn("dispatch_delivery_assignment_failed", { orderId, tenantId: ctx.tenantId, warning });
       }
     }
 
@@ -586,10 +644,20 @@ export function registerDefaultSalesHandlers() {
       }
     }
 
+    await notifyBuyer(
+      ctx.tenantId,
+      orderId,
+      "ORDER_OUT_FOR_DELIVERY",
+      "Out for delivery",
+      (n) => `Your order ${n} is out for delivery and on its way.`
+    );
+
     return {
       payload: {
         ...normalized,
         dispatchRemarks: remarks,
+        ...(deliveryAssignment.assignmentId ? { deliveryAssignmentId: deliveryAssignment.assignmentId } : {}),
+        ...(deliveryAssignment.warning ? { deliveryAssignmentWarning: deliveryAssignment.warning } : {}),
       } as Record<string, unknown>,
     };
   });

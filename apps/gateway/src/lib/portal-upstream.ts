@@ -3,6 +3,7 @@ import { getServiceSecret } from "@erp/auth";
 
 const INVENTORY_URL = process.env.INVENTORY_SERVICE_URL ?? "http://127.0.0.1:3002";
 const SALES_URL = process.env.SALES_SERVICE_URL ?? "http://127.0.0.1:3001";
+const DELIVERY_URL = process.env.DELIVERY_SERVICE_URL ?? "http://127.0.0.1:3006";
 
 function serviceHeaders(tenantId: string, extra?: HeadersInit): Headers {
   const h = new Headers(extra);
@@ -55,6 +56,20 @@ export async function portalSales<T = unknown>(
   init?: RequestInit
 ): Promise<{ status: number; json: T }> {
   const res = await fetch(`${SALES_URL}${path}`, {
+    ...init,
+    headers: serviceHeaders(tenantId, init?.headers),
+    cache: "no-store",
+  });
+  const json = (await res.json()) as T;
+  return { status: res.status, json };
+}
+
+export async function portalDelivery<T = unknown>(
+  tenantId: string,
+  path: string,
+  init?: RequestInit
+): Promise<{ status: number; json: T }> {
+  const res = await fetch(`${DELIVERY_URL}${path}`, {
     ...init,
     headers: serviceHeaders(tenantId, init?.headers),
     cache: "no-store",

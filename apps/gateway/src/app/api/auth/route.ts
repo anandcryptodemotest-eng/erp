@@ -24,6 +24,7 @@ import {
   OtpError,
 } from "@/lib/identity/otp-service";
 import { IntegrationEncryptionError } from "@/lib/integrations/crypto";
+import { provisionTenant, ProvisionTenantError } from "@/lib/provision-tenant";
 
 const log = createLogger({ service: "gateway" });
 
@@ -83,6 +84,8 @@ const registerSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(8),
+  /** Onboarding recipe for the new workspace; defaults to a general OMS tenant. */
+  vertical: z.enum(["grocery", "general"]).optional(),
 });
 
 const registerCustomerSchema = z.object({
@@ -424,38 +427,48 @@ async function handleRegister(request: Request) {
 
   try {
     const body = await request.json();
-    const { name, email, password } = registerSchema.parse(body);
+    const { name, email, password, vertical } = registerSchema.parse(body);
 
     const exists = await prisma.user.findUnique({ where: { email } });
     if (exists) {
       return NextResponse.json({ error: "Email already registered" }, { status: 409 });
     }
 
-    const hashedPassword = await hashPassword(password);
-    const user = await prisma.user.create({
-      data: { name, email, emailVerified: false },
-    });
-    await prisma.authCredential.create({
-      data: { userId: user.id, type: "PASSWORD", passwordHash: hashedPassword },
-    });
-
-    // Auto-create a personal workspace
-    const baseSlug = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
+    // Reserve a unique slug for the personal workspace.
+    const baseSlug = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "") || "org";
     let slug = `${baseSlug}-org`;
-    const taken = await prisma.tenant.findUnique({ where: { slug } });
-    if (taken) slug = `${baseSlug}-org-${Date.now()}`;
+    if (await prisma.tenant.findUnique({ where: { slug } })) {
+      slug = `${baseSlug}-org-${Date.now()}`;
+    }
 
-    const tenant = await prisma.tenant.create({ data: { name: `${name}'s Organization`, slug } });
-    await prisma.$transaction([
-      prisma.tenantUser.create({ data: { tenantId: tenant.id, userId: user.id, role: "ADMIN" } }),
-      prisma.moduleLicense.create({ data: { tenantId: tenant.id, moduleId: "core", plan: "basic" } }),
-    ]);
+    // Provision a FULLY USABLE tenant (modules + order workflow + warehouse),
+    // same path the platform operator uses — no more bare "core"-only orgs.
+    const result = await provisionTenant(
+      {
+        name: `${name}'s Organization`,
+        slug,
+        adminEmail: email,
+        adminName: name,
+        adminPassword: password,
+        vertical: vertical ?? "general",
+      },
+      { requestId: request.headers.get("x-request-id") ?? undefined }
+    );
 
     return NextResponse.json(
-      { data: { userId: user.id, message: "Account created. Please log in." } },
+      {
+        data: {
+          tenantId: result.tenant.id,
+          slug: result.tenant.slug,
+          message: "Account created. Please log in.",
+        },
+      },
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof ProvisionTenantError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
     }

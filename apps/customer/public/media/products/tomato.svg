@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" role="img" aria-label="Tomato">
+  <rect width="400" height="300" fill="#fff1ee"/>
+  <g transform="translate(200 165)">
+    <circle cx="0" cy="0" r="82" fill="#e53935" stroke="#b02a26" stroke-width="6"/>
+    <ellipse cx="-28" cy="-18" rx="20" ry="28" fill="#ff6f60" opacity="0.6"/>
+    <g fill="#4a9d3f" stroke="#2f6e2a" stroke-width="2">
+      <path d="M0 -78 l-14 -26 l10 22 l-26 -14 l22 18 l-28 2 l26 8 l-20 16 l24 -10 l0 0 Z"/>
+      <path d="M0 -82 l14 -24 l-8 22 l24 -12 l-20 18 l26 4 l-26 6 Z"/>
+    </g>
+    <circle cx="0" cy="-74" r="8" fill="#3c7a33"/>
+  </g>
+  <text x="200" y="288" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#8a1f1b">Tomato</text>
+</svg>

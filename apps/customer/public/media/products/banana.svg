@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" role="img" aria-label="Banana">
+  <rect width="400" height="300" fill="#fff9e6"/>
+  <g transform="translate(200 150)">
+    <path d="M-120 -70 C -40 90, 120 90, 130 -30 C 120 40, -20 50, -95 -70 Z" fill="#f6c915" stroke="#caa008" stroke-width="6"/>
+    <path d="M-120 -70 C -40 90, 120 90, 130 -30" fill="none" stroke="#e0b200" stroke-width="4" opacity="0.6"/>
+    <rect x="-128" y="-86" width="22" height="18" rx="4" fill="#6b5a1e"/>
+    <path d="M115 -40 l18 -14" stroke="#6b5a1e" stroke-width="8" stroke-linecap="round"/>
+  </g>
+  <text x="200" y="278" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#5a4a00">Banana</text>
+</svg>
